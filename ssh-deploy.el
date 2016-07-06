@@ -1,4 +1,4 @@
-;;; ssh-deploy.el --- Per directory deployment via SSH
+;;; ssh-deploy.el --- Deployment via SSH, global or per directory.
 
 ;; Copyright (C) 2016 Christian Johansson
 
@@ -29,14 +29,14 @@
 ;;; Commentary:
 
 ;; `ssh-deploy' enables automatic deploys on explicit-save, manual
-;; uploads, manual downloads and manual diffs via key-pair authorized
-;; SSH connections.  It uses tramp, scp and ediff.  By setting the
-;;; variables (globally or per directory):
+;; uploads, manual downloads and manual diffs via key-pair
+;; password-less authorized SSH connections.  Do to this it uses tramp,
+;; scp and ediff.  By setting the variables (globally or per directory):
 ;; `ssh-deploy-root-local`,`ssh-deploy-root-remote`,
 ;; `ssh-deploy-on-explicity-save` you can setup a directory for
 ;; SSH deploy.  The variable `ssh-deploy-key-binding-prefix` controls
 ;; they key-binding-prefix for `u` (upload), `x` (difference) or
-;; `d` (download).
+;; `d` (download).  The default key-binding is "C-c C-z".  '
 ;;
 ;; Please see README.md from the same repository for documentation.
 
