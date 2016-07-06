@@ -36,7 +36,7 @@
 ;; `ssh-deploy-on-explicity-save` you can setup a directory for
 ;; SSH deploy.  The variable `ssh-deploy-key-binding-prefix` controls
 ;; they key-binding-prefix for `u` (upload), `x` (difference) or
-;; `d` (download).  The default key-binding is "C-c C-z".  '
+;; `d` (download).  The default key-binding-prefix is "C-c C-z".  '
 ;;
 ;; Please see README.md from the same repository for documentation.
 
