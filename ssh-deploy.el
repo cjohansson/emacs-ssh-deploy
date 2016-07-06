@@ -30,7 +30,7 @@
 
 ;; `ssh-deploy' enables automatic deploys on explicit-save, manual
 ;; uploads, manual downloads and manual diffs via key-pair
-;; password-less authorized SSH connections.  Do to this it uses tramp,
+;; password-less authorized SSH connections.  To do this it uses tramp,
 ;; scp and ediff.  By setting the variables (globally or per directory):
 ;; `ssh-deploy-root-local`,`ssh-deploy-root-remote`,
 ;; `ssh-deploy-on-explicity-save` you can setup a directory for
