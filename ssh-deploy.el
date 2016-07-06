@@ -7,7 +7,6 @@
 ;; Created: 5 Jul 2016
 ;; Modified: 6 Jul 2016
 ;; Version: 1.0
-;; Package-Requires: ((tramp "2.0"))
 ;; Keywords: ssh deploy package
 ;; URL: https://github.com/cjohansson/emacs-ssh-deploy
 
