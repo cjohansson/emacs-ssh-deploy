@@ -1,7 +1,45 @@
-;;; ssh-deploy.el --- Syncing of files using SSH
-;;; Author: Christian Johansson <christian@cvj.se>
-;;; TODO: Add options for checking if remote contents has changed contents
+;;; ssh-deploy.el --- Per directory deployment via SSH
+
+;; Copyright (C) 2016 Christian Johansson
+
+;; Author: Christian Johansson <christian@cvj.se>
+;; Maintainer: Christian Johansson <christian@cvj.se>
+;; Created: 5 Jul 2016
+;; Modified: 6 Jul 2016
+;; Version: 1.0
+;; Package-Requires: ((tramp "2.0"))
+;; Keywords: ssh deploy package
+;; URL: https://github.com/cjohansson/emacs-ssh-deploy
+
+;; This program is free software; you can redistribute it and/or
+;; modify it under the terms of the GNU General Public License as
+;; published by the Free Software Foundation; either version 2, or (at
+;; your option) any later version.
+
+;; This program is distributed in the hope that it will be useful, but
+;; WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+;; General Public License for more details.
+
+;; You should have received a copy of the GNU General Public License
+;; along with GNU Emacs; see the file COPYING.  If not, write to the
+;; Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+;; Boston, MA 02111-1307, USA.
+
 ;;; Commentary:
+
+;; `ssh-deploy' enables automatic deploys on explicit-save, manual
+;; uploads, manual downloads and manual diffs via key-pair authorized
+;; SSH connections.  It uses tramp, scp and ediff.  By setting the
+;;; variables (globally or per directory):
+;; `ssh-deploy-root-local`,`ssh-deploy-root-remote`,
+;; `ssh-deploy-on-explicity-save` you can setup a directory for
+;; SSH deploy.  The variable `ssh-deploy-key-binding-prefix` controls
+;; they key-binding-prefix for `u` (upload), `x` (difference) or
+;; `d` (download).
+;;
+;; Please see README.md from the same repository for documentation.
+
 ;;; Code:
 
 ;; Variables
