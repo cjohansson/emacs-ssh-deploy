@@ -43,9 +43,9 @@ The above configuration uses the plugin `use-package` which I highly recommend.
 
 ## TODO
 
-* Add a message if remote contents has changed since last upload.
-* Add support for specific ssh identity files
-* Add support for specific ssh ports
+* Add a message if remote contents has changed since last upload
+* Add support for specific SSH identity files
+* Add support for specific SSH ports
 * Add support for directories
 
 ## Read more
