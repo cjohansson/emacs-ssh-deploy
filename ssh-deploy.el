@@ -1,14 +1,16 @@
 ;;; ssh-deploy.el --- Deployment via SSH, global or per directory.
 
-;; Copyright (C) 2016 Christian Johansson
-
-;; Author: Christian Johansson <christian@cvj.se>
-;; Maintainer: Christian Johansson <christian@cvj.se>
+;; Author: Christian Johansson <github.com/cjohansson>
+;; Maintainer: Christian Johansson <github.com/cjohansson>
 ;; Created: 5 Jul 2016
 ;; Modified: 11 Jul 2016
 ;; Version: 1.0
-;; Keywords: SSH deploy package
+;; Keywords: tools, convenience
 ;; URL: https://github.com/cjohansson/emacs-ssh-deploy
+
+;; This file is not part of GNU Emacs.
+
+;; Copyright (C) 2016 Christian Johansson
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -35,13 +37,13 @@
 ;; `ssh-deploy-on-explicity-save` you can setup a directory for
 ;; SSH deploy.
 ;;
-;; To setup hook on explicit save do this:
-;; (add-hook 'after-save-hook (lambda() (if ssh-deploy-on-explicity-save (ssh-deploy-upload-handler)) ))
+;; - To setup hook on explicit save do this:
+;;     (add-hook 'after-save-hook (lambda() (if ssh-deploy-on-explicity-save (ssh-deploy-upload-handler)) ))
 ;;
-;; To set key-bindings do something like this:
-;; (global-set-key (kbd "C-c C-z u") (lambda() (interactive)(ssh-deploy-upload-handler) ))
-;; (global-set-key (kbd "C-c C-z d") (lambda() (interactive)(ssh-deploy-download-handler)(revert-buffer) ))
-;; (global-set-key (kbd "C-c C-z x") (lambda() (interactive)(ssh-deploy-diff-handler) ))
+;; - To set key-bindings do something like this:
+;;     (global-set-key (kbd "C-c C-z u") (lambda() (interactive)(ssh-deploy-upload-handler) ))
+;;     (global-set-key (kbd "C-c C-z d") (lambda() (interactive)(ssh-deploy-download-handler)(revert-buffer) ))
+;;     (global-set-key (kbd "C-c C-z x") (lambda() (interactive)(ssh-deploy-diff-handler) ))
 ;;
 ;; Please see README.md from the same repository for documentation.
 
@@ -49,9 +51,9 @@
 
 (defgroup ssh-deploy nil
   "Upload, download and difference handler for files on remote hosts via SSH."
-:group 'ssh-deploy)
+  :group 'tools
+  :group 'convenience)
 
-;; Variables
 (defcustom ssh-deploy-root-local nil
   "String variable of local root, nil by default."
   :type 'string
@@ -67,8 +69,6 @@
   :type 'boolean
   :group 'ssh-deploy)
 
-
-;; Functions
 (defun ssh-deploy-diff (local-root-raw remote-root)
   "Find differences between the path LOCAL-ROOT-RAW with REMOTE-ROOT via ssh."
   (let ((filename (shell-quote-argument buffer-file-name))
@@ -129,7 +129,6 @@
   (if (and (ssh-deploy-is-not-empty-string ssh-deploy-root-local) (ssh-deploy-is-not-empty-string ssh-deploy-root-remote) (ssh-deploy-is-not-empty-string buffer-file-name))
       (ssh-deploy-diff ssh-deploy-root-local ssh-deploy-root-remote)
     ))
-
 
 (provide 'ssh-deploy)
 ;;; ssh-deploy.el ends here
