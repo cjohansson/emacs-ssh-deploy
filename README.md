@@ -11,13 +11,13 @@ This application is made by Christian Johansson <christian@cvj.se> 2016 and is l
 
 ## A setup example
 
-* Download ssh-deploy and place it at `~/.emacs.d/ssh-deploy/`.
+* Download ssh-deploy and place it at `~/.emacs.d/ssh-deploy/` or install via `package.el` from the `MELPA` repository.
 
 * Create this `DirectoryVariables` file in your project root at `/Users/username/Web/MySite/.dir-locals.el`.
 
 ``` elisp
 ((nil . ((ssh-deploy-root-local . "/Users/username/Web/MySite/")
-(ssh-deploy-root-remote . "/Volumes/myserver.com/MySite/")
+(ssh-deploy-root-remote . "user@myserver.com:/MySite/")
 (ssh-deploy-on-explicity-save . t))))
 ```
 
@@ -34,22 +34,23 @@ This application is made by Christian Johansson <christian@cvj.se> 2016 and is l
   (global-set-key (kbd "C-c C-z x") (lambda() (interactive)(ssh-deploy-diff-handler) )))
 ```
 
-* Now when you save a file somewhere under the root `/Users/username/Web/MySite/`, the script will launch and deploy the file with the remote server.
+* Now when you save a file somewhere under the directory `/Users/username/Web/MySite/`, the script will launch and deploy the file with the remote server.
 * If you press `C-c C-z x` you will launch a `ediff` session showing differences between local file and remote file using `tramp`.
 * If you press `C-c C-z u` you will upload local file to remote host.
 * If you press `C-c C-z d` you will download file from remote host and reload current buffer.
 
 The above configuration uses the plugin `use-package` which I highly recommend.
 
-## TODO
+## Items TODO:
 
 * Add a message if remote contents has changed since last upload
 * Add support for specific SSH identity files
 * Add support for specific SSH ports
-* Add support for directories
+* Add support for upload/download/diff of directories
 
 ## Read more
 * <https://www.emacswiki.org/emacs/DirectoryVariables>
 * <http://www.gnu.org/software/tramp/>
 * <https://github.com/jwiegley/use-package>
 * <https://www.emacswiki.org/emacs/EdiffMode>
+* <http://melpa.org/>
