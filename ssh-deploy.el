@@ -73,7 +73,7 @@
   "Find differences between the path LOCAL-ROOT-RAW with REMOTE-ROOT via ssh."
   (let ((filename (shell-quote-argument buffer-file-name))
         (local-root (shell-quote-argument local-root-raw)))
-    (let ((remote-path (concat "/" remote-root (replace-regexp-in-string local-root "" filename))))
+    (let ((remote-path (concat "/ssh:" remote-root (replace-regexp-in-string local-root "" filename))))
       (if (string-match local-root filename)
           (progn
 	    (message "Comparing file '%s' to '%s'.." filename remote-path)
