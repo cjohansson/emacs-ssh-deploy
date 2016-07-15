@@ -3,8 +3,8 @@
 ;; Author: Christian Johansson <github.com/cjohansson>
 ;; Maintainer: Christian Johansson <github.com/cjohansson>
 ;; Created: 5 Jul 2016
-;; Modified: 11 Jul 2016
-;; Version: 1.0
+;; Modified: 15 Jul 2016
+;; Version: 1.1
 ;; Keywords: tools, convenience
 ;; URL: https://github.com/cjohansson/emacs-ssh-deploy
 
@@ -34,11 +34,11 @@
 ;; password-less authorized SSH connections.  To do this it uses tramp,
 ;; scp and ediff.  By setting the variables (globally or per directory):
 ;; `ssh-deploy-root-local`,`ssh-deploy-root-remote`,
-;; `ssh-deploy-on-explicity-save` you can setup a directory for
+;; `ssh-deploy-on-explicit-save` you can setup a directory for
 ;; SSH deploy.
 ;;
 ;; - To setup hook on explicit save do this:
-;;     (add-hook 'after-save-hook (lambda() (if ssh-deploy-on-explicity-save (ssh-deploy-upload-handler)) ))
+;;     (add-hook 'after-save-hook (lambda() (if ssh-deploy-on-explicit-save (ssh-deploy-upload-handler)) ))
 ;;
 ;; - To set key-bindings do something like this:
 ;;     (global-set-key (kbd "C-c C-z u") (lambda() (interactive)(ssh-deploy-upload-handler) ))
@@ -64,7 +64,7 @@
   :type 'string
   :group 'ssh-deploy)
 
-(defcustom ssh-deploy-on-explicity-save nil
+(defcustom ssh-deploy-on-explicit-save nil
   "Boolean variable if deploy should be made on explicit save, nil by default."
   :type 'boolean
   :group 'ssh-deploy)

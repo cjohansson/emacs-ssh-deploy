@@ -17,22 +17,24 @@ This application is made by Christian Johansson <christian@cvj.se> 2016 and is l
 
 ``` elisp
 ((nil . ((ssh-deploy-root-local . "/Users/username/Web/MySite/")
-(ssh-deploy-root-remote . "user@myserver.com:/MySite/")
-(ssh-deploy-on-explicity-save . t))))
+(ssh-deploy-root-remote . "user@myserver.com:/var/www/MySite/")
+(ssh-deploy-on-explicit-save . t))))
 ```
 
 * And add this to your *emacs-init-script*:
 
 ``` elisp
 ;; ssh-deploy - prefix = C-c C-z, u = upload, d = download, x = diff
-(add-to-list 'load-path "~/.emacs.d/ssh-deploy/")
+(add-to-list 'load-path "~/.emacs.d/ssh-deploy/") ;; Comment out this line if installed from MELPA
 (use-package ssh-deploy
   :config
-  (add-hook 'after-save-hook (lambda() (if ssh-deploy-on-explicity-save (ssh-deploy-upload-handler)) ))
+  (add-hook 'after-save-hook (lambda() (if ssh-deploy-on-explicit-save (ssh-deploy-upload-handler)) ))
   (global-set-key (kbd "C-c C-z u") (lambda() (interactive)(ssh-deploy-upload-handler) ))
   (global-set-key (kbd "C-c C-z d") (lambda() (interactive)(ssh-deploy-download-handler)(revert-buffer) ))
   (global-set-key (kbd "C-c C-z x") (lambda() (interactive)(ssh-deploy-diff-handler) )))
 ```
+
+You can remove the `add-to-list` line if you installed via `MELPA` repository.
 
 * Now when you save a file somewhere under the directory `/Users/username/Web/MySite/`, the script will launch and deploy the file with the remote server.
 * If you press `C-c C-z x` you will launch a `ediff` session showing differences between local file and remote file using `tramp`.
@@ -40,13 +42,6 @@ This application is made by Christian Johansson <christian@cvj.se> 2016 and is l
 * If you press `C-c C-z d` you will download file from remote host and reload current buffer.
 
 The above configuration uses the plugin `use-package` which I highly recommend.
-
-## Items TODO:
-
-* Add a message if remote contents has changed since last upload
-* Add support for specific SSH identity files
-* Add support for specific SSH ports
-* Add support for upload/download/diff of directories
 
 ## Read more
 * <https://www.emacswiki.org/emacs/DirectoryVariables>
