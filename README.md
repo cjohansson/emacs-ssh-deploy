@@ -1,6 +1,6 @@
 # `ssh-deploy`
 
-The `ssh-deploy` plug-in makes it possible to effortlessly deploy local files and directories to remote hosts via SSH. It also makes it possible to define remote paths per directory and whether or not you want to deploy on explicit save actions or not. Also it enables manual upload and download of files and directories. You can also check differences between local files and directories and remote files and directories if you have `tramp`,`ediff` and `ztree` installed. You can browse remote hosts if you have `tramp` installed. Lastly you can easily open remote hosts terminal if you have `tramp-term` installed. **You need to have a setup which allows password-less key-based logins to servers via SSH and have scp installed locally**.
+The `ssh-deploy` plug-in makes it possible to effortlessly deploy local files and directories to remote hosts via SSH. It also makes it possible to define remote paths per directory and whether or not you want to deploy on explicit save actions or not. Also it enables manual upload and download of files and directories. You can also check differences between local files and directories and remote files and directories if you have `tramp`,`ediff` and `ztree` installed. You can also browse remote hosts if you have `tramp` installed. Lastly you can easily open remote hosts terminal if you have `tramp-term` installed. **You need to have a setup which allows password-less key-based logins to servers via SSH and have scp installed locally**.
 
 `ssh-deploy` works with `DirectoryVariables` so you can have different deploy setups in different ways for different folders.
 
@@ -24,7 +24,7 @@ This application is made by Christian Johansson <christian@cvj.se> 2016 and is l
 * And add this to your *emacs-init-script*:
 
 ``` elisp
-;; ssh-deploy - prefix = C-c C-z, u = upload, d = download, x = diff
+;; ssh-deploy - prefix = C-c C-z, u = upload, d = download, x = diff, t = terminal, b = browse
 (add-to-list 'load-path "~/.emacs.d/ssh-deploy/")
 (use-package ssh-deploy
   :config
@@ -39,11 +39,11 @@ This application is made by Christian Johansson <christian@cvj.se> 2016 and is l
 You can remove the `add-to-list` line if you installed via `MELPA` repository.
 
 * Now when you save a file somewhere under the directory `/Users/username/Web/MySite/`, the script will launch and deploy the file with the remote server.
-* If you press `C-c C-z x` you will launch a `ediff` session showing differences between local file and remote file using `tramp`.
-* If you press `C-c C-z u` you will upload local file to remote host.
-* If you press `C-c C-z d` you will download file from remote host and reload current buffer.
+* If you press `C-c C-z x` and the current buffer is a file, you will launch a `ediff` session showing differences between local file and remote file using `tramp`, or if current buffer is a directory it will show differences with remote directory using `zdiff-tree`.
+* If you press `C-c C-z u` you will upload local file or directory to remote host.
+* If you press `C-c C-z d` you will download the current file or directory from remote host and then reload current buffer.
 * If you press `C-c C-z t` you will open a terminal with remote host.
-* If you press `C-c C-z b` you will browse remote host in `dired-mode`.
+* If you press `C-c C-z b` you will browse current directory on remote host in `dired-mode`.
 
 The above configuration uses the plugin `use-package` which I highly recommend.
 

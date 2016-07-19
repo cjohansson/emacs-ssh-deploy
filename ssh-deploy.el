@@ -31,8 +31,8 @@
 
 ;; `ssh-deploy' enables automatic deploys on explicit-save, manual
 ;; uploads, downloads, differences, remote terminals and remote directory browsing
-;; via key-pair password-less authorized SSH connections.  To do this it uses tramp,
-;; tramp-term, scp, ediff and ztree-diff.
+;; via key-pair password-less authorized SSH connections.  To do this it uses `tramp',
+;; `tramp-term', `scp', `ediff' and `ztree'.
 ;; By setting the variables (globally or per directory):
 ;; `ssh-deploy-root-local`,`ssh-deploy-root-remote`,
 ;; `ssh-deploy-on-explicit-save` you can setup a directory for
