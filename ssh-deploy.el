@@ -81,9 +81,10 @@
 
 (defun ssh-deploy-browse-remote (local-root remote-root path)
   "Browse relative to LOCAL-ROOT on REMOTE-ROOT the path PATH in `dired-mode`."
-  (let ((remote-path (concat remote-root (replace-regexp-in-string local-root "" path))))
-    (message "Opening '%s' for browsing on remote host.." remote-path)
-    (dired (concat "/ssh:" remote-path))))
+  (if (ssh-deploy-file-is-in-path path local-root)
+      (let ((remote-path (concat remote-root (replace-regexp-in-string local-root "" path))))
+        (message "Opening '%s' for browsing on remote host.." remote-path)
+        (dired (concat "/ssh:" remote-path)))))
 
 (defun ssh-deploy-remote-terminal (remote-host)
   "Opens REMOTE-HOST in tramp terminal."
@@ -97,8 +98,7 @@
 
 (defun ssh-deploy-file-is-in-path (file path)
   "Return true if FILE is in the path PATH."
-  (not (null (string-match path file)))
-  )
+  (not (null (string-match path file))))
 
 (defun ssh-deploy-diff (local-root remote-root path)
   "Find differences relative to the roots LOCAL-ROOT with REMOTE-ROOT via ssh and the path PATH."
