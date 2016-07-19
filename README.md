@@ -1,10 +1,10 @@
 # `ssh-deploy`
 
-The `ssh-deploy` plugin makes it possible to effortlessly deploy local files to remote hosts via SSH. It also makes it possible to define remote paths per directory and whether or not you want to deploy on explicit save actions or not. Also it enables manual upload and download of files. You can also check differences between local file and remote file if you have `tramp` installed. **You need to have a setup which allows password-less key-based logins to servers via SSH and have scp installed locally**.
+The `ssh-deploy` plug-in makes it possible to effortlessly deploy local files and directories to remote hosts via SSH. It also makes it possible to define remote paths per directory and whether or not you want to deploy on explicit save actions or not. Also it enables manual upload and download of files and directories. You can also check differences between local files and directories and remote files and directories if you have `tramp`,`ediff` and `ztree` installed. You can browse remote hosts if you have `tramp` installed. Lastly you can easily open remote hosts terminal if you have `tramp-term` installed. **You need to have a setup which allows password-less key-based logins to servers via SSH and have scp installed locally**.
 
 `ssh-deploy` works with `DirectoryVariables` so you can have different deploy setups in different ways for different folders.
 
-The idea for this plug-in was to mimic the behavior of PhpStorm deployment functionality.
+The idea for this plug-in was to mimic the behavior of **PhpStorm** deployment functionality.
 
 This application is made by Christian Johansson <christian@cvj.se> 2016 and is licensed under GNU General Public License 3.
 
@@ -25,13 +25,15 @@ This application is made by Christian Johansson <christian@cvj.se> 2016 and is l
 
 ``` elisp
 ;; ssh-deploy - prefix = C-c C-z, u = upload, d = download, x = diff
-(add-to-list 'load-path "~/.emacs.d/ssh-deploy/") ;; Comment out this line if installed from MELPA
+(add-to-list 'load-path "~/.emacs.d/ssh-deploy/")
 (use-package ssh-deploy
   :config
   (add-hook 'after-save-hook (lambda() (if ssh-deploy-on-explicit-save (ssh-deploy-upload-handler)) ))
   (global-set-key (kbd "C-c C-z u") (lambda() (interactive)(ssh-deploy-upload-handler) ))
   (global-set-key (kbd "C-c C-z d") (lambda() (interactive)(ssh-deploy-download-handler)(revert-buffer) ))
-  (global-set-key (kbd "C-c C-z x") (lambda() (interactive)(ssh-deploy-diff-handler) )))
+  (global-set-key (kbd "C-c C-z x") (lambda() (interactive)(ssh-deploy-diff-handler) ))
+  (global-set-key (kbd "C-c C-z t") (lambda() (interactive)(ssh-deploy-remote-terminal-handler) ))
+  (global-set-key (kbd "C-c C-z b") (lambda() (interactive)(ssh-deploy-browse-remote-handler) )))
 ```
 
 You can remove the `add-to-list` line if you installed via `MELPA` repository.
@@ -40,6 +42,8 @@ You can remove the `add-to-list` line if you installed via `MELPA` repository.
 * If you press `C-c C-z x` you will launch a `ediff` session showing differences between local file and remote file using `tramp`.
 * If you press `C-c C-z u` you will upload local file to remote host.
 * If you press `C-c C-z d` you will download file from remote host and reload current buffer.
+* If you press `C-c C-z t` you will open a terminal with remote host.
+* If you press `C-c C-z b` you will browse remote host in `dired-mode`.
 
 The above configuration uses the plugin `use-package` which I highly recommend.
 
@@ -49,3 +53,5 @@ The above configuration uses the plugin `use-package` which I highly recommend.
 * <https://github.com/jwiegley/use-package>
 * <https://www.emacswiki.org/emacs/EdiffMode>
 * <http://melpa.org/>
+* <https://github.com/fourier/ztree>
+* <https://github.com/randymorris/tramp-term.el>
