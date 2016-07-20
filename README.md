@@ -47,6 +47,9 @@ You can remove the `add-to-list` line if you installed via `MELPA` repository.
 
 The above configuration uses the plugin `use-package` which I highly recommend.
 
+## TODO
+* Add notification for remote changes of files
+
 ## Read more
 * <https://www.emacswiki.org/emacs/DirectoryVariables>
 * <http://www.gnu.org/software/tramp/>

@@ -3,8 +3,8 @@
 ;; Author: Christian Johansson <github.com/cjohansson>
 ;; Maintainer: Christian Johansson <github.com/cjohansson>
 ;; Created: 5 Jul 2016
-;; Modified: 19 Jul 2016
-;; Version: 1.21
+;; Modified: 20 Jul 2016
+;; Version: 1.22
 ;; Keywords: tools, convenience
 ;; URL: https://github.com/cjohansson/emacs-ssh-deploy
 
@@ -82,37 +82,48 @@
 (defun ssh-deploy-browse-remote (local-root remote-root path)
   "Browse relative to LOCAL-ROOT on REMOTE-ROOT the path PATH in `dired-mode`."
   (if (ssh-deploy-file-is-in-path path local-root)
-      (let ((remote-path (concat remote-root (replace-regexp-in-string local-root "" path))))
+      (let ((remote-path (concat remote-root (ssh-deploy-get-relative-path local-root path))))
         (message "Opening '%s' for browsing on remote host.." remote-path)
         (dired (concat "/ssh:" remote-path)))))
 
 (defun ssh-deploy-remote-terminal (remote-host)
   "Opens REMOTE-HOST in tramp terminal."
-  (let ((hostname (replace-regexp-in-string ":.*$" "" remote-host)))
-    (let ((host (split-string hostname "@")))
-      (message "Opening tramp-terminal for remote host '%s@%s' or '%s' translated from '%s'.." (car host) (car (last host)) hostname remote-host)
-      (unless (eql (catch 'tramp-term--abort (tramp-term--do-ssh-login host)) 'tramp-term--abort)
-        (tramp-term--initialize hostname)
-        (run-hook-with-args 'tramp-term-after-initialized-hook hostname)
-        (message "tramp-term initialized")))))
+  (if (fboundp 'tramp-term)
+      (progn
+        (let ((hostname (replace-regexp-in-string ":.*$" "" remote-host)))
+          (let ((host (split-string hostname "@")))
+            (message "Opening tramp-terminal for remote host '%s@%s' or '%s' translated from '%s'.." (car host) (car (last host)) hostname remote-host)
+            (unless (eql (catch 'tramp-term--abort (tramp-term--do-ssh-login host)) 'tramp-term--abort)
+              (tramp-term--initialize hostname)
+              (run-hook-with-args 'tramp-term-after-initialized-hook hostname)
+              (message "tramp-term initialized")))))
+    (message "tramp-term is not installed.")))
 
 (defun ssh-deploy-file-is-in-path (file path)
   "Return true if FILE is in the path PATH."
   (not (null (string-match path file))))
+
+(defun ssh-deploy-get-relative-path (root path)
+  "Return a string for the relative path based on ROOT and PATH."
+  (replace-regexp-in-string root "" path))
 
 (defun ssh-deploy-diff (local-root remote-root path)
   "Find differences relative to the roots LOCAL-ROOT with REMOTE-ROOT via ssh and the path PATH."
   (let ((file-or-directory (file-regular-p path)))
     (if (ssh-deploy-file-is-in-path path local-root)
         (progn
-          (let ((remote-path (concat "/ssh:" remote-root (replace-regexp-in-string local-root "" path))))
+          (let ((remote-path (concat "/ssh:" remote-root (ssh-deploy-get-relative-path local-root path))))
             (if file-or-directory
                 (progn
                   (message "Comparing file '%s' to '%s'.." path remote-path)
                   (ediff path remote-path))
               (progn
-                (message "Comparing directory '%s' to '%s'.." path remote-path)
-                (ztree-diff path remote-path)))))
+                (if (fboundp 'ztree-diff)
+                    (progn
+                      (message "Comparing directory '%s' to '%s'.." path remote-path)
+                      (ztree-diff path remote-path))
+                  (message "ztree-diff is not installed.")
+                  )))))
       (if ssh-deploy-debug
           (message "Path '%s' is not in the root '%s'" path local-root)))))
 
@@ -124,7 +135,7 @@
 (defun ssh-deploy (local-root remote-root upload-or-download path)
   "Upload/Download relative to the roots LOCAL-ROOT with REMOTE-ROOT via SSH according to UPLOAD-OR-DOWNLOAD and the path PATH."
   (let ((file-or-directory (file-regular-p path)))
-    (let ((remote-path (concat remote-root (replace-regexp-in-string local-root "" path))))
+    (let ((remote-path (concat remote-root (ssh-deploy-get-relative-path local-root path))))
       (if (ssh-deploy-file-is-in-path path local-root)
           (progn
             (if (not (null upload-or-download))
