@@ -55,7 +55,7 @@
 ;;; Code:
 
 (defgroup ssh-deploy nil
-  "Upload, download and difference handler for files and directories on remote hosts via SSH."
+  "Upload, download, difference, browse and terminal handler for files and directories on remote hosts via SSH."
   :group 'tools
   :group 'convenience)
 
@@ -88,7 +88,9 @@
 
 (defun ssh-deploy-remote-terminal (remote-host)
   "Opens REMOTE-HOST in tramp terminal."
-  (if (fboundp 'tramp-term)
+  (if (and (fboundp 'tramp-term)
+	    (fboundp 'tramp-term--initialize)
+	    (fboundp 'tramp-term--do-ssh-login))
       (progn
         (let ((hostname (replace-regexp-in-string ":.*$" "" remote-host)))
           (let ((host (split-string hostname "@")))

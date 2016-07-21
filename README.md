@@ -39,7 +39,7 @@ This application is made by Christian Johansson <christian@cvj.se> 2016 and is l
 You can remove the `add-to-list` line if you installed via `MELPA` repository.
 
 * Now when you save a file somewhere under the directory `/Users/username/Web/MySite/`, the script will launch and deploy the file with the remote server.
-* If you press `C-c C-z x` and the current buffer is a file, you will launch a `ediff` session showing differences between local file and remote file using `tramp`, or if current buffer is a directory it will show differences with remote directory using `zdiff-tree`.
+* If you press `C-c C-z x` and the current buffer is a file, you will launch a `ediff` session showing differences between local file and remote file using `tramp`, or if current buffer is a directory it will show differences with remote directory using `ztree-diff` using `tramp`.
 * If you press `C-c C-z u` you will upload local file or directory to remote host.
 * If you press `C-c C-z d` you will download the current file or directory from remote host and then reload current buffer.
 * If you press `C-c C-z t` you will open a terminal with remote host.
