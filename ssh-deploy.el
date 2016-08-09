@@ -89,8 +89,8 @@
 (defun ssh-deploy-remote-terminal (remote-host)
   "Opens REMOTE-HOST in tramp terminal."
   (if (and (fboundp 'tramp-term)
-	    (fboundp 'tramp-term--initialize)
-	    (fboundp 'tramp-term--do-ssh-login))
+	   (fboundp 'tramp-term--initialize)
+	   (fboundp 'tramp-term--do-ssh-login))
       (progn
         (let ((hostname (replace-regexp-in-string ":.*$" "" remote-host)))
           (let ((host (split-string hostname "@")))
@@ -183,27 +183,39 @@
   "Upload current path to remote host if it is configured for SSH deployment."
   (if (and (ssh-deploy-is-not-empty-string ssh-deploy-root-local) (ssh-deploy-is-not-empty-string ssh-deploy-root-remote))
       (if (ssh-deploy-is-not-empty-string buffer-file-name)
-          (ssh-deploy ssh-deploy-root-local ssh-deploy-root-remote t buffer-file-name)
+	  (let ((local-path (file-truename buffer-file-name))
+		(local-root (file-truename ssh-deploy-root-local)))
+	    (ssh-deploy local-root ssh-deploy-root-remote t local-path))
         (if (ssh-deploy-is-not-empty-string default-directory)
-            (ssh-deploy ssh-deploy-root-local ssh-deploy-root-remote t (expand-file-name default-directory))))))
+	    (let ((local-path (file-truename default-directory))
+		  (local-root (file-truename ssh-deploy-root-local)))
+	      (ssh-deploy local-root ssh-deploy-root-remote t local-path))))))
 
 ;;;### autoload
 (defun ssh-deploy-download-handler ()
   "Download current path from remote host if it is configured for SSH deployment."
   (if (and (ssh-deploy-is-not-empty-string ssh-deploy-root-local) (ssh-deploy-is-not-empty-string ssh-deploy-root-remote))
       (if (ssh-deploy-is-not-empty-string buffer-file-name)
-          (ssh-deploy ssh-deploy-root-local ssh-deploy-root-remote nil buffer-file-name)
+	  (let ((local-path (file-truename buffer-file-name))
+		(local-root (file-truename ssh-deploy-root-local)))
+	    (ssh-deploy local-root ssh-deploy-root-remote nil local-path))
         (if (ssh-deploy-is-not-empty-string default-directory)
-            (ssh-deploy ssh-deploy-root-local ssh-deploy-root-remote nil (expand-file-name default-directory))))))
+	    (let ((local-path (file-truename default-directory))
+		  (local-root (file-truename ssh-deploy-root-local)))
+	      (ssh-deploy local-root ssh-deploy-root-remote nil local-path))))))
 
 ;;;### autoload
 (defun ssh-deploy-diff-handler ()
   "Compare current path with remote host if it is configured for SSH deployment."
   (if (and (ssh-deploy-is-not-empty-string ssh-deploy-root-local) (ssh-deploy-is-not-empty-string ssh-deploy-root-remote))
       (if (ssh-deploy-is-not-empty-string buffer-file-name)
-          (ssh-deploy-diff ssh-deploy-root-local ssh-deploy-root-remote buffer-file-name)
+	  (let ((local-path (file-truename buffer-file-name))
+		(local-root (file-truename ssh-deploy-root-local)))
+	    (ssh-deploy-diff local-root ssh-deploy-root-remote local-path))
         (if (ssh-deploy-is-not-empty-string default-directory)
-            (ssh-deploy-diff ssh-deploy-root-local ssh-deploy-root-remote (expand-file-name default-directory))))))
+	    (let ((local-path (file-truename default-directory))
+		  (local-root (file-truename ssh-deploy-root-local)))
+	      (ssh-deploy-diff local-root ssh-deploy-root-remote local-path))))))
 
 ;;;### autoload
 (defun ssh-deploy-remote-terminal-handler ()
@@ -215,7 +227,9 @@
 (defun ssh-deploy-browse-remote-handler ()
   "Open current relative path on remote host in `dired-mode' if it is configured for SSH deployment."
   (if (and (ssh-deploy-is-not-empty-string ssh-deploy-root-local) (ssh-deploy-is-not-empty-string ssh-deploy-root-remote) (ssh-deploy-is-not-empty-string default-directory))
-      (ssh-deploy-browse-remote ssh-deploy-root-local ssh-deploy-root-remote default-directory)))
+      (let ((local-path (file-truename default-directory))
+	    (local-root (file-truename ssh-deploy-root-local)))
+	(ssh-deploy-browse-remote local-root ssh-deploy-root-remote local-path))))
 
 (provide 'ssh-deploy)
 ;;; ssh-deploy.el ends here
