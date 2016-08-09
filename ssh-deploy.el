@@ -3,8 +3,8 @@
 ;; Author: Christian Johansson <github.com/cjohansson>
 ;; Maintainer: Christian Johansson <github.com/cjohansson>
 ;; Created: 5 Jul 2016
-;; Modified: 20 Jul 2016
-;; Version: 1.22
+;; Modified: 9 Aug 2016
+;; Version: 1.3
 ;; Keywords: tools, convenience
 ;; URL: https://github.com/cjohansson/emacs-ssh-deploy
 
@@ -43,7 +43,7 @@
 ;;
 ;; - To set key-bindings do something like this:
 ;;     (global-set-key (kbd "C-c C-z u") (lambda() (interactive)(ssh-deploy-upload-handler) ))
-;;     (global-set-key (kbd "C-c C-z d") (lambda() (interactive)(ssh-deploy-download-handler)(revert-buffer) ))
+;;     (global-set-key (kbd "C-c C-z d") (lambda() (interactive)(ssh-deploy-download-handler) ))
 ;;     (global-set-key (kbd "C-c C-z x") (lambda() (interactive)(ssh-deploy-diff-handler) ))
 ;;     (global-set-key (kbd "C-c C-z t") (lambda() (interactive)(ssh-deploy-remote-terminal-handler) ))
 ;;     (global-set-key (kbd "C-c C-z b") (lambda() (interactive)(ssh-deploy-browse-remote-handler) ))
@@ -147,16 +147,21 @@
                       (progn
                         (let ((command (concat "scp " (shell-quote-argument path) " " (shell-quote-argument remote-path))))
                           (message "Upload command: '%s'" command)
-                          (if (= (shell-command command) 0)
-                              (message "Successfully uploaded file '%s' to '%s'" path remote-path)
-                            (message "Failed to upload file '%s' to '%s'" path remote-path))))
+			  (let ((proc (start-process-shell-command "process" nil command)))
+			    (set-process-sentinel proc (lambda (proc output)
+						       (if (string= (symbol-name (process-status proc)) "exit")
+							   (if (= (process-exit-status proc) 0)
+							       (message "Successfully uploaded file.")
+							     (message "Failed to upload file."))))))))
                     (progn
                       (let ((command (concat "scp -r " (shell-quote-argument path) " " (shell-quote-argument (file-name-directory (directory-file-name remote-path))))))
                         (message "Upload command: '%s'" command)
-                        (if (= (shell-command command) 0)
-                            (message "Successfully uploaded directory '%s' to '%s'" path (file-name-directory (directory-file-name remote-path)))
-                          (message "Failed to upload directory '%s' to '%s'" path (file-name-directory (directory-file-name remote-path))))))
-                    ))
+			(let ((proc (start-process-shell-command "process" nil command)))
+			  (set-process-sentinel proc (lambda (proc output)
+						     (if (string= (symbol-name (process-status proc)) "exit")
+							 (if (= (process-exit-status proc) 0)
+							     (message "Successfully uploaded directory.")
+							   (message "Failed to upload directory"))))))))))
               (progn
                 (message "Downloading path '%s' to '%s'.." remote-path path)
                 (if file-or-directory
@@ -164,17 +169,26 @@
                       (message "Downloading file '%s' to '%s'.." remote-path path)
                       (let ((command (concat "scp " (shell-quote-argument remote-path) " " (shell-quote-argument path))))
                         (message "Download command: '%s'" command)
-                        (if (= (shell-command command) 0)
-                            (message "Successfully downloaded file '%s' to '%s'" remote-path path)
-                          (message "Failed to download file '%s' to '%s'" remote-path path))))
+			(let ((proc (start-process-shell-command "process" nil command)))
+			  (set-process-sentinel proc (lambda (proc output)
+						     (if (string= (symbol-name (process-status proc)) "exit")
+							 (if (= (process-exit-status proc) 0)
+							     (progn
+							       (message "Successfully downloaded file.")
+							       (revert-buffer))
+							   (message "Failed to download file."))))))))
                   (progn
                     (message "Downloading directory '%s' to '%s'.." remote-path path)
                     (let ((command (concat "scp -r " (shell-quote-argument remote-path) " " (shell-quote-argument (file-name-directory (directory-file-name path))))))
                       (message "Download command: '%s'" command)
-                      (if (= (shell-command command) 0)
-                          (message "Successfully downloaded directory '%s' to '%s'" remote-path (file-name-directory (directory-file-name path)))
-                        (message "Failed to download directory '%s' to '%s'" remote-path (file-name-directory (directory-file-name path))))))
-                  ))))
+		      (let ((proc (start-process-shell-command "process" nil command)))
+			(set-process-sentinel proc (lambda (proc output)
+						   (if (string= (symbol-name (process-status proc)) "exit")
+						       (if (= (process-exit-status proc) 0)
+							   (progn
+							     (message "Successfully downloaded directory.")
+							     (revert-buffer))
+							 (message "Failed to download directory."))))))))))))
         (if ssh-deploy-debug
             (message "Path '%s' is not in the root '%s'" path local-root))))))
 
