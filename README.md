@@ -45,9 +45,22 @@ You can remove the `add-to-list` line if you installed via `MELPA` repository.
 * If you press `C-c C-z t` you will open a terminal with remote host via `tramp-term`.
 * If you press `C-c C-z b` you will browse current directory on remote host in `dired-mode`.
 
-The local path and local root is evaluated based on it's *truename* so if you use different symbolic local paths it shouldn't affect the deployment procedure.
+The local path and local root is evaluated based on their **truename** so if you use different symbolic local paths it shouldn't affect the deployment procedure.
 
 The above configuration uses the plugin `use-package` which I highly recommend.
+
+## More complex SSH connections
+
+If you have a SSH connection that is using a different identity-file other than the default, or if it is using a different port other than the default you just need to edit your local SSH-config (~/ssh/config) to make it work using this plugin, like this:
+
+``` bash
+
+## My special connection (replace remotehost, username, port, hostname, keyfile with real values)
+Host remotehost
+    Port port
+    IdentityFile keyfile
+
+```
 
 ## Read more
 * <https://www.emacswiki.org/emacs/DirectoryVariables>
