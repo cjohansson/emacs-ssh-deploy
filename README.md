@@ -51,7 +51,7 @@ The above configuration uses the plugin `use-package` which I highly recommend.
 
 ## More complex SSH connections
 
-If you have a SSH connection that is using a different identity-file other than the default, or if it is using a different port other than the default you just need to edit your local SSH-config (~/ssh/config) to make it work using this plugin, like this:
+If you have a SSH connection that is using a different identity-file than the default, or if it is using a different port than the default you just need to edit your local SSH-config (~/ssh/config) to make it work using this plugin, like this:
 
 ``` bash
 
