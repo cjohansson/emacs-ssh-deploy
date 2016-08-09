@@ -55,10 +55,10 @@ If you have a SSH connection that is using a different identity-file than the de
 
 ``` bash
 
-## My special connection (replace remotehost, username, port, hostname, keyfile with real values)
-Host remotehost
+## My special connection (replace remote-host, port and identity-file with your values)
+Host remote-host
     Port port
-    IdentityFile keyfile
+    IdentityFile identity-file
 
 ```
 
