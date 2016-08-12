@@ -3,8 +3,8 @@
 ;; Author: Christian Johansson <github.com/cjohansson>
 ;; Maintainer: Christian Johansson <github.com/cjohansson>
 ;; Created: 5 Jul 2016
-;; Modified: 9 Aug 2016
-;; Version: 1.3
+;; Modified: 12 Aug 2016
+;; Version: 1.35
 ;; Keywords: tools, convenience
 ;; URL: https://github.com/cjohansson/emacs-ssh-deploy
 
@@ -148,6 +148,7 @@
                         (let ((command (concat "scp " (shell-quote-argument path) " " (shell-quote-argument remote-path))))
                           (message "Upload command: '%s'" command)
 			  (let ((proc (start-process-shell-command "process" nil command)))
+			    (set-process-filter proc (lambda (proc output)(message "%s" (replace-regexp-in-string "\^M" "\n" output))))
 			    (set-process-sentinel proc (lambda (proc output)
 						       (if (string= (symbol-name (process-status proc)) "exit")
 							   (if (= (process-exit-status proc) 0)
@@ -157,6 +158,7 @@
                       (let ((command (concat "scp -r " (shell-quote-argument path) " " (shell-quote-argument (file-name-directory (directory-file-name remote-path))))))
                         (message "Upload command: '%s'" command)
 			(let ((proc (start-process-shell-command "process" nil command)))
+			  (set-process-filter proc (lambda (proc output)(message "%s" (replace-regexp-in-string "\^M" "\n" output))))
 			  (set-process-sentinel proc (lambda (proc output)
 						     (if (string= (symbol-name (process-status proc)) "exit")
 							 (if (= (process-exit-status proc) 0)
@@ -170,6 +172,7 @@
                       (let ((command (concat "scp " (shell-quote-argument remote-path) " " (shell-quote-argument path))))
                         (message "Download command: '%s'" command)
 			(let ((proc (start-process-shell-command "process" nil command)))
+			  (set-process-filter proc (lambda (proc output)(message "%s" (replace-regexp-in-string "\^M" "\n" output))))
 			  (set-process-sentinel proc (lambda (proc output)
 						     (if (string= (symbol-name (process-status proc)) "exit")
 							 (if (= (process-exit-status proc) 0)
@@ -182,6 +185,7 @@
                     (let ((command (concat "scp -r " (shell-quote-argument remote-path) " " (shell-quote-argument (file-name-directory (directory-file-name path))))))
                       (message "Download command: '%s'" command)
 		      (let ((proc (start-process-shell-command "process" nil command)))
+			(set-process-filter proc (lambda (proc output)(message "%s" (replace-regexp-in-string "\^M" "\n" output))))
 			(set-process-sentinel proc (lambda (proc output)
 						   (if (string= (symbol-name (process-status proc)) "exit")
 						       (if (= (process-exit-status proc) 0)
