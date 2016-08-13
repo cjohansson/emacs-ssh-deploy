@@ -134,6 +134,17 @@
   (and (not (null string))
        (not (zerop (length string)))))
 
+(defun ssh-deploy-run-shell-command (command)
+  "Run COMMAND in asynchronous mode."
+  (message "Shell command: '%s'" command)
+  (let ((proc (start-process-shell-command "process" nil command)))
+    (set-process-filter proc (lambda (proc output)(message "%s" (replace-regexp-in-string "\^M" "\n" output))))
+    (set-process-sentinel proc (lambda (proc output)
+				 (if (string= (symbol-name (process-status proc)) "exit")
+				     (if (= (process-exit-status proc) 0)
+					 (message "Successfully ran shell command.")
+				       (message "Failed to run shell command.")))))))
+
 (defun ssh-deploy (local-root remote-root upload-or-download path)
   "Upload/Download relative to the roots LOCAL-ROOT with REMOTE-ROOT via SSH according to UPLOAD-OR-DOWNLOAD and the path PATH."
   (let ((file-or-directory (file-regular-p path)))
@@ -146,53 +157,21 @@
                   (if file-or-directory
                       (progn
                         (let ((command (concat "scp " (shell-quote-argument path) " " (shell-quote-argument remote-path))))
-                          (message "Upload command: '%s'" command)
-			  (let ((proc (start-process-shell-command "process" nil command)))
-			    (set-process-filter proc (lambda (proc output)(message "%s" (replace-regexp-in-string "\^M" "\n" output))))
-			    (set-process-sentinel proc (lambda (proc output)
-						       (if (string= (symbol-name (process-status proc)) "exit")
-							   (if (= (process-exit-status proc) 0)
-							       (message "Successfully uploaded file.")
-							     (message "Failed to upload file."))))))))
+			  (ssh-deploy-run-shell-command command)))
                     (progn
                       (let ((command (concat "scp -r " (shell-quote-argument path) " " (shell-quote-argument (file-name-directory (directory-file-name remote-path))))))
-                        (message "Upload command: '%s'" command)
-			(let ((proc (start-process-shell-command "process" nil command)))
-			  (set-process-filter proc (lambda (proc output)(message "%s" (replace-regexp-in-string "\^M" "\n" output))))
-			  (set-process-sentinel proc (lambda (proc output)
-						     (if (string= (symbol-name (process-status proc)) "exit")
-							 (if (= (process-exit-status proc) 0)
-							     (message "Successfully uploaded directory.")
-							   (message "Failed to upload directory"))))))))))
+			(ssh-deploy-run-shell-command command)))))
               (progn
                 (message "Downloading path '%s' to '%s'.." remote-path path)
                 (if file-or-directory
                     (progn
                       (message "Downloading file '%s' to '%s'.." remote-path path)
                       (let ((command (concat "scp " (shell-quote-argument remote-path) " " (shell-quote-argument path))))
-                        (message "Download command: '%s'" command)
-			(let ((proc (start-process-shell-command "process" nil command)))
-			  (set-process-filter proc (lambda (proc output)(message "%s" (replace-regexp-in-string "\^M" "\n" output))))
-			  (set-process-sentinel proc (lambda (proc output)
-						     (if (string= (symbol-name (process-status proc)) "exit")
-							 (if (= (process-exit-status proc) 0)
-							     (progn
-							       (message "Successfully downloaded file.")
-							       (revert-buffer))
-							   (message "Failed to download file."))))))))
+			(ssh-deploy-run-shell-command command)))
                   (progn
                     (message "Downloading directory '%s' to '%s'.." remote-path path)
                     (let ((command (concat "scp -r " (shell-quote-argument remote-path) " " (shell-quote-argument (file-name-directory (directory-file-name path))))))
-                      (message "Download command: '%s'" command)
-		      (let ((proc (start-process-shell-command "process" nil command)))
-			(set-process-filter proc (lambda (proc output)(message "%s" (replace-regexp-in-string "\^M" "\n" output))))
-			(set-process-sentinel proc (lambda (proc output)
-						   (if (string= (symbol-name (process-status proc)) "exit")
-						       (if (= (process-exit-status proc) 0)
-							   (progn
-							     (message "Successfully downloaded directory.")
-							     (revert-buffer))
-							 (message "Failed to download directory."))))))))))))
+		      (ssh-deploy-run-shell-command command)))))))
         (if ssh-deploy-debug
             (message "Path '%s' is not in the root '%s'" path local-root))))))
 
