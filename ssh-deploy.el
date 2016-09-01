@@ -3,8 +3,8 @@
 ;; Author: Christian Johansson <github.com/cjohansson>
 ;; Maintainer: Christian Johansson <github.com/cjohansson>
 ;; Created: 5 Jul 2016
-;; Modified: 12 Aug 2016
-;; Version: 1.35
+;; Modified: 1 Sep 2016
+;; Version: 1.36
 ;; Keywords: tools, convenience
 ;; URL: https://github.com/cjohansson/emacs-ssh-deploy
 
@@ -79,12 +79,17 @@
   :type 'boolean
   :group 'ssh-deploy)
 
+(defcustom ssh-deploy-protocol 'ssh'
+  "String variable defining current protocol, 'ssh' by default."
+  :type 'string
+  :group 'ssh-deploy)
+
 (defun ssh-deploy-browse-remote (local-root remote-root path)
   "Browse relative to LOCAL-ROOT on REMOTE-ROOT the path PATH in `dired-mode`."
   (if (ssh-deploy-file-is-in-path path local-root)
       (let ((remote-path (concat remote-root (ssh-deploy-get-relative-path local-root path))))
         (message "Opening '%s' for browsing on remote host.." remote-path)
-        (dired (concat "/ssh:" remote-path)))))
+        (dired (concat "/" ssh-deploy-protocol ":" remote-path)))))
 
 (defun ssh-deploy-remote-terminal (remote-host)
   "Opens REMOTE-HOST in tramp terminal."
@@ -114,7 +119,7 @@
   (let ((file-or-directory (file-regular-p path)))
     (if (ssh-deploy-file-is-in-path path local-root)
         (progn
-          (let ((remote-path (concat "/ssh:" remote-root (ssh-deploy-get-relative-path local-root path))))
+          (let ((remote-path (concat "/" ssh-deploy-protocol ":" remote-root (ssh-deploy-get-relative-path local-root path))))
             (if file-or-directory
                 (progn
                   (message "Comparing file '%s' to '%s'.." path remote-path)
@@ -156,11 +161,18 @@
                   (message "Uploading path '%s' to '%s'.." path remote-path)
                   (if file-or-directory
                       (progn
+			(message "Uploading file '%s' to '%s'.." path remote-path)
                         (let ((command (concat "scp " (shell-quote-argument path) " " (shell-quote-argument remote-path))))
 			  (ssh-deploy-run-shell-command command)))
                     (progn
-                      (let ((command (concat "scp -r " (shell-quote-argument path) " " (shell-quote-argument (file-name-directory (directory-file-name remote-path))))))
-			(ssh-deploy-run-shell-command command)))))
+		      (message "Uploading directory '%s' to '%s'.." path remote-path)
+		      (if (string= path local-root)
+			  (progn
+			    (let ((command (concat "scp -r " (concat (shell-quote-argument path) "*") " " (shell-quote-argument (concat remote-path)))))
+			      (ssh-deploy-run-shell-command command)))
+			(progn
+			  (let ((command (concat "scp -r " (shell-quote-argument path) " " (shell-quote-argument (file-name-directory (directory-file-name remote-path))))))
+			    (ssh-deploy-run-shell-command command)))))))
               (progn
                 (message "Downloading path '%s' to '%s'.." remote-path path)
                 (if file-or-directory
@@ -169,9 +181,14 @@
                       (let ((command (concat "scp " (shell-quote-argument remote-path) " " (shell-quote-argument path))))
 			(ssh-deploy-run-shell-command command)))
                   (progn
-                    (message "Downloading directory '%s' to '%s'.." remote-path path)
-                    (let ((command (concat "scp -r " (shell-quote-argument remote-path) " " (shell-quote-argument (file-name-directory (directory-file-name path))))))
-		      (ssh-deploy-run-shell-command command)))))))
+		    (message "Downloading directory '%s' to '%s'.." remote-path path)
+		    (if (string= path local-root)
+			(progn
+			  (let ((command (concat "scp -r " (concat (shell-quote-argument remote-path) "*") " " (shell-quote-argument path))))
+			    (ssh-deploy-run-shell-command command)))
+		      (progn
+			  (let ((command (concat "scp -r " (shell-quote-argument remote-path) " " (shell-quote-argument (file-name-directory (directory-file-name path))))))
+			    (ssh-deploy-run-shell-command command)))))))))
         (if ssh-deploy-debug
             (message "Path '%s' is not in the root '%s'" path local-root))))))
 
