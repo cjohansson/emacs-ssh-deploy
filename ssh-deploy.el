@@ -3,8 +3,8 @@
 ;; Author: Christian Johansson <github.com/cjohansson>
 ;; Maintainer: Christian Johansson <github.com/cjohansson>
 ;; Created: 5 Jul 2016
-;; Modified: 17 Sep 2016
-;; Version: 1.37
+;; Modified: 27 Sep 2016
+;; Version: 1.38
 ;; Keywords: tools, convenience
 ;; URL: https://github.com/cjohansson/emacs-ssh-deploy
 
@@ -55,7 +55,7 @@
 ;;; Code:
 
 (defgroup ssh-deploy nil
-  "Upload, download, difference, browse and terminal handler for files and directories on remote hosts via SSH."
+  "Upload, download, difference, browse and terminal handler for files and directories on remote hosts via SSH and FTP."
   :group 'tools
   :group 'convenience)
 
@@ -80,7 +80,12 @@
   :group 'ssh-deploy)
 
 (defcustom ssh-deploy-protocol "ssh"
-  "String variable defining current protocol, 'ssh' by default."
+  "String variable defining current protocol, ssh by default."
+  :type 'string
+  :group 'ssh-deploy)
+
+(defcustom ssh-deploy-password nil
+  "String variable defining password for FTP prompts, nil by default."
   :type 'string
   :group 'ssh-deploy)
 
@@ -153,49 +158,99 @@
 					 (message "Successfully ran shell command.")
 				       (message "Failed to run shell command.")))))))
 
+(defun ssh-deploy--download (remote local local-root)
+  "Download REMOTE to LOCAL with the LOCAL-ROOT via ssh or ftp."
+  (if (or (string= ssh-deploy-protocol "ssh") (string= ssh-deploy-protocol "ftp"))
+	  (progn
+		(message "Downloading path '%s' to '%s'.." remote local)
+		(let ((file-or-directory (file-regular-p local)))
+		  (if file-or-directory
+			  (if (string= ssh-deploy-protocol "ssh")
+				  (ssh-deploy--download-file-via-ssh remote local)
+				(ssh-deploy--download-file-via-ftp remote local))
+			(if (string= ssh-deploy-protocol "ssh")
+				(ssh-deploy--download-directory-via-ssh remote local local-root)
+			  (ssh-deploy--download-directory-via-ftp remote local local-root)))))
+	(message "Unsupported protocol. Only SSH and FTP are supported.")))
+
+(defun ssh-deploy--upload (local remote local-root)
+  "Upload LOCAL to REMOTE and LOCAL-ROOT via ssh or ftp."
+  (if (or (string= ssh-deploy-protocol "ssh") (string= ssh-deploy-protocol "ftp"))
+	  (progn
+		(message "Uploading path '%s' to '%s'.." local remote)
+		(let ((file-or-directory (file-regular-p local)))
+		  (if file-or-directory
+			  (if (string= ssh-deploy-protocol "ssh")
+				  (ssh-deploy--upload-file-via-ssh local remote)
+				(ssh-deploy--upload-file-via-ftp local remote))
+			(if (string= ssh-deploy-protocol "ssh")
+				(ssh-deploy--upload-directory-via-ssh local remote local-root)
+			  (ssh-deploy--upload-directory-via-ftp local remote local-root)))))
+	(message "Unsupported protocol. Only SSH and FTP are supported.")))
+
+(defun ssh-deploy--upload-file-via-ssh (local remote)
+  "Upload file LOCAL to REMOTE via ssh."
+  (message "Uploading file '%s' to '%s'.." local remote)
+  (let ((command (concat "scp " (shell-quote-argument local) " " (shell-quote-argument remote))))
+	(ssh-deploy-run-shell-command command)))
+
+(defun ssh-deploy--download-file-via-ssh (remote local)
+  "Download file REMOTE to LOCAL via ssh."
+  (message "Downloading file '%s' to '%s'.." remote local)
+  (let ((command (concat "scp " (shell-quote-argument remote) " " (shell-quote-argument local))))
+	(ssh-deploy-run-shell-command command)))
+
+(defun ssh-deploy--upload-directory-via-ssh (local remote local-root)
+  "Upload directory LOCAL to REMOTE and LOCAL-ROOT via ssh."
+  (message "Uploading directory '%s' to '%s'.." local remote)
+  (if (string= local local-root)
+	  (progn
+		(let ((command (concat "scp -r " (concat (shell-quote-argument local) "*") " " (shell-quote-argument (concat remote)))))
+		  (ssh-deploy-run-shell-command command)))
+	(progn
+	  (let ((command (concat "scp -r " (shell-quote-argument local) " " (shell-quote-argument (file-name-directory (directory-file-name remote))))))
+		(ssh-deploy-run-shell-command command)))))
+
+(defun ssh-deploy--download-directory-via-ssh (remote local local-root)
+  "Download directory REMOTE to LOCAL with LOCAL-ROOT via ssh."
+  (message "Downloading path '%s' to '%s'.." remote local)
+  (if (string= local local-root)
+	  (progn
+		(let ((command (concat "scp -r " (concat (shell-quote-argument remote) "*") " " (shell-quote-argument local))))
+		  (ssh-deploy-run-shell-command command)))
+	(progn
+	  (let ((command (concat "scp -r " (shell-quote-argument remote) " " (shell-quote-argument (file-name-directory (directory-file-name local))))))
+		(ssh-deploy-run-shell-command command)))))
+
+;; TODO Implement this
+(defun ssh-deploy--upload-file-via-ftp (local remote)
+  "Upload file LOCAL to REMOTE via ftp."
+  )
+
+;; TODO Implement this
+(defun ssh-deploy--download-file-via-ftp (remote local)
+  "Download file REMOTE to LOCAL via ftp."
+  )
+
+;; TODO Implement this
+(defun ssh-deploy--upload-directory-via-ftp (local remote local-root)
+  "Upload directory LOCAL to REMOTE with LOCAL-ROOT via ftp."
+  )
+
+;; TODO Implement this
+(defun ssh-deploy--download-directory-via-ftp (remote local local-root)
+  "Download directory REMOTE to LOCAL with LOCAL-ROOT via ftp."
+  )
+
 (defun ssh-deploy (local-root remote-root upload-or-download path)
-  "Upload/Download relative to the roots LOCAL-ROOT with REMOTE-ROOT via SSH according to UPLOAD-OR-DOWNLOAD and the path PATH."
+  "Upload/Download relative to the roots LOCAL-ROOT with REMOTE-ROOT via ssh or ftp according to UPLOAD-OR-DOWNLOAD and the path PATH."
   (let ((file-or-directory (file-regular-p path)))
     (let ((remote-path (concat remote-root (ssh-deploy-get-relative-path local-root path))))
       (if (ssh-deploy-file-is-in-path path local-root)
           (progn
             (if (not (null upload-or-download))
-                (progn
-                  (message "Uploading path '%s' to '%s'.." path remote-path)
-                  (if file-or-directory
-                      (progn
-			(message "Uploading file '%s' to '%s'.." path remote-path)
-                        (let ((command (concat "scp " (shell-quote-argument path) " " (shell-quote-argument remote-path))))
-			  (ssh-deploy-run-shell-command command)))
-                    (progn
-		      (message "Uploading directory '%s' to '%s'.." path remote-path)
-		      (if (string= ssh-deploy-protocol "ssh")
-			  (if (string= path local-root)
-			      (progn
-				(let ((command (concat "scp -r " (concat (shell-quote-argument path) "*") " " (shell-quote-argument (concat remote-path)))))
-				  (ssh-deploy-run-shell-command command)))
-			    (progn
-			      (let ((command (concat "scp -r " (shell-quote-argument path) " " (shell-quote-argument (file-name-directory (directory-file-name remote-path))))))
-				(ssh-deploy-run-shell-command command))))
-			(message "Only ssh protocol is supported for directory operations")))))
-              (progn
-                (message "Downloading path '%s' to '%s'.." remote-path path)
-                (if file-or-directory
-                    (progn
-                      (message "Downloading file '%s' to '%s'.." remote-path path)
-                      (let ((command (concat "scp " (shell-quote-argument remote-path) " " (shell-quote-argument path))))
-			(ssh-deploy-run-shell-command command)))
-                  (progn
-		    (message "Downloading directory '%s' to '%s'.." remote-path path)
-		      (if (string= ssh-deploy-protocol "ssh")
-			  (if (string= path local-root)
-			      (progn
-				(let ((command (concat "scp -r " (concat (shell-quote-argument remote-path) "*") " " (shell-quote-argument path))))
-				  (ssh-deploy-run-shell-command command)))
-			    (progn
-			      (let ((command (concat "scp -r " (shell-quote-argument remote-path) " " (shell-quote-argument (file-name-directory (directory-file-name path))))))
-				(ssh-deploy-run-shell-command command))))
-			(message "Only ssh protocol is supported for directory operations")))))))
+				(ssh-deploy--upload path remote-path local-root)
+			  (ssh-deploy--download remote-path path local-root)))
         (if ssh-deploy-debug
             (message "Path '%s' is not in the root '%s'" path local-root))))))
 
