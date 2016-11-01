@@ -1,6 +1,6 @@
 # `ssh-deploy`
 
-The `ssh-deploy` plug-in makes it possible to effortlessly deploy local files and directories to remote hosts via SSH. It also makes it possible to define remote paths per directory and whether or not you want to deploy on explicit save actions or not. Also it enables manual upload and download of files and directories. You can also check differences between local files and directories and remote files and directories if you have `tramp`,`ediff` and `ztree` installed. You can also browse remote hosts if you have `tramp` installed. Lastly you can easily open remote hosts terminal if you have `tramp-term` installed. **You need to have a setup which allows password-less key-based logins to servers via SSH and have scp installed locally**.
+The `ssh-deploy` plug-in makes it possible to effortlessly deploy local files and directories to remote hosts via SSH and FTP. It also makes it possible to define remote paths per directory and whether or not you want to deploy on explicit save actions or not. Also it enables manual upload and download of files and directories. You can also check differences between local files and directories and remote files and directories if you have `tramp`,`ediff` and `ztree` installed. You can also browse remote hosts if you have `tramp` installed. Lastly you can easily open remote hosts terminal if you have `tramp-term` installed. **You need to have a setup which allows password-less key-based logins to servers via SSH and have curl and scp installed locally**.
 
 `ssh-deploy` works with `DirectoryVariables` so you can have different deploy setups in different ways for different folders.
 
@@ -15,11 +15,25 @@ This application is made by Christian Johansson <christian@cvj.se> 2016 and is l
 
 * Create this `DirectoryVariables` file in your project root at `/Users/username/Web/MySite/.dir-locals.el`.
 
-``` elisp
-((nil . ((ssh-deploy-root-local . "/Users/username/Web/MySite/")
+``` emacs-lisp
+((nil . (
+(ssh-deploy-root-local . "/Users/username/Web/MySite/")
 (ssh-deploy-root-remote . "user@myserver.com:/var/www/MySite/")
-(ssh-deploy-on-explicit-save . t))))
+(ssh-deploy-on-explicit-save . t)
+)))
 ```
+
+Or for FTP use this
+
+``` emacs-lisp
+((nil . (
+(ssh-deploy-root-local . "/Users/username/Web/MySite/")
+(ssh-deploy-root-remote . "/ftp:user:password@myserver.com:/MySite/")
+(ssh-deploy-on-explicit-save . t)
+)))
+
+```
+
 
 * And add this to your *emacs-init-script*:
 
