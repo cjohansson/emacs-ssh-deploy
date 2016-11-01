@@ -1,4 +1,4 @@
-# `ssh-deploy`
+# `emacs-ssh-deploy`
 
 The `ssh-deploy` plug-in makes it possible to effortlessly deploy local files and directories to remote hosts via SSH and FTP. It also makes it possible to define remote paths per directory and whether or not you want to deploy on explicit save actions or not. Also it enables manual upload and download of files and directories. You can also check differences between local files and directories and remote files and directories if you have `tramp`,`ediff` and `ztree` installed. You can also browse remote hosts if you have `tramp` installed. Lastly you can easily open remote hosts terminal if you have `tramp-term` installed. **You need to have a setup which allows password-less key-based logins to servers via SSH and have curl and scp installed locally**.
 
