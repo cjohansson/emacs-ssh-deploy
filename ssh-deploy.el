@@ -203,20 +203,34 @@
               (ssh-deploy--download-directory-via-ftp remote local local-root)))))
     (message "Unsupported protocol. Only SSH and FTP are supported at the moment.")))
 
+;; TODO: Left for further research, is it possible to make this asynchrous?
+(defun ssh-deploy--upload-via-tramp (local remote local-root)
+  "Upload LOCAL path to REMOTE and LOCAL-ROOT via tramp."
+  (let ((remote-path (concat "/" (alist-get 'protocol remote) ":" (shell-quote-argument (alist-get 'username remote)) "@" (shell-quote-argument (alist-get 'server remote)) ":" (shell-quote-argument (alist-get 'path remote))))
+        (file-or-directory (file-regular-p local)))
+    (if file-or-directory
+        (progn
+        (message "Uploading file '%s' to '%s'.." local remote-path)
+        (copy-file local remote-path t t))
+      (progn
+        (message "Uploading directory '%s' to '%s' via TRAMP.." local remote-path)
+        (copy-directory local remote-path t t)))))
+
 (defun ssh-deploy--upload (local remote local-root)
   "Upload LOCAL to REMOTE and LOCAL-ROOT via ssh or ftp."
   (if (or (string= (alist-get 'protocol remote) "ssh") (string= (alist-get 'protocol remote) "ftp"))
       (progn
-        (message "Uploading path '%s' to '%s'.." local remote)
-        (let ((file-or-directory (file-regular-p local)))
-          (if file-or-directory
+        (let ((path (concat (shell-quote-argument (alist-get 'username remote)) "@" (shell-quote-argument (alist-get 'server remote)) ":" (shell-quote-argument (alist-get 'path remote)))))
+          (message "Uploading path '%s' to '%s'.." local path)
+          (let ((file-or-directory (file-regular-p local)))
+            (if file-or-directory
+                (if (string= (alist-get 'protocol remote) "ssh")
+                    (ssh-deploy--upload-file-via-ssh local remote)
+                  (ssh-deploy--upload-file-via-ftp local remote))
               (if (string= (alist-get 'protocol remote) "ssh")
-                  (ssh-deploy--upload-file-via-ssh local remote)
-                (ssh-deploy--upload-file-via-ftp local remote))
-            (if (string= (alist-get 'protocol remote) "ssh")
-                (ssh-deploy--upload-directory-via-ssh local remote local-root)
-              (ssh-deploy--upload-directory-via-ftp local remote local-root)))))
-    (message "Unsupported protocol. Only SSH and FTP are supported at the moment.")))
+                  (ssh-deploy--upload-directory-via-ssh local remote local-root)
+                (ssh-deploy--upload-directory-via-ftp local remote local-root))))))
+        (message "Unsupported protocol. Only SSH and FTP are supported at the moment.")))
 
 (defun ssh-deploy--upload-file-via-ssh (local remote)
   "Upload file LOCAL to REMOTE via ssh."
