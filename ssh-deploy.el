@@ -192,15 +192,16 @@
   "Download REMOTE to LOCAL with the LOCAL-ROOT via ssh or ftp."
   (if (or (string= (alist-get 'protocol remote) "ssh") (string= (alist-get 'protocol remote) "ftp"))
       (progn
-        (message "Downloading path '%s' to '%s'.." remote local)
-        (let ((file-or-directory (file-regular-p local)))
-          (if file-or-directory
+        (let ((path (concat (alist-get 'server remote) ":" (alist-get 'path remote))))
+          (message "Downloading path '%s' to '%s'.." path local)
+          (let ((file-or-directory (file-regular-p local)))
+            (if file-or-directory
+                (if (string= (alist-get 'protocol remote) "ssh")
+                    (ssh-deploy--download-file-via-ssh remote local)
+                  (ssh-deploy--download-file-via-ftp remote local))
               (if (string= (alist-get 'protocol remote) "ssh")
-                  (ssh-deploy--download-file-via-ssh remote local)
-                (ssh-deploy--download-file-via-ftp remote local))
-            (if (string= (alist-get 'protocol remote) "ssh")
-                (ssh-deploy--download-directory-via-ssh remote local local-root)
-              (ssh-deploy--download-directory-via-ftp remote local local-root)))))
+                  (ssh-deploy--download-directory-via-ssh remote local local-root)
+                (ssh-deploy--download-directory-via-ftp remote local local-root))))))
     (message "Unsupported protocol. Only SSH and FTP are supported at the moment.")))
 
 ;; TODO: Left for further research, is it possible to make this asynchrous?
@@ -216,11 +217,24 @@
         (message "Uploading directory '%s' to '%s' via TRAMP.." local remote-path)
         (copy-directory local remote-path t t)))))
 
+;; TODO: Left for further research, is it possible to make this asynchrous?
+(defun ssh-deploy--download-via-tramp (remote local local-root)
+  "Download REMOTE path to LOCAL and LOCAL-ROOT via tramp."
+  (let ((remote-path (concat "/" (alist-get 'protocol remote) ":" (shell-quote-argument (alist-get 'username remote)) "@" (shell-quote-argument (alist-get 'server remote)) ":" (shell-quote-argument (alist-get 'path remote))))
+        (file-or-directory (file-regular-p local)))
+    (if file-or-directory
+        (progn
+          (message "Downloading file '%s' to '%s' via TRAMP.." remote-path local)
+          (copy-file remote-path local t t))
+      (progn
+        (message "Download directory '%s' to '%s' via TRAMP.." remote-path local)
+        (copy-directory remote-path local t t)))))
+
 (defun ssh-deploy--upload (local remote local-root)
   "Upload LOCAL to REMOTE and LOCAL-ROOT via ssh or ftp."
   (if (or (string= (alist-get 'protocol remote) "ssh") (string= (alist-get 'protocol remote) "ftp"))
       (progn
-        (let ((path (concat (shell-quote-argument (alist-get 'username remote)) "@" (shell-quote-argument (alist-get 'server remote)) ":" (shell-quote-argument (alist-get 'path remote)))))
+        (let ((path (concat (alist-get 'server remote) ":" (alist-get 'path remote))))
           (message "Uploading path '%s' to '%s'.." local path)
           (let ((file-or-directory (file-regular-p local)))
             (if file-or-directory
