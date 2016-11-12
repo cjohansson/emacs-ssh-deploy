@@ -256,7 +256,7 @@
   "Download file REMOTE to LOCAL via ssh."
   (let ((command (concat (shell-quote-argument (alist-get 'username remote)) "@" (shell-quote-argument (alist-get 'server remote)) ":" (shell-quote-argument (alist-get 'path remote)))))
     (message "Downloading file '%s' to '%s' via SSH.." command local)
-    (ssh-deploy--run-shell-command (concat "scp " command " " local))))
+    (ssh-deploy--run-shell-command (concat "scp " command " " (shell-quote-argument local)))))
 
 (defun ssh-deploy--upload-directory-via-ssh (local remote local-root)
   "Upload directory LOCAL to REMOTE and LOCAL-ROOT via ssh."
@@ -278,7 +278,7 @@
           (ssh-deploy--run-shell-command (concat "scp -r " command "* " (shell-quote-argument local)))))
     (progn
       (let ((command (concat (shell-quote-argument (alist-get 'username remote)) "@" (shell-quote-argument (alist-get 'server remote)) ":" (shell-quote-argument (alist-get 'path remote)))))
-        (ssh-deploy--run-shell-command (concat "scp -r " command " " (file-name-directory (directory-file-name local))))))))
+        (ssh-deploy--run-shell-command (concat "scp -r " command " " (shell-quote-argument (file-name-directory (directory-file-name local)))))))))
 
 (defun ssh-deploy--upload-file-via-ftp (local remote)
   "Upload file LOCAL to REMOTE via ftp."
