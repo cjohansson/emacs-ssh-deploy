@@ -4,7 +4,7 @@
 ;; Maintainer: Christian Johansson <github.com/cjohansson>
 ;; Created: 5 Jul 2016
 ;; Modified: 14 Nov 2016
-;; Version: 1.39
+;; Version: 1.40
 ;; Keywords: tools, convenience
 ;; URL: https://github.com/cjohansson/emacs-ssh-deploy
 
@@ -29,10 +29,9 @@
 
 ;;; Commentary:
 
-;; `ssh-deploy' enables automatic deploys on explicit-save, manual
-;; uploads, downloads, differences, remote terminals and remote directory browsing
-;; via key-pair password-less authorized SSH connections and password-based FTP connections.
-;; To do this it uses `tramp',`tramp-term', `scp', `curl', `ediff' and `ztree'.
+;; `ssh-deploy' enables automatic deploys on explicit-save, manual uploads,
+;; downloads, differences, remote terminals and remote directory browsing via TRAMP.
+;; To do this it uses `tramp', `tramp-term', `ediff' and `ztree'.
 ;; By setting the variables (globally or per directory):
 ;; `ssh-deploy-root-local',`ssh-deploy-root-remote',
 ;; `ssh-deploy-on-explicit-save' you can setup a directory for
@@ -58,7 +57,7 @@
 ;; An example for FTP, /Users/Chris/Web/Site2/.dir.locals.el:
 ;; ((nil . (
 ;; (ssh-deploy-root-local . "/Users/Chris/Web/Site2/")
-;; (ssh-deploy-root-remote . "/ftp:myuser:mypassword@myserver.com:/site2/")
+;; (ssh-deploy-root-remote . "/ftp:myuser@myserver.com:/site2/")
 ;; (ssh-deploy-on-explicit-save . nil)
 ;; )))
 ;;
@@ -181,8 +180,8 @@
   "Run COMMAND in asynchronous mode."
   (message "Shell command: '%s'" command)
   (let ((proc (start-process-shell-command "process" nil command)))
-    (set-process-filter proc (lambda (proc output)(message "%s" (replace-regexp-in-string "\^M" "\n" output))))
-    (set-process-sentinel proc (lambda (proc output)
+    (set-process-filter proc (lambda(proc output)(message "%s" (replace-regexp-in-string "\^M" "\n" output))))
+    (set-process-sentinel proc (lambda(proc output)
                                  (if (string= (symbol-name (process-status proc)) "exit")
                                      (if (= (process-exit-status proc) 0)
                                          (message "Successfully ran shell command.")
@@ -190,61 +189,61 @@
 
 (defun ssh-deploy--download (remote local local-root)
   "Download REMOTE to LOCAL with the LOCAL-ROOT via ssh or ftp."
-  (if (or (string= (alist-get 'protocol remote) "ssh") (string= (alist-get 'protocol remote) "ftp"))
-      (progn
-        (let ((path (concat (alist-get 'server remote) ":" (alist-get 'path remote))))
-          (message "Downloading path '%s' to '%s'.." path local)
-          (let ((file-or-directory (file-regular-p local)))
-            (if file-or-directory
-                (if (string= (alist-get 'protocol remote) "ssh")
-                    (ssh-deploy--download-file-via-ssh remote local)
-                  (ssh-deploy--download-file-via-ftp remote local))
-              (if (string= (alist-get 'protocol remote) "ssh")
-                  (ssh-deploy--download-directory-via-ssh remote local local-root)
-                (ssh-deploy--download-directory-via-ftp remote local local-root))))))
-    (message "Unsupported protocol. Only SSH and FTP are supported at the moment.")))
+  (ssh-deploy--download-via-tramp remote local local-root))
 
-;; TODO: Left for further research, is it possible to make this asynchrous?
+;; TODO When process asks for password we should supply it to the process automatically
 (defun ssh-deploy--upload-via-tramp (local remote local-root)
   "Upload LOCAL path to REMOTE and LOCAL-ROOT via tramp."
-  (let ((remote-path (concat "/" (alist-get 'protocol remote) ":" (shell-quote-argument (alist-get 'username remote)) "@" (shell-quote-argument (alist-get 'server remote)) ":" (shell-quote-argument (alist-get 'path remote))))
-        (file-or-directory (file-regular-p local)))
-    (if file-or-directory
-        (progn
-        (message "Uploading file '%s' to '%s'.." local remote-path)
-        (copy-file local remote-path t t))
-      (progn
-        (message "Uploading directory '%s' to '%s' via TRAMP.." local remote-path)
-        (copy-directory local remote-path t t)))))
+  (if (fboundp 'async-start)
+      (let ((remote-path (concat "/" (alist-get 'protocol remote) ":" (shell-quote-argument (alist-get 'username remote)) "@" (shell-quote-argument (alist-get 'server remote)) ":" (shell-quote-argument (alist-get 'path remote))))
+            (file-or-directory (file-regular-p local)))
+        (if file-or-directory
+            (progn
+              (message "Uploading file '%s' to '%s' via TRAMP.." local remote-path)
+              (async-start
+               `(lambda()
+                  (copy-file ,local ,remote-path t t)
+                  ,local)
+               (lambda(return-path)
+                 (message "Upload '%s' finished" return-path))))
+          (progn
+            (message "Uploading directory '%s' to '%s' via TRAMP.." local remote-path)
+            (async-start
+             `(lambda()
+                (copy-directory ,local ,(file-name-directory (directory-file-name remote-path)) t t)
+                ,local)
+             (lambda(return-path)
+               (message "Upload '%s' finished" return-path))))))
+    (message "async.el is not installed")))
 
-;; TODO: Left for further research, is it possible to make this asynchrous?
+;; TODO When process asks for password we should supply it to the process automatically
 (defun ssh-deploy--download-via-tramp (remote local local-root)
   "Download REMOTE path to LOCAL and LOCAL-ROOT via tramp."
-  (let ((remote-path (concat "/" (alist-get 'protocol remote) ":" (shell-quote-argument (alist-get 'username remote)) "@" (shell-quote-argument (alist-get 'server remote)) ":" (shell-quote-argument (alist-get 'path remote))))
-        (file-or-directory (file-regular-p local)))
-    (if file-or-directory
-        (progn
-          (message "Downloading file '%s' to '%s' via TRAMP.." remote-path local)
-          (copy-file remote-path local t t))
-      (progn
-        (message "Download directory '%s' to '%s' via TRAMP.." remote-path local)
-        (copy-directory remote-path local t t)))))
+  (if (fboundp 'async-start)
+      (let ((remote-path (concat "/" (alist-get 'protocol remote) ":" (shell-quote-argument (alist-get 'username remote)) "@" (shell-quote-argument (alist-get 'server remote)) ":" (shell-quote-argument (alist-get 'path remote))))
+            (file-or-directory (file-regular-p local)))
+        (if file-or-directory
+            (progn
+              (message "Downloading file '%s' to '%s' via TRAMP.." remote-path local)
+              (async-start
+               `(lambda()
+                  (copy-file ,remote-path ,local t t)
+                  ,local)
+               (lambda(return-path)
+                  (message "Download '%s' finished" return-path))))
+          (progn
+            (message "Downloading directory '%s' to '%s' via TRAMP.." remote-path local)
+            (async-start
+             `(lambda()
+                (copy-directory ,remote-path ,(file-name-directory (directory-file-name local)) t t)
+                ,local)
+             (lambda(return-path)
+               (message "Download '%s' finished" return-path))))))
+    (message "async.el is not installed")))
 
 (defun ssh-deploy--upload (local remote local-root)
   "Upload LOCAL to REMOTE and LOCAL-ROOT via ssh or ftp."
-  (if (or (string= (alist-get 'protocol remote) "ssh") (string= (alist-get 'protocol remote) "ftp"))
-      (progn
-        (let ((path (concat (alist-get 'server remote) ":" (alist-get 'path remote))))
-          (message "Uploading path '%s' to '%s'.." local path)
-          (let ((file-or-directory (file-regular-p local)))
-            (if file-or-directory
-                (if (string= (alist-get 'protocol remote) "ssh")
-                    (ssh-deploy--upload-file-via-ssh local remote)
-                  (ssh-deploy--upload-file-via-ftp local remote))
-              (if (string= (alist-get 'protocol remote) "ssh")
-                  (ssh-deploy--upload-directory-via-ssh local remote local-root)
-                (ssh-deploy--upload-directory-via-ftp local remote local-root))))))
-        (message "Unsupported protocol. Only SSH and FTP are supported at the moment.")))
+  (ssh-deploy--upload-via-tramp local remote local-root))
 
 (defun ssh-deploy--upload-file-via-ssh (local remote)
   "Upload file LOCAL to REMOTE via ssh."
