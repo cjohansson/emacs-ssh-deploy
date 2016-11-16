@@ -3,7 +3,7 @@
 ;; Author: Christian Johansson <github.com/cjohansson>
 ;; Maintainer: Christian Johansson <github.com/cjohansson>
 ;; Created: 5 Jul 2016
-;; Modified: 14 Nov 2016
+;; Modified: 16 Nov 2016
 ;; Version: 1.40
 ;; Keywords: tools, convenience
 ;; URL: https://github.com/cjohansson/emacs-ssh-deploy
@@ -186,10 +186,21 @@
                                      (if (= (process-exit-status proc) 0)
                                          (message "Successfully ran shell command.")
                                        (message "Failed to run shell command.")))))))
-
 (defun ssh-deploy--download (remote local local-root)
   "Download REMOTE to LOCAL with the LOCAL-ROOT via ssh or ftp."
-  (ssh-deploy--download-via-tramp remote local local-root))
+  (if (or (string= (alist-get 'protocol remote) "ssh") (string= (alist-get 'protocol remote) "ftp"))
+      (progn
+        (let ((path (concat (alist-get 'server remote) ":" (alist-get 'path remote))))
+          (message "Downloading path '%s' to '%s'.." path local)
+          (let ((file-or-directory (file-regular-p local)))
+            (if file-or-directory
+                (if (string= (alist-get 'protocol remote) "ssh")
+                    (ssh-deploy--download-via-tramp remote local local-root)
+                  (ssh-deploy--download-file-via-ftp remote local))
+              (if (string= (alist-get 'protocol remote) "ssh")
+                  (ssh-deploy--download-via-tramp remote local local-root)
+                (ssh-deploy--download-directory-via-ftp remote local local-root))))))
+    (message "Unsupported protocol. Only SSH and FTP are supported at the moment.")))
 
 ;; TODO When process asks for password we should supply it to the process automatically
 (defun ssh-deploy--upload-via-tramp (local remote local-root)
@@ -243,7 +254,20 @@
 
 (defun ssh-deploy--upload (local remote local-root)
   "Upload LOCAL to REMOTE and LOCAL-ROOT via ssh or ftp."
-  (ssh-deploy--upload-via-tramp local remote local-root))
+  (if (or (string= (alist-get 'protocol remote) "ssh") (string= (alist-get 'protocol remote) "ftp"))
+      (progn
+        (let ((path (concat (alist-get 'server remote) ":" (alist-get 'path remote))))
+          (message "Uploading path '%s' to '%s'.." local path)
+          (let ((file-or-directory (file-regular-p local)))
+            (if file-or-directory
+                (if (string= (alist-get 'protocol remote) "ssh")
+                    (ssh-deploy--upload-via-tramp local remote local-root)
+                  (ssh-deploy--upload-file-via-ftp local remote))
+              (if (string= (alist-get 'protocol remote) "ssh")
+                  (ssh-deploy--upload-via-tramp local remote local-root)
+                (ssh-deploy--upload-directory-via-ftp local remote local-root))))))
+    (message "Unsupported protocol. Only SSH and FTP are supported at the moment.")))
+
 
 (defun ssh-deploy--upload-file-via-ssh (local remote)
   "Upload file LOCAL to REMOTE via ssh."
