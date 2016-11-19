@@ -31,20 +31,19 @@
 
 ;; `ssh-deploy' enables automatic deploys on explicit-save, manual uploads,
 ;; downloads, differences, remote terminals (optional) and remote directory browsing via TRAMP.
-;; To do this it uses `tramp', `tramp-term', `ediff' and `ztree'.
+;; To do this it progressively uses `tramp', `tramp-term', `ediff', `async` and `ztree'.
 ;; By setting the variables (globally or per directory):
-;; `ssh-deploy-root-local',`ssh-deploy-root-remote',
-;; `ssh-deploy-on-explicit-save' you can setup a directory for
-;; SSH or FTP deployment.
+;; `ssh-deploy-root-local',`ssh-deploy-root-remote', `ssh-deploy-on-explicit-save'
+;; you can setup a directory for SSH or FTP deployment.
 ;;
-;; Since transfers are done asynchrously, you need to setup ~/.netrc or equivalent for automatic transfers.
+;; For asynchrous transfers you need to setup ~/.netrc or equivalent for automatic authentifications.
 ;;
 ;; Example contents of ~/.netrc:
 ;; machine myserver.com login myuser port ftp password mypassword
 ;;
 ;; Set permissions to this file to 700 with you as the owner.
 ;;
-;; - To setup a hook on explicit save do this:
+;; - To setup a upload hook on save do this:
 ;;     (add-hook 'after-save-hook (lambda() (if ssh-deploy-on-explicit-save (ssh-deploy-upload-handler)) ))
 ;;
 ;; - To set key-bindings do something like this:
@@ -54,18 +53,18 @@
 ;;     (global-set-key (kbd "C-c C-z t") (lambda() (interactive)(ssh-deploy-remote-terminal-handler) ))
 ;;     (global-set-key (kbd "C-c C-z b") (lambda() (interactive)(ssh-deploy-browse-remote-handler) ))
 ;;
-;; An illustrative example for SSH, /Users/Chris/Web/Site1/.dir.locals.el
+;; An illustrative example for SSH deployment, /Users/Chris/Web/Site1/.dir.locals.el
 ;; ((nil . (
 ;;   (ssh-deploy-root-local . "/Users/Chris/Web/Site1/")
 ;;   (ssh-deploy-root-remote . "/ssh:web@myserver.com:/var/www/site1/")
 ;;   (ssh-deploy-on-explicity-save . t)
 ;; )))
 ;;
-;; An example for FTP, /Users/Chris/Web/Site2/.dir.locals.el:
+;; An example for FTP deployment, /Users/Chris/Web/Site2/.dir.locals.el:
 ;; ((nil . (
-;; (ssh-deploy-root-local . "/Users/Chris/Web/Site2/")
-;; (ssh-deploy-root-remote . "/ftp:myuser@myserver.com:/site2/")
-;; (ssh-deploy-on-explicit-save . nil)
+;;   (ssh-deploy-root-local . "/Users/Chris/Web/Site2/")
+;;   (ssh-deploy-root-remote . "/ftp:myuser@myserver.com:/site2/")
+;;   (ssh-deploy-on-explicit-save . nil)
 ;; )))
 ;;
 ;; Now when you are in a directory which is deployed via SSH or FTP you can access these features.
@@ -99,6 +98,11 @@
   :type 'boolean
   :group 'ssh-deploy)
 
+(defcustom ssh-deploy-async t
+  "Boolean variable if asynchrous method for transfers should be used, t by default."
+  :type 'boolean
+  :group 'ssh-deploy)
+
 (defun ssh-deploy--browse-remote (local-root remote-root-string path)
   "Browse relative to LOCAL-ROOT on REMOTE-ROOT-STRING the path PATH in `dired-mode`."
   (if (ssh-deploy--file-is-in-path path local-root)
@@ -109,22 +113,37 @@
           (dired command))))))
 
 (defun ssh-deploy--remote-terminal (remote-host-string)
-  "Opens REMOTE-HOST-STRING in tramp terminal."
+  "Opens REMOTE-HOST-STRING in terminal."
+  (let ((remote-root (ssh-deploy--parse-remote remote-host-string)))
+    (if (string= (alist-get 'protocol remote-root) "ssh")
+        (if (and (fboundp 'tramp-term)
+                 (fboundp 'tramp-term--initialize)
+                 (fboundp 'tramp-term--do-ssh-login))
+            (progn
+              (let ((hostname (concat (alist-get 'username remote-root) "@" (alist-get 'server remote-root))))
+                (let ((host (split-string hostname "@")))
+                  (message "Opening tramp-terminal for remote host '%s@%s' and '%s'.." (car host) (car (last host)) hostname)
+                  (unless (eql (catch 'tramp-term--abort (tramp-term--do-ssh-login host)) 'tramp-term--abort)
+                    (tramp-term--initialize hostname)
+                    (run-hook-with-args 'tramp-term-after-initialized-hook hostname)
+                    (message "tramp-term initialized")))))
+          (message "tramp-term is not installed."))
+      (if (string= (alist-get 'protocol remote-root) "ftp")
+          (ssh-deploy-browse-remote-handler)))))
+
+(defun ssh-deploy--remote-terminal-ssh (remote-root)
+  "Opens REMOTE-ROOT in tramp terminal."
   (if (and (fboundp 'tramp-term)
            (fboundp 'tramp-term--initialize)
            (fboundp 'tramp-term--do-ssh-login))
       (progn
-        (let ((remote-root (ssh-deploy--parse-remote remote-host-string)))
-          (if (string= (alist-get 'protocol remote-root) "ssh")
-              (progn
-                (let ((hostname (concat (alist-get 'username remote-root) "@" (alist-get 'server remote-root))))
-                  (let ((host (split-string hostname "@")))
-                    (message "Opening tramp-terminal for remote host '%s@%s' and '%s'.." (car host) (car (last host)) hostname)
-                    (unless (eql (catch 'tramp-term--abort (tramp-term--do-ssh-login host)) 'tramp-term--abort)
-                      (tramp-term--initialize hostname)
-                      (run-hook-with-args 'tramp-term-after-initialized-hook hostname)
-                      (message "tramp-term initialized")))))
-            (message "Terminal is only available for the SSH protocol."))))
+        (let ((hostname (concat (alist-get 'username remote-root) "@" (alist-get 'server remote-root))))
+          (let ((host (split-string hostname "@")))
+            (message "Opening tramp-terminal for remote host '%s@%s' and '%s'.." (car host) (car (last host)) hostname)
+            (unless (eql (catch 'tramp-term--abort (tramp-term--do-ssh-login host)) 'tramp-term--abort)
+              (tramp-term--initialize hostname)
+              (run-hook-with-args 'tramp-term-after-initialized-hook hostname)
+              (message "tramp-term initialized")))))
     (message "tramp-term is not installed.")))
 
 (defun ssh-deploy--file-is-in-path (file path)
@@ -196,59 +215,93 @@
 
 (defun ssh-deploy--download (remote local local-root)
   "Download REMOTE to LOCAL with the LOCAL-ROOT via tramp."
-  (ssh-deploy--download-via-tramp remote local local-root))
+  (if (and ssh-deploy-async (fboundp 'async-start))
+      (ssh-deploy--download-via-tramp-async remote local local-root)
+    (ssh-deploy--download-via-tramp remote local local-root)))
 
-(defun ssh-deploy--upload-via-tramp (local remote local-root)
-  "Upload LOCAL path to REMOTE and LOCAL-ROOT via tramp."
+(defun ssh-deploy--upload-via-tramp-async (local remote local-root)
+  "Upload LOCAL path to REMOTE and LOCAL-ROOT via tramp asynchrously."
   (if (fboundp 'async-start)
-      (let ((remote-path (concat "/" (alist-get 'protocol remote) ":" (shell-quote-argument (alist-get 'username remote)) "@" (shell-quote-argument (alist-get 'server remote)) ":" (shell-quote-argument (alist-get 'path remote))))
-            (file-or-directory (file-regular-p local)))
-        (if file-or-directory
+      (progn
+        (let ((remote-path (concat "/" (alist-get 'protocol remote) ":" (shell-quote-argument (alist-get 'username remote)) "@" (shell-quote-argument (alist-get 'server remote)) ":" (shell-quote-argument (alist-get 'path remote))))
+              (file-or-directory (file-regular-p local)))
+          (if file-or-directory
+              (progn
+                (message "Uploading file '%s' to '%s' via tramp asynchrously.." local remote-path)
+                (async-start
+                 `(lambda()
+                    (copy-file ,local ,remote-path t t)
+                    ,local)
+                 (lambda(return-path)
+                   (message "Upload '%s' finished" return-path))))
             (progn
-              (message "Uploading file '%s' to '%s' via TRAMP.." local remote-path)
+              (message "Uploading directory '%s' to '%s' via tramp asynchrously.." local remote-path)
               (async-start
                `(lambda()
-                  (copy-file ,local ,remote-path t t)
+                  (copy-directory ,local ,(file-name-directory (directory-file-name remote-path)) t t)
                   ,local)
                (lambda(return-path)
-                 (message "Upload '%s' finished" return-path))))
-          (progn
-            (message "Uploading directory '%s' to '%s' via TRAMP.." local remote-path)
-            (async-start
-             `(lambda()
-                (copy-directory ,local ,(file-name-directory (directory-file-name remote-path)) t t)
-                ,local)
-             (lambda(return-path)
-               (message "Upload '%s' finished" return-path))))))
+                 (message "Upload '%s' finished" return-path)))))))
+    (message "async.el is not installed")))
+
+(defun ssh-deploy--upload-via-tramp (local remote local-root)
+  "Upload LOCAL path to REMOTE and LOCAL-ROOT via tramp synchrously."
+  (let ((remote-path (concat "/" (alist-get 'protocol remote) ":" (shell-quote-argument (alist-get 'username remote)) "@" (shell-quote-argument (alist-get 'server remote)) ":" (shell-quote-argument (alist-get 'path remote))))
+        (file-or-directory (file-regular-p local)))
+    (if file-or-directory
+        (progn
+          (message "Uploading file '%s' to '%s' via tramp synchrously.." local remote-path)
+          (copy-file local remote-path t t)
+          (message "Upload '%s' finished" local))
+      (progn
+        (message "Uploading directory '%s' to '%s' via tramp synchrously.." local remote-path)
+        (copy-directory local (file-name-directory (directory-file-name remote-path)) t t)
+        (message "Upload '%s' finished" local)))))
+
+(defun ssh-deploy--download-via-tramp-async (remote local local-root)
+  "Download REMOTE path to LOCAL and LOCAL-ROOT via tramp asynchrously."
+  (if (fboundp 'async-start)
+      (progn
+        (let ((remote-path (concat "/" (alist-get 'protocol remote) ":" (shell-quote-argument (alist-get 'username remote)) "@" (shell-quote-argument (alist-get 'server remote)) ":" (shell-quote-argument (alist-get 'path remote))))
+              (file-or-directory (file-regular-p local)))
+          (if file-or-directory
+              (progn
+                (message "Downloading file '%s' to '%s' via tramp asynchrously.." remote-path local)
+                (async-start
+                 `(lambda()
+                    (copy-file ,remote-path ,local t t)
+                    ,local)
+                 (lambda(return-path)
+                   (message "Download '%s' finished" return-path))))
+            (progn
+              (message "Downloading directory '%s' to '%s' via tramp asynchrously.." remote-path local)
+              (async-start
+               `(lambda()
+                  (copy-directory ,remote-path ,(file-name-directory (directory-file-name local)) t t)
+                  ,local)
+               (lambda(return-path)
+                 (message "Download '%s' finished" return-path)))))))
     (message "async.el is not installed")))
 
 (defun ssh-deploy--download-via-tramp (remote local local-root)
-  "Download REMOTE path to LOCAL and LOCAL-ROOT via tramp."
-  (if (fboundp 'async-start)
-      (let ((remote-path (concat "/" (alist-get 'protocol remote) ":" (shell-quote-argument (alist-get 'username remote)) "@" (shell-quote-argument (alist-get 'server remote)) ":" (shell-quote-argument (alist-get 'path remote))))
-            (file-or-directory (file-regular-p local)))
-        (if file-or-directory
-            (progn
-              (message "Downloading file '%s' to '%s' via TRAMP.." remote-path local)
-              (async-start
-               `(lambda()
-                  (copy-file ,remote-path ,local t t)
-                  ,local)
-               (lambda(return-path)
-                  (message "Download '%s' finished" return-path))))
-          (progn
-            (message "Downloading directory '%s' to '%s' via TRAMP.." remote-path local)
-            (async-start
-             `(lambda()
-                (copy-directory ,remote-path ,(file-name-directory (directory-file-name local)) t t)
-                ,local)
-             (lambda(return-path)
-               (message "Download '%s' finished" return-path))))))
-    (message "async.el is not installed")))
+  "Download REMOTE path to LOCAL and LOCAL-ROOT via tramp synchrously."
+  (let ((remote-path (concat "/" (alist-get 'protocol remote) ":" (shell-quote-argument (alist-get 'username remote)) "@" (shell-quote-argument (alist-get 'server remote)) ":" (shell-quote-argument (alist-get 'path remote))))
+        (file-or-directory (file-regular-p local)))
+    (if file-or-directory
+        (progn
+          (message "Downloading file '%s' to '%s' via tramp synchrously.." remote-path local)
+          (copy-file remote-path local t t)
+          (message "Download '%s' finished" local))
+      (progn
+        (message "Downloading directory '%s' to '%s' via tramp synchrously.." remote-path local)
+        (copy-directory remote-path (file-name-directory (directory-file-name local)) t t)
+        (message "Download '%s' finished" local)))))
 
 (defun ssh-deploy--upload (local remote local-root)
   "Upload LOCAL to REMOTE and LOCAL-ROOT via tramp."
-  (ssh-deploy--upload-via-tramp local remote local-root))
+  (if (and ssh-deploy-async (fboundp 'async-start))
+      (ssh-deploy--upload-via-tramp-async local remote local-root)
+    (ssh-deploy--upload-via-tramp local remote local-root)))
 
 (defun ssh-deploy (local-root remote-root upload-or-download path)
   "Upload/Download file or directory relative to the roots LOCAL-ROOT with REMOTE-ROOT via ssh or ftp according to UPLOAD-OR-DOWNLOAD and the path PATH."

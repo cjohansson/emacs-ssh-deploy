@@ -1,6 +1,6 @@
 # `emacs-ssh-deploy`
 
-The `ssh-deploy` plug-in makes it possible to effortlessly deploy local files and directories to remote hosts via SSH and FTP. It also makes it possible to define remote paths per directory and whether or not you want to deploy on explicit save actions or not. Also it enables manual upload and download of files and directories. You can also check differences between local files and directories and remote files and directories if you have `tramp`,`ediff` and `ztree` installed. You can also browse remote hosts if you have `tramp` installed. Lastly you can easily open remote hosts terminal if you have `tramp-term` installed. **You need to have a setup which allows automatic connections to servers via SSH and FTP**.
+The `ssh-deploy` plug-in makes it possible to effortlessly deploy local files and directories to remote hosts via SSH and FTP. It also makes it possible to define remote paths per directory and whether or not you want to deploy on explicit save actions or not. Also it enables manual upload and download of files and directories. You can also check differences between local files and directories and remote files and directories if you have `tramp`,`ediff` and `ztree` installed. You can also browse remote hosts if you have `tramp` installed. Lastly you can easily open remote hosts terminal if you have `tramp-term` installed. For asynchronous transfers **you need to have a setup which allows automatic connections to servers via SSH and FTP and have async.el installed**.
 
 `ssh-deploy` works with `DirectoryVariables` so you can have different deploy setups in different ways for different folders.
 
@@ -17,21 +17,21 @@ This application is made by Christian Johansson <christian@cvj.se> 2016 and is l
 
 ``` emacs-lisp
 ((nil . (
-(ssh-deploy-root-local . "/Users/username/Web/MySite/")
-(ssh-deploy-root-remote . "/ssh:myuser@myserver.com:/var/www/MySite/")
-(ssh-deploy-on-explicit-save . t)
+  (ssh-deploy-root-local . "/Users/username/Web/MySite/")
+  (ssh-deploy-root-remote . "/ssh:myuser@myserver.com:/var/www/MySite/")
+  (ssh-deploy-on-explicit-save . t)
 )))
 ```
 
 For automatic SSH connections you need to setup password-less public-key authorization or equivalent.
 
-Or for FTP use this
+Or for FTP use this:
 
 ``` emacs-lisp
 ((nil . (
-(ssh-deploy-root-local . "/Users/username/Web/MySite/")
-(ssh-deploy-root-remote . "/ftp:myuser@myserver.com:/MySite/")
-(ssh-deploy-on-explicit-save . t)
+  (ssh-deploy-root-local . "/Users/username/Web/MySite/")
+  (ssh-deploy-root-remote . "/ftp:myuser@myserver.com:/MySite/")
+  (ssh-deploy-on-explicit-save . t)
 )))
 
 ```
@@ -93,3 +93,4 @@ Host remote-host
 * <http://melpa.org/>
 * <https://github.com/fourier/ztree>
 * <https://github.com/randymorris/tramp-term.el>
+* <https://github.com/jwiegley/emacs-async>
