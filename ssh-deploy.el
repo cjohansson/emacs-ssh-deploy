@@ -4,7 +4,7 @@
 ;; Maintainer: Christian Johansson <github.com/cjohansson>
 ;; Created: 5 Jul 2016
 ;; Modified: 20 Nov 2016
-;; Version: 1.41
+;; Version: 1.42
 ;; Keywords: tools, convenience
 ;; URL: https://github.com/cjohansson/emacs-ssh-deploy
 
@@ -103,34 +103,6 @@
   :type 'boolean
   :group 'ssh-deploy)
 
-;;;### autoload
-(defun ssh-deploy-browse-remote (local-root remote-root-string path)
-  "Browse relative to LOCAL-ROOT on REMOTE-ROOT-STRING the path PATH in `dired-mode`."
-  (if (ssh-deploy--file-is-in-path path local-root)
-      (let ((remote-path (concat remote-root-string (ssh-deploy--get-relative-path local-root path))))
-        (let ((remote-root (ssh-deploy--parse-remote remote-path)))
-          (let ((command (concat "/" (alist-get 'protocol remote-root) ":" (alist-get 'username remote-root) "@" (alist-get 'server remote-root) ":" (alist-get 'path remote-root))))
-            (message "Opening '%s' for browsing on remote host.." command)
-            (dired command))))))
-
-;;;### autoload
-(defun ssh-deploy-remote-terminal (remote-host-string)
-  "Opens REMOTE-HOST-STRING in terminal."
-  (let ((remote-root (ssh-deploy--parse-remote remote-host-string)))
-    (if (string= (alist-get 'protocol remote-root) "ssh")
-        (if (and (fboundp 'tramp-term)
-                 (fboundp 'tramp-term--initialize)
-                 (fboundp 'tramp-term--do-ssh-login))
-            (progn
-              (let ((hostname (concat (alist-get 'username remote-root) "@" (alist-get 'server remote-root))))
-                (let ((host (split-string hostname "@")))
-                  (message "Opening tramp-terminal for remote host '%s@%s' and '%s'.." (car host) (car (last host)) hostname)
-                  (unless (eql (catch 'tramp-term--abort (tramp-term--do-ssh-login host)) 'tramp-term--abort)
-                    (tramp-term--initialize hostname)
-                    (run-hook-with-args 'tramp-term-after-initialized-hook hostname)
-                    (message "tramp-term initialized")))))
-          (message "tramp-term is not installed."))
-      (message "Remote terminal is only available for ssh protocol"))))
 
 (defun ssh-deploy--file-is-in-path (file path)
   "Return true if FILE is in the path PATH."
@@ -140,28 +112,6 @@
   "Return a string for the relative path based on ROOT and PATH."
   (replace-regexp-in-string root "" path))
 
-;;;### autoload
-(defun ssh-deploy-diff (local-root remote-root-string path &optional debug)
-  "Find differences relative to the roots LOCAL-ROOT with REMOTE-ROOT-STRING via ssh and the path PATH, DEBUG enables feedback message."
-  (let ((file-or-directory (file-regular-p path)))
-    (if (ssh-deploy--file-is-in-path path local-root)
-        (progn
-          (let ((remote-path (concat remote-root-string (ssh-deploy--get-relative-path local-root path))))
-            (let ((remote (ssh-deploy--parse-remote remote-path)))
-              (let ((command (concat "/" (alist-get 'protocol remote) ":" (alist-get 'username remote) "@" (alist-get 'server remote) ":" (alist-get 'path remote))))
-                (if file-or-directory
-                    (progn
-                      (message "Comparing file '%s' to '%s'.." path command)
-                      (ediff path command))
-                  (progn
-                    (if (fboundp 'ztree-diff)
-                        (progn
-                          (message "Comparing directory '%s' to '%s'.." path command)
-                          (ztree-diff path command))
-                      (message "ztree-diff is not installed.")
-                      )))))))
-    (if debug
-        (message "Path '%s' is not in the root '%s'" path local-root)))))
 
 (defun ssh-deploy--parse-remote (string)
   "Return alist with connection attributes parsed from STRING."
@@ -206,7 +156,7 @@
                 (message "Uploading file '%s' to '%s' via tramp asynchrously.." local remote-path)
                 (async-start
                  `(lambda()
-                    (copy-file ,local ,remote-path t t)
+                    (copy-file ,local ,remote-path t t t t)
                     ,local)
                  (lambda(return-path)
                    (message "Upload '%s' finished" return-path))))
@@ -227,7 +177,7 @@
     (if file-or-directory
         (progn
           (message "Uploading file '%s' to '%s' via tramp synchrously.." local remote-path)
-          (copy-file local remote-path t t)
+          (copy-file local remote-path t t t t)
           (message "Upload '%s' finished" local))
       (progn
         (message "Uploading directory '%s' to '%s' via tramp synchrously.." local remote-path)
@@ -245,7 +195,7 @@
                 (message "Downloading file '%s' to '%s' via tramp asynchrously.." remote-path local)
                 (async-start
                  `(lambda()
-                    (copy-file ,remote-path ,local t t)
+                    (copy-file ,remote-path ,local t t t t)
                     ,local)
                  (lambda(return-path)
                    (message "Download '%s' finished" return-path))))
@@ -266,7 +216,7 @@
     (if file-or-directory
         (progn
           (message "Downloading file '%s' to '%s' via tramp synchrously.." remote-path local)
-          (copy-file remote-path local t t)
+          (copy-file remote-path local t t t t)
           (message "Download '%s' finished" local))
       (progn
         (message "Downloading directory '%s' to '%s' via tramp synchrously.." remote-path local)
@@ -296,8 +246,10 @@
 ;;;### autoload
 (defun ssh-deploy-upload-handler ()
   "Upload current path to remote host if it is configured for SSH deployment."
-  (if (and (ssh-deploy--is-not-empty-string ssh-deploy-root-local) (ssh-deploy--is-not-empty-string ssh-deploy-root-remote))
-      (if (ssh-deploy--is-not-empty-string buffer-file-name)
+  (if (and (ssh-deploy--is-not-empty-string ssh-deploy-root-local)
+           (ssh-deploy--is-not-empty-string ssh-deploy-root-remote))
+      (if (and (ssh-deploy--is-not-empty-string buffer-file-name)
+               (file-exists-p buffer-file-name))
           (let ((local-path (file-truename buffer-file-name))
                 (local-root (file-truename ssh-deploy-root-local)))
             (ssh-deploy local-root ssh-deploy-root-remote t local-path ssh-deploy-debug ssh-deploy-async))
@@ -309,12 +261,15 @@
 ;;;### autoload
 (defun ssh-deploy-download-handler ()
   "Download current path from remote host if it is configured for SSH deployment."
-  (if (and (ssh-deploy--is-not-empty-string ssh-deploy-root-local) (ssh-deploy--is-not-empty-string ssh-deploy-root-remote))
-      (if (ssh-deploy--is-not-empty-string buffer-file-name)
+  (if (and (ssh-deploy--is-not-empty-string ssh-deploy-root-local)
+           (ssh-deploy--is-not-empty-string ssh-deploy-root-remote))
+      (if (and (ssh-deploy--is-not-empty-string buffer-file-name)
+               (file-exists-p buffer-file-name))
           (let ((local-path (file-truename buffer-file-name))
                 (local-root (file-truename ssh-deploy-root-local)))
             (ssh-deploy local-root ssh-deploy-root-remote nil local-path ssh-deploy-debug ssh-deploy-async))
-        (if (ssh-deploy--is-not-empty-string default-directory)
+        (if (and (ssh-deploy--is-not-empty-string default-directory)
+                 (file-exists-p default-directory))
             (let ((local-path (file-truename default-directory))
                   (local-root (file-truename ssh-deploy-root-local)))
               (ssh-deploy local-root ssh-deploy-root-remote nil local-path ssh-deploy-debug ssh-deploy-async))))))
@@ -323,11 +278,13 @@
 (defun ssh-deploy-diff-handler ()
   "Compare current path with remote host if it is configured for SSH deployment."
   (if (and (ssh-deploy--is-not-empty-string ssh-deploy-root-local) (ssh-deploy--is-not-empty-string ssh-deploy-root-remote))
-      (if (ssh-deploy--is-not-empty-string buffer-file-name)
+      (if (and (ssh-deploy--is-not-empty-string buffer-file-name)
+               (file-exists-p buffer-file-name))
           (let ((local-path (file-truename buffer-file-name))
                 (local-root (file-truename ssh-deploy-root-local)))
             (ssh-deploy-diff local-root ssh-deploy-root-remote local-path ssh-deploy-debug))
-        (if (ssh-deploy--is-not-empty-string default-directory)
+        (if (and (ssh-deploy--is-not-empty-string default-directory)
+                 (file-exists-p default-directory))
             (let ((local-path (file-truename default-directory))
                   (local-root (file-truename ssh-deploy-root-local)))
               (ssh-deploy-diff local-root ssh-deploy-root-remote local-path ssh-deploy-debug))))))
@@ -341,10 +298,64 @@
 ;;;### autoload
 (defun ssh-deploy-browse-remote-handler ()
   "Open current relative path on remote host in `dired-mode' if it is configured for SSH deployment."
-  (if (and (ssh-deploy--is-not-empty-string ssh-deploy-root-local) (ssh-deploy--is-not-empty-string ssh-deploy-root-remote) (ssh-deploy--is-not-empty-string default-directory))
+  (if (and (ssh-deploy--is-not-empty-string ssh-deploy-root-local)
+           (ssh-deploy--is-not-empty-string ssh-deploy-root-remote)
+           (ssh-deploy--is-not-empty-string default-directory))
       (let ((local-path (file-truename default-directory))
             (local-root (file-truename ssh-deploy-root-local)))
         (ssh-deploy-browse-remote local-root ssh-deploy-root-remote local-path))))
+
+;;;### autoload
+(defun ssh-deploy-diff (local-root remote-root-string path &optional debug)
+  "Find differences relative to the roots LOCAL-ROOT with REMOTE-ROOT-STRING via ssh and the path PATH, DEBUG enables feedback message."
+  (let ((file-or-directory (file-regular-p path)))
+    (if (ssh-deploy--file-is-in-path path local-root)
+        (progn
+          (let ((remote-path (concat remote-root-string (ssh-deploy--get-relative-path local-root path))))
+            (let ((remote (ssh-deploy--parse-remote remote-path)))
+              (let ((command (concat "/" (alist-get 'protocol remote) ":" (alist-get 'username remote) "@" (alist-get 'server remote) ":" (alist-get 'path remote))))
+                (if file-or-directory
+                    (progn
+                      (message "Comparing file '%s' to '%s'.." path command)
+                      (ediff path command))
+                  (progn
+                    (if (fboundp 'ztree-diff)
+                        (progn
+                          (message "Comparing directory '%s' to '%s'.." path command)
+                          (ztree-diff path command))
+                      (message "ztree-diff is not installed.")
+                      )))))))
+    (if debug
+        (message "Path '%s' is not in the root '%s'" path local-root)))))
+
+;;;### autoload
+(defun ssh-deploy-browse-remote (local-root remote-root-string path)
+  "Browse relative to LOCAL-ROOT on REMOTE-ROOT-STRING the path PATH in `dired-mode`."
+  (if (ssh-deploy--file-is-in-path path local-root)
+      (let ((remote-path (concat remote-root-string (ssh-deploy--get-relative-path local-root path))))
+        (let ((remote-root (ssh-deploy--parse-remote remote-path)))
+          (let ((command (concat "/" (alist-get 'protocol remote-root) ":" (alist-get 'username remote-root) "@" (alist-get 'server remote-root) ":" (alist-get 'path remote-root))))
+            (message "Opening '%s' for browsing on remote host.." command)
+            (dired command))))))
+
+;;;### autoload
+(defun ssh-deploy-remote-terminal (remote-host-string)
+  "Opens REMOTE-HOST-STRING in terminal."
+  (let ((remote-root (ssh-deploy--parse-remote remote-host-string)))
+    (if (string= (alist-get 'protocol remote-root) "ssh")
+        (if (and (fboundp 'tramp-term)
+                 (fboundp 'tramp-term--initialize)
+                 (fboundp 'tramp-term--do-ssh-login))
+            (progn
+              (let ((hostname (concat (alist-get 'username remote-root) "@" (alist-get 'server remote-root))))
+                (let ((host (split-string hostname "@")))
+                  (message "Opening tramp-terminal for remote host '%s@%s' and '%s'.." (car host) (car (last host)) hostname)
+                  (unless (eql (catch 'tramp-term--abort (tramp-term--do-ssh-login host)) 'tramp-term--abort)
+                    (tramp-term--initialize hostname)
+                    (run-hook-with-args 'tramp-term-after-initialized-hook hostname)
+                    (message "tramp-term initialized")))))
+          (message "tramp-term is not installed."))
+      (message "Remote terminal is only available for ssh protocol"))))
 
 (provide 'ssh-deploy)
 ;;; ssh-deploy.el ends here
