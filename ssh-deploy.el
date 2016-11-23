@@ -1,4 +1,4 @@
-;;; ssh-deploy.el --- Deployment via SSH, global or per directory.
+;;; `ssh-deploy.el --- Deployment via SSH, global or per directory.
 
 ;; Author: Christian Johansson <github.com/cjohansson>
 ;; Maintainer: Christian Johansson <github.com/cjohansson>
@@ -36,9 +36,9 @@
 ;; `ssh-deploy-root-local',`ssh-deploy-root-remote', `ssh-deploy-on-explicit-save'
 ;; you can setup a directory for SSH or FTP deployment.
 ;;
-;; For asynchrous transfers you need to setup ~/.netrc or equivalent for automatic authentifications.
+;; For asynchronous transfers you need to setup `~/.netrc' or equivalent for automatic authentication.
 ;;
-;; Example contents of ~/.netrc:
+;; Example contents of `~/.netrc':
 ;; machine myserver.com login myuser port ftp password mypassword
 ;;
 ;; Set permissions to this file to 700 with you as the owner.
@@ -53,17 +53,17 @@
 ;;     (global-set-key (kbd "C-c C-z t") (lambda() (interactive)(ssh-deploy-remote-terminal-handler) ))
 ;;     (global-set-key (kbd "C-c C-z b") (lambda() (interactive)(ssh-deploy-browse-remote-handler) ))
 ;;
-;; An illustrative example for SSH deployment, /Users/Chris/Web/Site1/.dir.locals.el
+;; An illustrative example for `SSH' deployment, /Users/Chris/Web/Site1/.dir.locals.el
 ;; ((nil . (
 ;;   (ssh-deploy-root-local . "/Users/Chris/Web/Site1/")
 ;;   (ssh-deploy-root-remote . "/ssh:web@myserver.com:/var/www/site1/")
 ;;   (ssh-deploy-on-explicity-save . t)
 ;; )))
 ;;
-;; An example for FTP deployment, /Users/Chris/Web/Site2/.dir.locals.el:
+;; An example for `FTP' deployment, /Users/Chris/Web/Site2/.dir.locals.el:
 ;; ((nil . (
 ;;   (ssh-deploy-root-local . "/Users/Chris/Web/Site2/")
-;;   (ssh-deploy-root-remote . "/ftp:myuser@myserver.com:/site2/")
+;;   (ssh-deploy-root-remote . "/ftp:myuser@myserver.com:/var/www/site2/")
 ;;   (ssh-deploy-on-explicit-save . nil)
 ;; )))
 ;;
@@ -161,13 +161,22 @@
                  (lambda(return-path)
                    (message "Upload '%s' finished" return-path))))
             (progn
-              (message "Uploading directory '%s' to '%s' via tramp asynchrously.." local remote-path)
-              (async-start
-               `(lambda()
-                  (copy-directory ,local ,(file-name-directory (directory-file-name remote-path)) t t)
-                  ,local)
-               (lambda(return-path)
-                 (message "Upload '%s' finished" return-path)))))))
+              (message "Uploading directory '%s' to '%s' via tramp asynchronously.." local remote-path)
+              (if (string= remote-path (alist-get 'string remote))
+                  (progn
+                    (async-start
+                     `(lambda()
+                        (copy-directory ,local ,remote-path t t t)
+                        ,local)
+                     (lambda(return-path)
+                       (message "Upload '%s' finished" return-path))))
+                (progn
+                  (async-start
+                   `(lambda()
+                      (copy-directory ,local ,(file-name-directory (directory-file-name remote-path)) t t)
+                      ,local)
+                   (lambda(return-path)
+                     (message "Upload '%s' finished" return-path)))))))))
     (message "async.el is not installed")))
 
 (defun ssh-deploy--upload-via-tramp (local remote local-root)
@@ -176,23 +185,28 @@
         (file-or-directory (file-regular-p local)))
     (if file-or-directory
         (progn
-          (message "Uploading file '%s' to '%s' via tramp synchrously.." local remote-path)
+          (message "Uploading file '%s' to '%s' via tramp synchronously.." local remote-path)
           (copy-file local remote-path t t t t)
           (message "Upload '%s' finished" local))
       (progn
-        (message "Uploading directory '%s' to '%s' via tramp synchrously.." local remote-path)
-        (copy-directory local (file-name-directory (directory-file-name remote-path)) t t)
-        (message "Upload '%s' finished" local)))))
+        (message "Uploading directory '%s' to '%s' via tramp synchronously.." local remote-path)
+        (if (string= remote-path (alist-get 'string remote))
+            (progn
+              (copy-directory local remote-path t t t)
+              (message "Upload '%s' finished" local))
+          (progn
+            (copy-directory local (file-name-directory (directory-file-name remote-path)) t t)
+            (message "Upload '%s' finished" local)))))))
 
 (defun ssh-deploy--download-via-tramp-async (remote local local-root)
-  "Download REMOTE path to LOCAL and LOCAL-ROOT via tramp asynchrously."
+  "Download REMOTE path to LOCAL and LOCAL-ROOT via tramp asynchronously."
   (if (fboundp 'async-start)
       (progn
         (let ((remote-path (concat "/" (alist-get 'protocol remote) ":" (shell-quote-argument (alist-get 'username remote)) "@" (shell-quote-argument (alist-get 'server remote)) ":" (shell-quote-argument (alist-get 'path remote))))
               (file-or-directory (file-regular-p local)))
           (if file-or-directory
               (progn
-                (message "Downloading file '%s' to '%s' via tramp asynchrously.." remote-path local)
+                (message "Downloading file '%s' to '%s' via tramp asynchronously.." remote-path local)
                 (async-start
                  `(lambda()
                     (copy-file ,remote-path ,local t t t t)
@@ -200,28 +214,43 @@
                  (lambda(return-path)
                    (message "Download '%s' finished" return-path))))
             (progn
-              (message "Downloading directory '%s' to '%s' via tramp asynchrously.." remote-path local)
-              (async-start
-               `(lambda()
-                  (copy-directory ,remote-path ,(file-name-directory (directory-file-name local)) t t)
-                  ,local)
-               (lambda(return-path)
-                 (message "Download '%s' finished" return-path)))))))
+              (message "Downloading directory '%s' to '%s' via tramp asynchronously.." remote-path local)
+              (if (string= remote-path (alist-get 'string remote))
+                  (progn
+                    (async-start
+                     `(lambda()
+                        (copy-directory ,remote-path ,local t t t)
+                        ,local)
+                     (lambda(return-path)
+                       (message "Download '%s' finished" return-path))))
+                (progn
+                  (async-start
+                   `(lambda()
+                      (copy-directory ,remote-path ,(file-name-directory (directory-file-name remote-path)) t t)
+                      ,local)
+                   (lambda(return-path)
+                     (message "Download '%s' finished" return-path)))))))))
     (message "async.el is not installed")))
 
 (defun ssh-deploy--download-via-tramp (remote local local-root)
-  "Download REMOTE path to LOCAL and LOCAL-ROOT via tramp synchrously."
+  "Download REMOTE path to LOCAL and LOCAL-ROOT via tramp synchronously."
   (let ((remote-path (concat "/" (alist-get 'protocol remote) ":" (shell-quote-argument (alist-get 'username remote)) "@" (shell-quote-argument (alist-get 'server remote)) ":" (shell-quote-argument (alist-get 'path remote))))
         (file-or-directory (file-regular-p local)))
     (if file-or-directory
         (progn
-          (message "Downloading file '%s' to '%s' via tramp synchrously.." remote-path local)
+          (message "Downloading file '%s' to '%s' via tramp synchronously.." remote-path local)
           (copy-file remote-path local t t t t)
           (message "Download '%s' finished" local))
       (progn
-        (message "Downloading directory '%s' to '%s' via tramp synchrously.." remote-path local)
-        (copy-directory remote-path (file-name-directory (directory-file-name local)) t t)
-        (message "Download '%s' finished" local)))))
+        (message "Downloading directory '%s' to '%s' via tramp synchronously.." remote-path local)
+        (if (string= remote-path (alist-get 'string remote))
+            (progn
+              (copy-directory remote-path local t t t)
+              (message "Download '%s' finished" local))
+          (progn
+            (copy-directory remote-path (file-name-directory (directory-file-name remote-path)) t t)
+            (message "Download '%s' finished" local))
+          )))))
 
 (defun ssh-deploy--upload (local remote local-root async)
   "Upload LOCAL to REMOTE and LOCAL-ROOT via tramp, ASYNC determines if transfer should be asynchrous ot not."
@@ -240,8 +269,8 @@
               (if (not (null upload-or-download))
                   (ssh-deploy--upload path connection local-root async)
                 (ssh-deploy--download connection path local-root async))))))
-        (if debug
-            (message "Path '%s' is not in the root '%s'" path local-root))))
+    (if debug
+        (message "Path '%s' is not in the root '%s'" path local-root))))
 
 ;;;### autoload
 (defun ssh-deploy-upload-handler ()
@@ -325,8 +354,8 @@
                           (ztree-diff path command))
                       (message "ztree-diff is not installed.")
                       )))))))
-    (if debug
-        (message "Path '%s' is not in the root '%s'" path local-root)))))
+      (if debug
+          (message "Path '%s' is not in the root '%s'" path local-root)))))
 
 ;;;### autoload
 (defun ssh-deploy-browse-remote (local-root remote-root-string path)
