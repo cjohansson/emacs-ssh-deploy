@@ -1,10 +1,10 @@
-;;; `ssh-deploy.el --- Deployment via SSH, global or per directory.
+;;; `ssh-deploy.el --- Deployment via SSH or FTP, global or per directory.
 
 ;; Author: Christian Johansson <github.com/cjohansson>
 ;; Maintainer: Christian Johansson <github.com/cjohansson>
 ;; Created: 5 Jul 2016
-;; Modified: 20 Nov 2016
-;; Version: 1.42
+;; Modified: 30 Nov 2016
+;; Version: 1.43
 ;; Keywords: tools, convenience
 ;; URL: https://github.com/cjohansson/emacs-ssh-deploy
 
@@ -30,7 +30,7 @@
 ;;; Commentary:
 
 ;; `ssh-deploy' enables automatic deploys on explicit-save, manual uploads,
-;; downloads, differences, remote terminals (optional) and remote directory browsing via TRAMP.
+;; downloads, differences, remote terminals, detection of remote changes and remote directory browsing via TRAMP.
 ;; To do this it progressively uses `tramp', `tramp-term', `ediff', `async` and `ztree'.
 ;; By setting the variables (globally or per directory):
 ;; `ssh-deploy-root-local',`ssh-deploy-root-remote', `ssh-deploy-on-explicit-save'
@@ -46,17 +46,21 @@
 ;; - To setup a upload hook on save do this:
 ;;     (add-hook 'after-save-hook (lambda() (if ssh-deploy-on-explicit-save (ssh-deploy-upload-handler)) ))
 ;;
+;; - To setup automatic storing of base revisions and download of external changes do this:
+;;     (add-hook 'find-file-hook (lambda() (if ssh-deploy-automatically-detect-remote-changes (ssh-deploy-remote-changes-handler)) ))
+;;
 ;; - To set key-bindings do something like this:
 ;;     (global-set-key (kbd "C-c C-z u") (lambda() (interactive)(ssh-deploy-upload-handler) ))
 ;;     (global-set-key (kbd "C-c C-z d") (lambda() (interactive)(ssh-deploy-download-handler) ))
 ;;     (global-set-key (kbd "C-c C-z x") (lambda() (interactive)(ssh-deploy-diff-handler) ))
 ;;     (global-set-key (kbd "C-c C-z t") (lambda() (interactive)(ssh-deploy-remote-terminal-handler) ))
+;;     (global-set-key (kbd "C-c C-z r") (lambda() (interactive)(ssh-deploy-remote-changes-handler) ))
 ;;     (global-set-key (kbd "C-c C-z b") (lambda() (interactive)(ssh-deploy-browse-remote-handler) ))
 ;;
 ;; An illustrative example for `SSH' deployment, /Users/Chris/Web/Site1/.dir.locals.el
 ;; ((nil . (
 ;;   (ssh-deploy-root-local . "/Users/Chris/Web/Site1/")
-;;   (ssh-deploy-root-remote . "/ssh:web@myserver.com:/var/www/site1/")
+;;   (ssh-deploy-root-remote . "/ssh:myuser@myserver.com:/var/www/site1/")
 ;;   (ssh-deploy-on-explicity-save . t)
 ;; )))
 ;;
@@ -88,8 +92,8 @@
   :type 'string
   :group 'ssh-deploy)
 
-(defcustom ssh-deploy-on-explicit-save nil
-  "Boolean variable if deploy should be made on explicit save, nil by default."
+(defcustom ssh-deploy-on-explicit-save t
+  "Boolean variable if deploy should be made on explicit save, t by default."
   :type 'boolean
   :group 'ssh-deploy)
 
@@ -103,6 +107,21 @@
   :type 'boolean
   :group 'ssh-deploy)
 
+(defcustom ssh-deploy-revision-folder "~/.ssh-deploy-revisions/"
+  "String variable with path to revisions with trailing slash."
+  :type 'string
+  :group 'ssh-deploy)
+
+(defcustom ssh-deploy-automatically-detect-remote-changes t
+  "Detect remote changes and store base revisions automatically, t by default."
+  :type 'boolean
+  :group 'ssh-deploy)
+
+(defun ssh-deploy--get-revision-path (path)
+  "Generate revision-path for PATH."
+  (if (not (file-exists-p ssh-deploy-revision-folder))
+      (make-directory ssh-deploy-revision-folder))
+  (concat ssh-deploy-revision-folder (replace-regexp-in-string "\\(/\\|@\\|:\\)" "_" path)))
 
 (defun ssh-deploy--file-is-in-path (file path)
   "Return true if FILE is in the path PATH."
@@ -111,7 +130,6 @@
 (defun ssh-deploy--get-relative-path (root path)
   "Return a string for the relative path based on ROOT and PATH."
   (replace-regexp-in-string root "" path))
-
 
 (defun ssh-deploy--parse-remote (string)
   "Return alist with connection attributes parsed from STRING."
@@ -153,13 +171,25 @@
               (file-or-directory (file-regular-p local)))
           (if file-or-directory
               (progn
-                (message "Uploading file '%s' to '%s' via tramp asynchrously.." local remote-path)
-                (async-start
-                 `(lambda()
-                    (copy-file ,local ,remote-path t t t t)
-                    ,local)
-                 (lambda(return-path)
-                   (message "Upload '%s' finished" return-path))))
+                (let ((revision-path (ssh-deploy--get-revision-path local)))
+                  (message "Uploading file '%s' to '%s' via tramp asynchronously.." local remote-path)
+                  (async-start
+                   `(lambda()
+                      (require 'ediff)
+                      (if (fboundp 'ediff-same-contents)
+                          (progn
+                            (if (or (not (file-exists-p ,remote-path)) (and (file-exists-p ,revision-path) (ediff-same-contents ,revision-path ,remote-path)))
+                                (progn
+                                  (message "Uploading file '%s' to '%s' via tramp asynchronously.." ,local ,remote-path)
+                                  (copy-file ,local ,remote-path t t t t)
+                                  (copy-file ,local ,revision-path t t t t)
+                                  0)
+                              1))
+                        2))
+                   (lambda(return-message)
+                     (if (= return-message 0) (message "Upload completed.")
+                       (if (= return-message 1) (display-warning "ssh-deploy" "External file has changed, please download or diff." :warning)
+                         (if (= return-message 2) (display-warning "ssh-deploy" "Function ediff-same-contents is missing" :warning))))))))
             (progn
               (message "Uploading directory '%s' to '%s' via tramp asynchronously.." local remote-path)
               (if (string= remote-path (alist-get 'string remote))
@@ -185,9 +215,13 @@
         (file-or-directory (file-regular-p local)))
     (if file-or-directory
         (progn
-          (message "Uploading file '%s' to '%s' via tramp synchronously.." local remote-path)
-          (copy-file local remote-path t t t t)
-          (message "Upload '%s' finished" local))
+          (if (not (ssh-deploy--remote-has-changed local remote-path))
+              (progn
+                (message "Uploading file '%s' to '%s' via tramp synchronously.." local remote-path)
+                (copy-file local remote-path t t t t)
+                (message "Upload '%s' finished" local)
+                (ssh-deploy-store-revision local))
+            (display-warning "ssh-deploy" "Remote contents has changed or no base revision exists, please download or diff." :warning)))
       (progn
         (message "Uploading directory '%s' to '%s' via tramp synchronously.." local remote-path)
         (if (string= remote-path (alist-get 'string remote))
@@ -212,7 +246,8 @@
                     (copy-file ,remote-path ,local t t t t)
                     ,local)
                  (lambda(return-path)
-                   (message "Download '%s' finished" return-path))))
+                   (message "Download '%s' finished" return-path)
+                   (ssh-deploy-store-revision return-path))))
             (progn
               (message "Downloading directory '%s' to '%s' via tramp asynchronously.." remote-path local)
               (if (string= remote-path (alist-get 'string remote))
@@ -240,7 +275,8 @@
         (progn
           (message "Downloading file '%s' to '%s' via tramp synchronously.." remote-path local)
           (copy-file remote-path local t t t t)
-          (message "Download '%s' finished" local))
+          (message "Download '%s' finished" local)
+          (ssh-deploy-store-revision local))
       (progn
         (message "Downloading directory '%s' to '%s' via tramp synchronously.." remote-path local)
         (if (string= remote-path (alist-get 'string remote))
@@ -253,10 +289,29 @@
           )))))
 
 (defun ssh-deploy--upload (local remote local-root async)
-  "Upload LOCAL to REMOTE and LOCAL-ROOT via tramp, ASYNC determines if transfer should be asynchrous ot not."
+  "Upload LOCAL to REMOTE and LOCAL-ROOT via tramp, ASYNC determines if transfer should be asynchronously or not."
   (if (and async (fboundp 'async-start))
       (ssh-deploy--upload-via-tramp-async local remote local-root)
     (ssh-deploy--upload-via-tramp local remote local-root)))
+
+(defun ssh-deploy--remote-has-changed (local remote)
+  "Check if last stored revision of LOCAL exists or has changed on REMOTE synchronously."
+  (let ((revision-path (ssh-deploy--get-revision-path local)))
+    (if (file-exists-p remote)
+        (progn
+          (if (file-exists-p revision-path)
+              (progn
+                (require 'ediff)
+                (if (fboundp 'ediff-same-contents)
+                    (progn
+                      (if (not (ediff-same-contents revision-path remote))
+                          t
+                        nil))
+                  (progn
+                    (message "Function ediff-same-contents is missing.")
+                    nil)))
+            t))
+      nil)))
 
 ;;;### autoload
 (defun ssh-deploy (local-root remote-root upload-or-download path debug async)
@@ -287,9 +342,85 @@
                   (local-root (file-truename ssh-deploy-root-local)))
               (ssh-deploy local-root ssh-deploy-root-remote t local-path ssh-deploy-debug ssh-deploy-async))))))
 
+;; TODO Test this
+;;;### autoload
+(defun ssh-deploy-remote-changes-handler()
+  "Check if local revision exists or remote file has changed if path is configured for deployment"
+  (if (and (ssh-deploy--is-not-empty-string ssh-deploy-root-local)
+           (ssh-deploy--is-not-empty-string ssh-deploy-root-remote))
+      (if (and (ssh-deploy--is-not-empty-string buffer-file-name))
+          (let ((local-root (file-truename ssh-deploy-root-local))
+                (remote-root (file-truename ssh-deploy-root-remote))
+                (path (file-truename buffer-file-name)))
+            (if (ssh-deploy--file-is-in-path path local-root)
+                (progn
+                  (let ((revision-path (ssh-deploy--get-revision-path path))
+                        (remote-path (concat remote-root (ssh-deploy--get-relative-path local-root path))))
+                    (if (file-regular-p path)
+                        (progn
+                          (if (file-exists-p revision-path)
+                              (progn
+                                (if (fboundp 'async-start)
+                                    (progn
+                                      (async-start
+                                       `(lambda()
+                                          (require 'ediff)
+                                          (if (fboundp 'ediff-same-contents)
+                                              (progn
+                                                (if (ediff-same-contents ,revision-path ,remote-path)
+                                                    0
+                                                  1))
+                                            2))
+                                       (lambda(return-message)
+                                         (if (= return-message 0) (message "Remote file has not changed.")
+                                           (if (= return-message 1) (display-warning "ssh-deploy" "External file has changed, please download or diff." :warning)
+                                             (if (= return-message 2) (display-warning "ssh-deploy" "Function ediff-same-contents is missing" :warning)))))))
+                                  (progn
+                                    (require 'ediff)
+                                    (if (fboundp 'ediff-same-contents)
+                                        (progn
+                                          (if (ediff-same-contents revision-path remote-path)
+                                              (message "Remote file has not changed.")
+                                            (display-warning "ssh-deploy" "External file has changed, please download or diff." :warning)))
+                                      (display-warning "ssh-deploy" "Function ediff-same-contents is missing" :warning)))))
+                            (progn
+                              (if (fboundp 'async-start)
+                                  (progn
+                                    (async-start
+                                     `(lambda()
+                                        (if (file-exists-p ,remote-path)
+                                            (progn
+                                              (require 'ediff)
+                                              (if (fboundp 'ediff-same-contents)
+                                                  (progn
+                                                    (if (ediff-same-contents ,path ,remote-path)
+                                                        (progn
+                                                          (copy-file ,path ,revision-path t t t t)
+                                                          (message "Remote file has not changed, created base revision."))
+                                                      (display-warning "ssh-deploy" "External file has changed, please download or diff." :warning)))
+                                                (display-warning "ssh-deploy" "Function ediff-same-contents is missing" :warning)))
+                                          (progn
+                                            (message "Remote file doesn't exist"))))
+                                     (lambda(return-message)
+                                       (message return-message))))
+                                (progn
+                                  (if (file-exists-p remote-path)
+                                      (progn
+                                        (require 'ediff)
+                                        (if (fboundp 'ediff-same-contents)
+                                            (progn
+                                              (if (ediff-same-contents path remote-path)
+                                                  (progn
+                                                    (copy-file path revision-path t t t t)
+                                                    (message "Remote file has not changed, created base revision."))
+                                                (display-warning "ssh-deploy" "External file has changed, please download or diff." :warning)))
+                                          (display-warning "ssh-deploy" "Function ediff-same-contents is missing" :warning)))
+                                    (progn
+                                      (message "Remote file doesn't exist"))))))))))))))))
+
 ;;;### autoload
 (defun ssh-deploy-download-handler ()
-  "Download current path from remote host if it is configured for SSH deployment."
+  "Download current path from remote host if it is configured for deployment."
   (if (and (ssh-deploy--is-not-empty-string ssh-deploy-root-local)
            (ssh-deploy--is-not-empty-string ssh-deploy-root-remote))
       (if (and (ssh-deploy--is-not-empty-string buffer-file-name)
@@ -305,7 +436,7 @@
 
 ;;;### autoload
 (defun ssh-deploy-diff-handler ()
-  "Compare current path with remote host if it is configured for SSH deployment."
+  "Compare current path with remote host if it is configured for deployment."
   (if (and (ssh-deploy--is-not-empty-string ssh-deploy-root-local) (ssh-deploy--is-not-empty-string ssh-deploy-root-remote))
       (if (and (ssh-deploy--is-not-empty-string buffer-file-name)
                (file-exists-p buffer-file-name))
@@ -320,13 +451,13 @@
 
 ;;;### autoload
 (defun ssh-deploy-remote-terminal-handler ()
-  "Open remote host in tramp terminal it is configured for SSH deployment."
+  "Open remote host in tramp terminal it is configured for deployment."
   (if (ssh-deploy--is-not-empty-string ssh-deploy-root-remote)
       (ssh-deploy-remote-terminal ssh-deploy-root-remote)))
 
 ;;;### autoload
 (defun ssh-deploy-browse-remote-handler ()
-  "Open current relative path on remote host in `dired-mode' if it is configured for SSH deployment."
+  "Open current relative path on remote host in `dired-mode' if it is configured for deployment."
   (if (and (ssh-deploy--is-not-empty-string ssh-deploy-root-local)
            (ssh-deploy--is-not-empty-string ssh-deploy-root-remote)
            (ssh-deploy--is-not-empty-string default-directory))
@@ -336,7 +467,7 @@
 
 ;;;### autoload
 (defun ssh-deploy-diff (local-root remote-root-string path &optional debug)
-  "Find differences relative to the roots LOCAL-ROOT with REMOTE-ROOT-STRING via ssh and the path PATH, DEBUG enables feedback message."
+  "Find differences relative to the roots LOCAL-ROOT with REMOTE-ROOT-STRING and the path PATH, DEBUG enables feedback message."
   (let ((file-or-directory (file-regular-p path)))
     (if (ssh-deploy--file-is-in-path path local-root)
         (progn
@@ -345,15 +476,20 @@
               (let ((command (concat "/" (alist-get 'protocol remote) ":" (alist-get 'username remote) "@" (alist-get 'server remote) ":" (alist-get 'path remote))))
                 (if file-or-directory
                     (progn
-                      (message "Comparing file '%s' to '%s'.." path command)
-                      (ediff path command))
+                      (require 'ediff)
+                      (if (fboundp 'ediff-same-contents)
+                          (progn
+                            (message "Comparing file '%s' to '%s'.." path command)
+                            (if (ediff-same-contents path command)
+                                (message "Files have identical contents.")
+                              (ediff path command)))
+                        (message "Function ediff-same-contents is missing.")))
                   (progn
                     (if (fboundp 'ztree-diff)
                         (progn
                           (message "Comparing directory '%s' to '%s'.." path command)
                           (ztree-diff path command))
-                      (message "ztree-diff is not installed.")
-                      )))))))
+                      (message "ztree-diff is not installed."))))))))
       (if debug
           (message "Path '%s' is not in the root '%s'" path local-root)))))
 
@@ -385,6 +521,13 @@
                     (message "tramp-term initialized")))))
           (message "tramp-term is not installed."))
       (message "Remote terminal is only available for ssh protocol"))))
+
+;;;### autoload
+(defun ssh-deploy-store-revision (path)
+  "Store PATH in revision-folder."
+  (let ((revision-path (ssh-deploy--get-revision-path path)))
+    (message "Storing revision of '%s' at '%s'.." path revision-path)
+    (copy-file path (ssh-deploy--get-revision-path path) t t t t)))
 
 (provide 'ssh-deploy)
 ;;; ssh-deploy.el ends here
