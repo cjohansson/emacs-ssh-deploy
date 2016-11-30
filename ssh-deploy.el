@@ -342,7 +342,6 @@
                   (local-root (file-truename ssh-deploy-root-local)))
               (ssh-deploy local-root ssh-deploy-root-remote t local-path ssh-deploy-debug ssh-deploy-async))))))
 
-;; TODO Test this
 ;;;### autoload
 (defun ssh-deploy-remote-changes-handler()
   "Check if local revision exists or remote file has changed if path is configured for deployment"
