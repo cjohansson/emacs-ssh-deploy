@@ -4,7 +4,7 @@
 ;; Maintainer: Christian Johansson <github.com/cjohansson>
 ;; Created: 5 Jul 2016
 ;; Modified: 6 Dec 2016
-;; Version: 1.44
+;; Version: 1.45
 ;; Keywords: tools, convenience
 ;; URL: https://github.com/cjohansson/emacs-ssh-deploy
 
@@ -363,25 +363,32 @@
                                     (progn
                                       (async-start
                                        `(lambda()
-                                          (require 'ediff)
-                                          (if (fboundp 'ediff-same-contents)
+                                          (if (file-exists-p ,remote-path)
                                               (progn
-                                                (if (ediff-same-contents ,revision-path ,remote-path)
-                                                    0
-                                                  1))
-                                            2))
+                                                (require 'ediff)
+                                                (if (fboundp 'ediff-same-contents)
+                                                    (progn
+                                                      (if (ediff-same-contents ,revision-path ,remote-path)
+                                                          0
+                                                        1))
+                                                  2))
+                                            3))
                                        (lambda(return-message)
                                          (if (= return-message 0) (message "Remote file has not changed.")
                                            (if (= return-message 1) (display-warning "ssh-deploy" "External file has changed, please download or diff." :warning)
-                                             (if (= return-message 2) (display-warning "ssh-deploy" "Function ediff-same-contents is missing" :warning)))))))
+                                             (if (= return-message 2) (display-warning "ssh-deploy" "Function ediff-same-contents is missing" :warning)
+                                               (if (= return-message 3) (message "Remote file doesn't exist."))))))))
                                   (progn
-                                    (require 'ediff)
-                                    (if (fboundp 'ediff-same-contents)
+                                    (if (file-exists-p remote-path)
                                         (progn
-                                          (if (ediff-same-contents revision-path remote-path)
-                                              (message "Remote file has not changed.")
-                                            (display-warning "ssh-deploy" "External file has changed, please download or diff." :warning)))
-                                      (display-warning "ssh-deploy" "Function ediff-same-contents is missing" :warning)))))
+                                          (require 'ediff)
+                                          (if (fboundp 'ediff-same-contents)
+                                              (progn
+                                                (if (ediff-same-contents revision-path remote-path)
+                                                    (message "Remote file has not changed.")
+                                                  (display-warning "ssh-deploy" "External file has changed, please download or diff." :warning)))
+                                            (display-warning "ssh-deploy" "Function ediff-same-contents is missing" :warning)))
+                                      (message "Remote file doesn't exist.")))))
                             (progn
                               (if (fboundp 'async-start)
                                   (progn
@@ -398,13 +405,13 @@
                                                           0)
                                                       1))
                                                 2))
-                                          (progn
-                                            (message "Remote file doesn't exist"))))
+                                          3))
                                      (lambda(return-message)
                                        (lambda(return-message)
                                          (if (= return-message 0) (message "Remote file has not changed, created base revision.")
                                            (if (= return-message 1) (display-warning "ssh-deploy" "External file has changed, please download or diff." :warning)
-                                             (if (= return-message 2) (display-warning "ssh-deploy" "Function ediff-same-contents is missing" :warning))))))))
+                                             (if (= return-message 2) (display-warning "ssh-deploy" "Function ediff-same-contents is missing" :warning)
+                                               (if (= return-message 3) (message "Remote file doesn't exist.")))))))))
                                 (progn
                                   (if (file-exists-p remote-path)
                                       (progn
@@ -417,8 +424,7 @@
                                                     (message "Remote file has not changed, created base revision."))
                                                 (display-warning "ssh-deploy" "External file has changed, please download or diff." :warning)))
                                           (display-warning "ssh-deploy" "Function ediff-same-contents is missing" :warning)))
-                                    (progn
-                                      (message "Remote file doesn't exist"))))))))))))))))
+                                      (message "Remote file doesn't exist")))))))))))))))
 
 ;;;### autoload
 (defun ssh-deploy-download-handler ()
