@@ -3,8 +3,8 @@
 ;; Author: Christian Johansson <github.com/cjohansson>
 ;; Maintainer: Christian Johansson <github.com/cjohansson>
 ;; Created: 5 Jul 2016
-;; Modified: 30 Nov 2016
-;; Version: 1.43
+;; Modified: 6 Dec 2016
+;; Version: 1.44
 ;; Keywords: tools, convenience
 ;; URL: https://github.com/cjohansson/emacs-ssh-deploy
 
@@ -349,7 +349,7 @@
            (ssh-deploy--is-not-empty-string ssh-deploy-root-remote))
       (if (and (ssh-deploy--is-not-empty-string buffer-file-name))
           (let ((local-root (file-truename ssh-deploy-root-local))
-                (remote-root (file-truename ssh-deploy-root-remote))
+                (remote-root ssh-deploy-root-remote)
                 (path (file-truename buffer-file-name)))
             (if (ssh-deploy--file-is-in-path path local-root)
                 (progn
@@ -395,13 +395,16 @@
                                                     (if (ediff-same-contents ,path ,remote-path)
                                                         (progn
                                                           (copy-file ,path ,revision-path t t t t)
-                                                          (message "Remote file has not changed, created base revision."))
-                                                      (display-warning "ssh-deploy" "External file has changed, please download or diff." :warning)))
-                                                (display-warning "ssh-deploy" "Function ediff-same-contents is missing" :warning)))
+                                                          0)
+                                                      1))
+                                                2))
                                           (progn
                                             (message "Remote file doesn't exist"))))
                                      (lambda(return-message)
-                                       (message return-message))))
+                                       (lambda(return-message)
+                                         (if (= return-message 0) (message "Remote file has not changed, created base revision.")
+                                           (if (= return-message 1) (display-warning "ssh-deploy" "External file has changed, please download or diff." :warning)
+                                             (if (= return-message 2) (display-warning "ssh-deploy" "Function ediff-same-contents is missing" :warning))))))))
                                 (progn
                                   (if (file-exists-p remote-path)
                                       (progn
