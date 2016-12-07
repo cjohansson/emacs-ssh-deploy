@@ -3,8 +3,8 @@
 ;; Author: Christian Johansson <github.com/cjohansson>
 ;; Maintainer: Christian Johansson <github.com/cjohansson>
 ;; Created: 5 Jul 2016
-;; Modified: 6 Dec 2016
-;; Version: 1.45
+;; Modified: 7 Dec 2016
+;; Version: 1.46
 ;; Keywords: tools, convenience
 ;; URL: https://github.com/cjohansson/emacs-ssh-deploy
 
@@ -407,11 +407,10 @@
                                                 2))
                                           3))
                                      (lambda(return-message)
-                                       (lambda(return-message)
                                          (if (= return-message 0) (message "Remote file has not changed, created base revision.")
                                            (if (= return-message 1) (display-warning "ssh-deploy" "External file has changed, please download or diff." :warning)
                                              (if (= return-message 2) (display-warning "ssh-deploy" "Function ediff-same-contents is missing" :warning)
-                                               (if (= return-message 3) (message "Remote file doesn't exist.")))))))))
+                                               (if (= return-message 3) (message "Remote file doesn't exist."))))))))
                                 (progn
                                   (if (file-exists-p remote-path)
                                       (progn
