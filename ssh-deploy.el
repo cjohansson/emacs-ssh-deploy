@@ -1,10 +1,10 @@
-;;; `ssh-deploy.el --- Deployment via SSH or FTP, global or per directory.
+;;; ssh-deploy.el --- Deployment via SSH or FTP, global or per directory.
 
 ;; Author: Christian Johansson <github.com/cjohansson>
 ;; Maintainer: Christian Johansson <github.com/cjohansson>
 ;; Created: 5 Jul 2016
-;; Modified: 7 Dec 2016
-;; Version: 1.46
+;; Modified: 15 Dec 2016
+;; Version: 1.47
 ;; Keywords: tools, convenience
 ;; URL: https://github.com/cjohansson/emacs-ssh-deploy
 
