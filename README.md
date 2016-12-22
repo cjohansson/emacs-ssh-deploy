@@ -1,6 +1,6 @@
-# `emacs-ssh-deploy`
+# `emacs-ssh-deploy` [![MELPA](http://melpa.org/packages/ssh-deploy-badge.svg)](http://melpa.org/#/ssh-deploy)
 
-The `ssh-deploy` plug-in makes it possible to effortlessly deploy local files and directories to remote hosts via SSH and FTP. It also makes it possible to define remote paths per directory and whether or not you want to deploy on explicit save actions or not and whether you want tranfers to be asynchrous or not. For asynchrous transfers you need a setup which doesn't require a interactive authorization. The plugin also enables manual upload and download of files and directories. It also features automatic detection of remote changes. You can also check differences between local files and directories and remote files and directories if you have `ediff` and `ztree` installed. You can also browse remote hosts. Lastly you can easily open remote hosts terminal if you have `tramp-term` installed. For asynchronous transfers **you need to have a setup which allows automatic connections to servers via SSH and FTP and have async.el installed**.
+The `ssh-deploy` plug-in for Emacs makes it possible to effortlessly deploy local files and directories to remote hosts via SSH and FTP. It also makes it possible to define remote paths per directory and whether or not you want to deploy on explicit save actions or not and whether you want transfers to be asynchronous or not. For asynchrous transfers you need a setup which doesn't require a interactive authorization. The plug-in also enables manual upload and download of files and directories. It also features automatic detection of remote changes. You can also check differences between local files and directories and remote files and directories if you have `ediff` and `ztree` installed. You can also browse remote hosts. Lastly you can easily open remote hosts terminal if you have `tramp-term` installed. For asynchronous transfers **you need to have a setup which allows automatic connections to servers via SSH and FTP and have async.el installed**.
 
 `ssh-deploy` works with `DirectoryVariables` so you can have different deploy setups in different ways for different folders.
 
@@ -11,9 +11,9 @@ This application is made by Christian Johansson <christian@cvj.se> 2016 and is l
 
 ## A setup example
 
-* Download ssh-deploy and place it at `~/.emacs.d/ssh-deploy/` or install via `package.el` from the `MELPA` repository.
+* Download ssh-deploy and place it at `~/.emacs.d/ssh-deploy/` or install via `package.el` (`M-x list-packages`) from the `MELPA` repository.
 
-* Create this `DirectoryVariables` file in your project root at `/Users/username/Web/MySite/.dir-locals.el`.
+* So if you want to deploy `/Users/username/Web/MySite/` to create this `DirectoryVariables` file in your project root at `/Users/username/Web/MySite/.dir-locals.el`.
 
 ``` emacs-lisp
 ((nil . (
@@ -38,13 +38,13 @@ Or for FTP use this:
 
 For automatic FTP connections you need to setup `~/.netrc` with your login credentials. An example:
 
-~/.netrc contents:
+`~/.netrc` contents:
 
 ``` shell
 machine myserver.com login myuser port ftp password mypassword`
 ```
 
-Set your user and group as owner and file permissions to 700. Emacs should now be able to automatically connect to server without any user interaction.
+Set your user and group as owner and file permissions to 700. Emacs should now be able to automatically connect to this server via FTP without any user interaction.
 
 
 * And add this to your *emacs-init-script*:
@@ -60,6 +60,7 @@ Set your user and group as owner and file permissions to 700. Emacs should now b
   (global-set-key (kbd "C-c C-z d") (lambda() (interactive)(ssh-deploy-download-handler) ))
   (global-set-key (kbd "C-c C-z x") (lambda() (interactive)(ssh-deploy-diff-handler) ))
   (global-set-key (kbd "C-c C-z t") (lambda() (interactive)(ssh-deploy-remote-terminal-handler) ))
+  (global-set-key (kbd "C-c C-z r") (lambda() (interactive)(ssh-deploy-remote-changes-handler) ))
   (global-set-key (kbd "C-c C-z b") (lambda() (interactive)(ssh-deploy-browse-remote-handler) )))
 ```
 
@@ -71,21 +72,21 @@ You can remove the `add-to-list` line if you installed via `MELPA` repository.
 * If you press `C-c C-z d` you will download the current file or directory from remote host and then reload current buffer.
 * If you press `C-c C-z t` you will open a terminal with remote host via `tramp-term`.
 * If you press `C-c C-z b` you will browse current directory on remote host in `dired-mode`.
+* If you press `C-c C-z r` you will check for remote changes to the current file.
 
 The local path and local root is evaluated based on their **truename** so if you use different symbolic local paths it shouldn't affect the deployment procedure.
 
-The above configuration uses the plugin `use-package` which I highly recommend.
+The above configuration example uses the Emacs plug-in `use-package` which I highly recommend.
 
 ## More complex SSH connections
 
-If you have a SSH connection that is using a different identity-file than the default, or if it is using a different port than the default you just need to edit your local SSH-config (`~/ssh/config`) to make it work using this plugin, like this:
+If you have a SSH connection that is using a different identity-file than the default, or if it is using a different port than the default you just need to edit your local SSH-config `~/ssh/config` to make it work using this plugin, like this:
 
 ``` bash
-## My special connection (replace remote-host, port and identity-file with your values)
+## My special connection (replace remote-host, remote-port and identity-file with your values)
 Host remote-host
-    Port port
+    Port remote-port
     IdentityFile identity-file
-
 ```
 
 ## Read more
