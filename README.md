@@ -1,6 +1,6 @@
 # `emacs-ssh-deploy` [![MELPA](http://melpa.org/packages/ssh-deploy-badge.svg)](http://melpa.org/#/ssh-deploy)
 
-The `ssh-deploy` plug-in for Emacs makes it possible to effortlessly deploy local files and directories to remote hosts via SSH and FTP. It also makes it possible to define remote paths per directory and whether or not you want to deploy on explicit save actions or not and whether you want transfers to be asynchronous or not. For asynchrous transfers you need a setup which doesn't require a interactive authorization. The plug-in also enables manual upload and download of files and directories. It also features automatic detection of remote changes. You can also check differences between local files and directories and remote files and directories if you have `ediff` and `ztree` installed. You can also browse remote hosts. Lastly you can easily open remote hosts terminal if you have `tramp-term` installed. For asynchronous transfers **you need to have a setup which allows automatic connections to servers via SSH and FTP and have async.el installed**.
+The `ssh-deploy` plug-in for Emacs makes it possible to effortlessly deploy local files and directories to remote hosts via SSH and FTP. It also makes it possible to define remote paths per directory and whether or not you want to deploy on explicit save actions or not and whether you want transfers to be asynchronous or not. For asynchronous transfers you need a setup which doesn't require a interactive authorization. The plug-in also enables manual upload and download of files and directories. It also features automatic detection of remote changes. You can also check differences between local files and directories and remote files and directories if you have `ediff` and `ztree` installed. You can also browse remote hosts. Lastly you can easily open remote hosts terminal if you have `tramp-term` installed. For asynchronous transfers **you need to have a setup which allows automatic connections to servers via SSH and FTP and have async.el installed**.
 
 `ssh-deploy` works with `DirectoryVariables` so you can have different deploy setups in different ways for different folders.
 
@@ -12,7 +12,6 @@ This application is made by Christian Johansson <christian@cvj.se> 2016 and is l
 ## A setup example
 
 * Download ssh-deploy and place it at `~/.emacs.d/ssh-deploy/` or install via `package.el` (`M-x list-packages`) from the `MELPA` repository.
-
 * So if you want to deploy `/Users/username/Web/MySite/` to create this `DirectoryVariables` file in your project root at `/Users/username/Web/MySite/.dir-locals.el`.
 
 ``` emacs-lisp
@@ -22,9 +21,7 @@ This application is made by Christian Johansson <christian@cvj.se> 2016 and is l
   (ssh-deploy-on-explicit-save . t)
 )))
 ```
-
-For automatic SSH connections you need to setup password-less public-key authorization or equivalent.
-
+For automatic **SSH** connections you need to setup a password-less public-key authorization.
 Or for FTP use this:
 
 ``` emacs-lisp
@@ -33,19 +30,14 @@ Or for FTP use this:
   (ssh-deploy-root-remote . "/ftp:myuser@myserver.com:/MySite/")
   (ssh-deploy-on-explicit-save . t)
 )))
-
 ```
-
-For automatic FTP connections you need to setup `~/.netrc` with your login credentials. An example:
-
+For automatic **FTP** connections you need to setup `~/.netrc` with your login credentials. An example:
 `~/.netrc` contents:
 
 ``` shell
-machine myserver.com login myuser port ftp password mypassword`
+machine myserver.com login myuser port ftp password mypassword
 ```
-
-Set your user and group as owner and file permissions to 700. Emacs should now be able to automatically connect to this server via FTP without any user interaction.
-
+Set your user and group as owner and file permissions to `700`. Emacs should now be able to automatically connect to this server via FTP without any user interaction.
 
 * And add this to your *emacs-init-script*:
 
@@ -65,6 +57,8 @@ Set your user and group as owner and file permissions to 700. Emacs should now b
 ```
 
 You can remove the `add-to-list` line if you installed via `MELPA` repository.
+
+* Restart Emacs
 
 * Now when you save a file somewhere under the directory `/Users/username/Web/MySite/`, the script will launch and deploy the file with the remote server.
 * If you press `C-c C-z x` and the current buffer is a file, you will launch a `ediff` session showing differences between local file and remote file via `tramp`, or if current buffer is a directory it will show differences with remote directory using `ztree-diff` via `tramp`.
