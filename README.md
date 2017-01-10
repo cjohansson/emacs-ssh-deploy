@@ -42,7 +42,7 @@ Set your user and group as owner and file permissions to `700`. Emacs should now
 * And add this to your *emacs-init-script*:
 
 ``` elisp
-;; ssh-deploy - prefix = C-c C-z, u = upload, d = download, x = diff, t = terminal, b = browse
+;; ssh-deploy - prefix = C-c C-z, f = forced upload, u = upload, d = download, x = diff, t = terminal, b = browse
 (add-to-list 'load-path "~/.emacs.d/ssh-deploy/")
 (use-package ssh-deploy
   :config
