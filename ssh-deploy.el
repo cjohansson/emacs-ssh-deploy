@@ -3,8 +3,8 @@
 ;; Author: Christian Johansson <github.com/cjohansson>
 ;; Maintainer: Christian Johansson <github.com/cjohansson>
 ;; Created: 5 Jul 2016
-;; Modified: 20 Dec 2016
-;; Version: 1.48
+;; Modified: 9 Jan 2017
+;; Version: 1.49
 ;; Keywords: tools, convenience
 ;; URL: https://github.com/cjohansson/emacs-ssh-deploy
 
@@ -163,8 +163,8 @@
       (ssh-deploy--download-via-tramp-async remote local local-root)
     (ssh-deploy--download-via-tramp remote local local-root)))
 
-(defun ssh-deploy--upload-via-tramp-async (local remote local-root)
-  "Upload LOCAL path to REMOTE and LOCAL-ROOT via tramp asynchrously."
+(defun ssh-deploy--upload-via-tramp-async (local remote local-root force)
+  "Upload LOCAL path to REMOTE and LOCAL-ROOT via tramp asynchrously and FORCE upload despite external change."
   (if (fboundp 'async-start)
       (progn
         (let ((remote-path (concat "/" (alist-get 'protocol remote) ":" (shell-quote-argument (alist-get 'username remote)) "@" (shell-quote-argument (alist-get 'server remote)) ":" (shell-quote-argument (alist-get 'path remote))))
@@ -178,9 +178,8 @@
                       (require 'ediff)
                       (if (fboundp 'ediff-same-file-contents)
                           (progn
-                            (if (or (not (file-exists-p ,remote-path)) (and (file-exists-p ,revision-path) (ediff-same-file-contents ,revision-path ,remote-path)))
+                            (if (or (eq t ,force) (not (file-exists-p ,remote-path)) (and (file-exists-p ,revision-path) (ediff-same-file-contents ,revision-path ,remote-path)))
                                 (progn
-                                  (message "Uploading file '%s' to '%s' via tramp asynchronously.." ,local ,remote-path)
                                   (copy-file ,local ,remote-path t t t t)
                                   (copy-file ,local ,revision-path t t t t)
                                   (list 0 (format "Upload '%s' completed." ,remote-path)))
@@ -209,13 +208,13 @@
                      (message "Upload '%s' finished." return-path)))))))))
     (message "async.el is not installed")))
 
-(defun ssh-deploy--upload-via-tramp (local remote local-root)
-  "Upload LOCAL path to REMOTE and LOCAL-ROOT via tramp synchrously."
+(defun ssh-deploy--upload-via-tramp (local remote local-root force)
+  "Upload LOCAL path to REMOTE and LOCAL-ROOT via tramp synchrously and FORCE despite external change."
   (let ((remote-path (concat "/" (alist-get 'protocol remote) ":" (shell-quote-argument (alist-get 'username remote)) "@" (shell-quote-argument (alist-get 'server remote)) ":" (shell-quote-argument (alist-get 'path remote))))
         (file-or-directory (file-regular-p local)))
     (if file-or-directory
         (progn
-          (if (not (ssh-deploy--remote-has-changed local remote-path))
+          (if (or (boundp 'force) (not (ssh-deploy--remote-has-changed local remote-path)))
               (progn
                 (message "Uploading file '%s' to '%s' via tramp synchronously.." local remote-path)
                 (copy-file local remote-path t t t t)
@@ -288,11 +287,11 @@
             (message "Download '%s' finished." local))
           )))))
 
-(defun ssh-deploy--upload (local remote local-root async)
-  "Upload LOCAL to REMOTE and LOCAL-ROOT via tramp, ASYNC determines if transfer should be asynchronously or not."
+(defun ssh-deploy--upload (local remote local-root async force)
+  "Upload LOCAL to REMOTE and LOCAL-ROOT via tramp, ASYNC determines if transfer should be asynchronously or not, FORCE uploads despite external change."
   (if (and async (fboundp 'async-start))
-      (ssh-deploy--upload-via-tramp-async local remote local-root)
-    (ssh-deploy--upload-via-tramp local remote local-root)))
+      (ssh-deploy--upload-via-tramp-async local remote local-root force)
+    (ssh-deploy--upload-via-tramp local remote local-root force)))
 
 (defun ssh-deploy--remote-has-changed (local remote)
   "Check if last stored revision of LOCAL exists or has changed on REMOTE synchronously."
@@ -314,15 +313,15 @@
       nil)))
 
 ;;;### autoload
-(defun ssh-deploy (local-root remote-root upload-or-download path debug async)
-  "Upload/Download file or directory relative to the roots LOCAL-ROOT with REMOTE-ROOT via ssh or ftp according to UPLOAD-OR-DOWNLOAD and the path PATH, DEBUG enables some feedback messages and ASYNC determines if transfers should be asynchrous or not."
+(defun ssh-deploy (local-root remote-root upload-or-download path debug async force)
+  "Upload/Download file or directory relative to the roots LOCAL-ROOT with REMOTE-ROOT via ssh or ftp according to UPLOAD-OR-DOWNLOAD and the path PATH, DEBUG enables some feedback messages and ASYNC determines if transfers should be asynchrous or not, FORCE upload despite external change."
   (if (ssh-deploy--file-is-in-path path local-root)
       (progn
         (let ((file-or-directory (file-regular-p path)))
           (let ((remote-path (concat remote-root (ssh-deploy--get-relative-path local-root path))))
             (let ((connection (ssh-deploy--parse-remote remote-path)))
               (if (not (null upload-or-download))
-                  (ssh-deploy--upload path connection local-root async)
+                  (ssh-deploy--upload path connection local-root async force)
                 (ssh-deploy--download connection path local-root async))))))
     (if debug
         (message "Path '%s' is not in the root '%s'" path local-root))))
@@ -336,11 +335,26 @@
                (file-exists-p buffer-file-name))
           (let ((local-path (file-truename buffer-file-name))
                 (local-root (file-truename ssh-deploy-root-local)))
-            (ssh-deploy local-root ssh-deploy-root-remote t local-path ssh-deploy-debug ssh-deploy-async))
+            (ssh-deploy local-root ssh-deploy-root-remote t local-path ssh-deploy-debug ssh-deploy-async nil))
         (if (ssh-deploy--is-not-empty-string default-directory)
             (let ((local-path (file-truename default-directory))
                   (local-root (file-truename ssh-deploy-root-local)))
-              (ssh-deploy local-root ssh-deploy-root-remote t local-path ssh-deploy-debug ssh-deploy-async))))))
+              (ssh-deploy local-root ssh-deploy-root-remote t local-path ssh-deploy-debug ssh-deploy-async nil))))))
+
+;;;### autoload
+(defun ssh-deploy-upload-handler-forced ()
+  "Upload current path to remote host if it is configured for SSH deployment."
+  (if (and (ssh-deploy--is-not-empty-string ssh-deploy-root-local)
+           (ssh-deploy--is-not-empty-string ssh-deploy-root-remote))
+      (if (and (ssh-deploy--is-not-empty-string buffer-file-name)
+               (file-exists-p buffer-file-name))
+          (let ((local-path (file-truename buffer-file-name))
+                (local-root (file-truename ssh-deploy-root-local)))
+            (ssh-deploy local-root ssh-deploy-root-remote t local-path ssh-deploy-debug ssh-deploy-async t))
+        (if (ssh-deploy--is-not-empty-string default-directory)
+            (let ((local-path (file-truename default-directory))
+                  (local-root (file-truename ssh-deploy-root-local)))
+              (ssh-deploy local-root ssh-deploy-root-remote t local-path ssh-deploy-debug ssh-deploy-async t))))))
 
 ;;;### autoload
 (defun ssh-deploy-remote-changes-handler()
@@ -432,12 +446,12 @@
                (file-exists-p buffer-file-name))
           (let ((local-path (file-truename buffer-file-name))
                 (local-root (file-truename ssh-deploy-root-local)))
-            (ssh-deploy local-root ssh-deploy-root-remote nil local-path ssh-deploy-debug ssh-deploy-async))
+            (ssh-deploy local-root ssh-deploy-root-remote nil local-path ssh-deploy-debug ssh-deploy-async nil))
         (if (and (ssh-deploy--is-not-empty-string default-directory)
                  (file-exists-p default-directory))
             (let ((local-path (file-truename default-directory))
                   (local-root (file-truename ssh-deploy-root-local)))
-              (ssh-deploy local-root ssh-deploy-root-remote nil local-path ssh-deploy-debug ssh-deploy-async))))))
+              (ssh-deploy local-root ssh-deploy-root-remote nil local-path ssh-deploy-debug ssh-deploy-async nil))))))
 
 ;;;### autoload
 (defun ssh-deploy-diff-handler ()
