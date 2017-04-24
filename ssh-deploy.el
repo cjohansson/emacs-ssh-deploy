@@ -3,8 +3,8 @@
 ;; Author: Christian Johansson <github.com/cjohansson>
 ;; Maintainer: Christian Johansson <github.com/cjohansson>
 ;; Created: 5 Jul 2016
-;; Modified: 15 Mar 2017
-;; Version: 1.50
+;; Modified: 24 Apr 2017
+;; Version: 1.51
 ;; Keywords: tools, convenience
 ;; URL: https://github.com/cjohansson/emacs-ssh-deploy
 
@@ -402,7 +402,12 @@
                                                     (progn
                                                       (if (ediff-same-file-contents ,revision-path ,remote-path)
                                                           (list 0 (format "Remote file '%s' has not changed." ,remote-path))
-                                                        (list 1 (format "External file '%s' has changed, please download or diff." ,remote-path))))
+                                                        (progn
+                                                          (if (ediff-same-file-contents ,path ,remote-path)
+                                                              (progn
+                                                                (copy-file ,path ,revision-path t t t t)
+                                                                (list 0 (format "External file '%s' is identical to local file '%s' but different to local revision. Updated local revision." ,remote-path ,path)))
+                                                            (list 1 (format "External file '%s' has changed, please download or diff." ,remote-path))))))
                                                   (list 1 "Function ediff-same-file-contents is missing.")))
                                             (list 0 (format "Remote file '%s' doesn't exist." ,remote-path))))
                                        (lambda(return)
