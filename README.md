@@ -53,7 +53,8 @@ Set your user and group as owner and file permissions to `700`. Emacs should now
   (global-set-key (kbd "C-c C-z d") (lambda() (interactive)(ssh-deploy-download-handler) ))
   (global-set-key (kbd "C-c C-z x") (lambda() (interactive)(ssh-deploy-diff-handler) ))
   (global-set-key (kbd "C-c C-z t") (lambda() (interactive)(ssh-deploy-remote-terminal-handler) ))
-  (global-set-key (kbd "C-c C-z r") (lambda() (interactive)(ssh-deploy-remote-changes-handler) ))
+  (global-set-key (kbd "C-c C-z r") (lambda() (interactive)(ssh-deploy-rename-handler) ))
+  (global-set-key (kbd "C-c C-z e") (lambda() (interactive)(ssh-deploy-remote-changes-handler) ))
   (global-set-key (kbd "C-c C-z b") (lambda() (interactive)(ssh-deploy-browse-remote-handler) )))
 ```
 
@@ -68,7 +69,8 @@ You can remove the `add-to-list` line if you installed via `MELPA` repository.
 * If you press `C-c C-z d` you will download the current file or directory from remote host and then reload current buffer.
 * If you press `C-c C-z t` you will open a terminal with remote host via `tramp-term`.
 * If you press `C-c C-z b` you will browse current directory on remote host in `dired-mode`.
-* If you press `C-c C-z r` you will check for remote changes to the current file.
+* If you press `C-c C-z r` you will rename current file or directory.
+* If you press `C-c C-z e` you will check for remote changes to the current file.
 
 The local path and local root is evaluated based on their **truename** so if you use different symbolic local paths it shouldn't affect the deployment procedure.
 
