@@ -3,8 +3,8 @@
 ;; Author: Christian Johansson <github.com/cjohansson>
 ;; Maintainer: Christian Johansson <github.com/cjohansson>
 ;; Created: 5 Jul 2016
-;; Modified: 5 May 2017
-;; Version: 1.52
+;; Modified: 6 May 2017
+;; Version: 1.53
 ;; Keywords: tools, convenience
 ;; URL: https://github.com/cjohansson/emacs-ssh-deploy
 
@@ -29,12 +29,12 @@
 
 ;;; Commentary:
 
-;; `ssh-deploy' enables automatic deploys on explicit-save, manual uploads,
-;; downloads, differences, remote terminals, detection of remote changes and remote directory browsing via TRAMP.
-;; To do this it progressively uses `tramp', `tramp-term', `ediff', `async` and `ztree'.
+;; `ssh-deploy' enables automatic deploys on explicit-save, manual uploads, renaming,
+;; downloads, file differences, remote terminals, detection of remote changes and remote directory browsing via TRAMP.
+;; To do this it progressively uses `tramp', `tramp-term', `ediff' and `async'.
 ;; By setting the variables (globally or per directory):
 ;; `ssh-deploy-root-local',`ssh-deploy-root-remote', `ssh-deploy-on-explicit-save'
-;; you can setup a directory for SSH or FTP deployment.
+;; you can setup a directory for `SSH' or `FTP' deployment.
 ;;
 ;; For asynchronous transfers you need to setup `~/.netrc' or equivalent for automatic authentication.
 ;;
@@ -55,7 +55,8 @@
 ;;     (global-set-key (kbd "C-c C-z d") (lambda() (interactive)(ssh-deploy-download-handler) ))
 ;;     (global-set-key (kbd "C-c C-z x") (lambda() (interactive)(ssh-deploy-diff-handler) ))
 ;;     (global-set-key (kbd "C-c C-z t") (lambda() (interactive)(ssh-deploy-remote-terminal-handler) ))
-;;     (global-set-key (kbd "C-c C-z r") (lambda() (interactive)(ssh-deploy-remote-changes-handler) ))
+;;     (global-set-key (kbd "C-c C-z r") (lambda() (interactive)(ssh-deploy-rename-handler) ))
+;;     (global-set-key (kbd "C-c C-z e") (lambda() (interactive)(ssh-deploy-remote-changes-handler) ))
 ;;     (global-set-key (kbd "C-c C-z b") (lambda() (interactive)(ssh-deploy-browse-remote-handler) ))
 ;;
 ;; An illustrative example for `SSH' deployment, /Users/Chris/Web/Site1/.dir.locals.el
@@ -172,6 +173,38 @@
   "Return true if the STRING is not empty and not nil.  Expects string."
   (and (not (null string))
        (not (zerop (length string)))))
+
+(defun ssh-deploy--rename (old-path new-path local-root remote-root async debug)
+  "Rename OLD-PATH to NEW-PATH relative to LOCAL-ROOT as well as on REMOTE-ROOT, do it asynchronously if ASYNC is non-nil, debug if DEBUG is non-nil."
+  (if (and (ssh-deploy--file-is-in-path old-path local-root)
+           (ssh-deploy--file-is-in-path new-path local-root)
+           (ssh-deploy--file-is-included old-path)
+           (ssh-deploy--file-is-included new-path))
+      (progn
+        (let ((file-or-directory (file-regular-p old-path)))
+          (let ((old-remote-path (concat remote-root (ssh-deploy--get-relative-path local-root old-path)))
+                (new-remote-path (concat remote-root (ssh-deploy--get-relative-path local-root new-path))))
+            (rename-file old-path new-path t)
+            (if (file-regular-p new-path)
+                (progn
+                  (rename-buffer new-path)
+                  (set-buffer-modified-p nil)
+                  (set-visited-file-name new-path))
+              (dired new-path))
+            (message "Renamed '%s' -> '%s'." old-path new-path)
+            (if (and async (fboundp 'async-start))
+                (progn
+                  (async-start
+                   `(lambda()
+                      (rename-file ,old-remote-path ,new-remote-path t)
+                      (list ,old-remote-path ,new-remote-path))
+                   (lambda(files)
+                     (message "Asynchronously renamed '%s' -> '%s'." (nth 0 files) (nth 1 files)))))
+              (progn
+                (rename-file old-remote-path new-remote-path t)
+                (message "Synchronously renamed '%s' -> '%s'." old-remote-path new-remote-path))))))
+    (if debug
+        (message "Path '%s' or '%s' is not in the root '%s' or is excluded from it." old-path new-path local-root))))
 
 (defun ssh-deploy--download (remote local local-root async)
   "Download REMOTE to LOCAL with the LOCAL-ROOT via tramp, ASYNC determines if transfer should be asynchrous or not."
@@ -493,6 +526,30 @@
               (ssh-deploy-diff local-root ssh-deploy-root-remote local-path ssh-deploy-debug))))))
 
 ;;;### autoload
+(defun ssh-deploy-rename-handler ()
+  "Rename current file or directory."
+  (if (and (ssh-deploy--is-not-empty-string ssh-deploy-root-local)
+           (ssh-deploy--is-not-empty-string ssh-deploy-root-remote))
+      (if (and (ssh-deploy--is-not-empty-string buffer-file-name)
+               (file-exists-p buffer-file-name))
+          (let* ((old-local-path (file-truename buffer-file-name))
+                 (local-root (file-truename ssh-deploy-root-local))
+                 (basename (file-name-nondirectory old-local-path))
+                 (new-local-path-tmp (read-file-name "New file name:" (file-name-directory old-local-path) basename nil basename))
+                 (new-local-path (file-truename new-local-path-tmp))
+                 (not (string= old-local-path new-local-path)))
+            (ssh-deploy--rename old-local-path new-local-path local-root ssh-deploy-root-remote ssh-deploy-async ssh-deploy-debug))
+        (if (and (ssh-deploy--is-not-empty-string default-directory)
+                 (file-exists-p default-directory))
+            (let* ((old-local-path (file-truename default-directory))
+                   (local-root (file-truename ssh-deploy-root-local))
+                   (basename (file-name-nondirectory old-local-path))
+                   (new-local-path-tmp (read-file-name "New directory name:" (file-name-directory old-local-path) basename nil basename))
+                   (new-local-path (file-truename new-local-path-tmp))
+                   (not (string= old-local-path new-local-path)))
+              (ssh-deploy--rename old-local-path new-local-path local-root ssh-deploy-root-remote ssh-deploy-async ssh-deploy-debug))))))
+
+;;;### autoload
 (defun ssh-deploy-remote-terminal-handler ()
   "Open remote host in tramp terminal it is configured for deployment."
   (if (ssh-deploy--is-not-empty-string ssh-deploy-root-remote)
@@ -529,11 +586,7 @@
                               (ediff path command)))
                         (message "Function ediff-same-file-contents is missing.")))
                   (progn
-                    (if (fboundp 'ztree-diff)
-                        (progn
-                          (message "Comparing directory '%s' to '%s'.." path command)
-                          (ztree-diff path command))
-                      (message "ztree-diff is not installed."))))))))
+                    (message "Unfortunately directory differences are not yet implemented.")))))))
       (if debug
           (message "Path '%s' is not in the root '%s' or is excluded from it." path local-root)))))
 
