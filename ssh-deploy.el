@@ -3,8 +3,8 @@
 ;; Author: Christian Johansson <github.com/cjohansson>
 ;; Maintainer: Christian Johansson <github.com/cjohansson>
 ;; Created: 5 Jul 2016
-;; Modified: 6 May 2017
-;; Version: 1.53
+;; Modified: 15 May 2017
+;; Version: 1.54
 ;; Keywords: tools, convenience
 ;; URL: https://github.com/cjohansson/emacs-ssh-deploy
 
@@ -30,7 +30,8 @@
 ;;; Commentary:
 
 ;; `ssh-deploy' enables automatic deploys on explicit-save, manual uploads, renaming,
-;; downloads, file differences, remote terminals, detection of remote changes and remote directory browsing via TRAMP.
+;; deleting, downloads, file differences, remote terminals, detection of remote changes and remote directory browsing via TRAMP.
+;;
 ;; To do this it progressively uses `tramp', `tramp-term', `ediff' and `async'.
 ;; By setting the variables (globally or per directory):
 ;; `ssh-deploy-root-local',`ssh-deploy-root-remote', `ssh-deploy-on-explicit-save'
@@ -52,6 +53,7 @@
 ;; - To set key-bindings do something like this:
 ;;     (global-set-key (kbd "C-c C-z f") (lambda() (interactive)(ssh-deploy-upload-handler-forced) ))
 ;;     (global-set-key (kbd "C-c C-z u") (lambda() (interactive)(ssh-deploy-upload-handler) ))
+;;     (global-set-key (kbd "C-c C-z D") (lambda() (interactive)(ssh-deploy-delete-handler) ))
 ;;     (global-set-key (kbd "C-c C-z d") (lambda() (interactive)(ssh-deploy-download-handler) ))
 ;;     (global-set-key (kbd "C-c C-z x") (lambda() (interactive)(ssh-deploy-diff-handler) ))
 ;;     (global-set-key (kbd "C-c C-z t") (lambda() (interactive)(ssh-deploy-remote-terminal-handler) ))
@@ -173,6 +175,39 @@
   "Return true if the STRING is not empty and not nil.  Expects string."
   (and (not (null string))
        (not (zerop (length string)))))
+
+(defun ssh-deploy--delete (local-path local-root remote-root async debug)
+  "Delete LOCAL-PATH relative to LOCAL-ROOT as well as on REMOTE-ROOT, do it asynchronously if ASYNC is non-nil, debug if DEBUG is non-nil."
+  (if (and (ssh-deploy--file-is-in-path local-path local-root)
+           (ssh-deploy--file-is-included local-path))
+      (progn
+        (let ((file-or-directory (file-regular-p local-path)))
+          (let ((remote-path (concat remote-root (ssh-deploy--get-relative-path local-root local-path))))
+            (if (file-regular-p local-path)
+                (progn
+                  (delete-file local-path t)
+                  (message "Deleted file '%s'" local-path))
+              (progn
+                (delete-directory local-path t t)
+                (message "Deleted directory '%s'" local-path)))
+            (kill-this-buffer)
+            (if (and async (fboundp 'async-start))
+                (progn
+                  (async-start
+                   `(lambda()
+                      (if (file-regular-p ,remote-path)
+                          (delete-file ,remote-path t)
+                        (delete-directory ,remote-path t t))
+                      (list ,remote-path))
+                   (lambda(files)
+                     (message "Asynchronously deleted '%s'." (nth 0 files)))))
+              (progn
+                (if (file-regular-p remote-path)
+                    (delete-file remote-path t)
+                  (delete-directory remote-path t t))
+                (message "Synchronously deleted '%s'." remote-path))))))
+    (if debug
+        (message "Path '%s' is not in the root '%s' or is excluded from it." local-path local-root))))
 
 (defun ssh-deploy--rename (old-path new-path local-root remote-root async debug)
   "Rename OLD-PATH to NEW-PATH relative to LOCAL-ROOT as well as on REMOTE-ROOT, do it asynchronously if ASYNC is non-nil, debug if DEBUG is non-nil."
@@ -526,6 +561,26 @@
               (ssh-deploy-diff local-root ssh-deploy-root-remote local-path ssh-deploy-debug))))))
 
 ;;;### autoload
+(defun ssh-deploy-delete-handler ()
+  "Delete current file or directory."
+  (if (and (ssh-deploy--is-not-empty-string ssh-deploy-root-local)
+           (ssh-deploy--is-not-empty-string ssh-deploy-root-remote))
+      (if (and (ssh-deploy--is-not-empty-string buffer-file-name)
+               (file-exists-p buffer-file-name))
+          (let* ((local-path (file-truename buffer-file-name))
+                 (local-root (file-truename ssh-deploy-root-local))
+                 (yes-no-prompt (read-string (format "Type 'yes' to confirm that you want to delete the file '%s': " local-path))))
+            (if (string= yes-no-prompt "yes")
+                (ssh-deploy--delete local-path local-root ssh-deploy-root-remote ssh-deploy-async ssh-deploy-debug)))
+        (if (and (ssh-deploy--is-not-empty-string default-directory)
+                 (file-exists-p default-directory))
+            (let* ((local-path (file-truename default-directory))
+                   (local-root (file-truename ssh-deploy-root-local))
+                   (yes-no-prompt (read-string (format "Type 'yes' to confirm that you want to delete the directory '%s': " local-path))))
+              (if (string= yes-no-prompt "yes")
+                  (ssh-deploy--delete local-path local-root ssh-deploy-root-remote ssh-deploy-async ssh-deploy-debug)))))))
+
+;;;### autoload
 (defun ssh-deploy-rename-handler ()
   "Rename current file or directory."
   (if (and (ssh-deploy--is-not-empty-string ssh-deploy-root-local)
@@ -536,18 +591,18 @@
                  (local-root (file-truename ssh-deploy-root-local))
                  (basename (file-name-nondirectory old-local-path))
                  (new-local-path-tmp (read-file-name "New file name:" (file-name-directory old-local-path) basename nil basename))
-                 (new-local-path (file-truename new-local-path-tmp))
-                 (not (string= old-local-path new-local-path)))
-            (ssh-deploy--rename old-local-path new-local-path local-root ssh-deploy-root-remote ssh-deploy-async ssh-deploy-debug))
+                 (new-local-path (file-truename new-local-path-tmp)))
+            (if (not (string= old-local-path new-local-path))
+                (ssh-deploy--rename old-local-path new-local-path local-root ssh-deploy-root-remote ssh-deploy-async ssh-deploy-debug)))
         (if (and (ssh-deploy--is-not-empty-string default-directory)
                  (file-exists-p default-directory))
             (let* ((old-local-path (file-truename default-directory))
                    (local-root (file-truename ssh-deploy-root-local))
                    (basename (file-name-nondirectory old-local-path))
                    (new-local-path-tmp (read-file-name "New directory name:" (file-name-directory old-local-path) basename nil basename))
-                   (new-local-path (file-truename new-local-path-tmp))
-                   (not (string= old-local-path new-local-path)))
-              (ssh-deploy--rename old-local-path new-local-path local-root ssh-deploy-root-remote ssh-deploy-async ssh-deploy-debug))))))
+                   (new-local-path (file-truename new-local-path-tmp)))
+              (if (not (string= old-local-path new-local-path))
+                  (ssh-deploy--rename old-local-path new-local-path local-root ssh-deploy-root-remote ssh-deploy-async ssh-deploy-debug)))))))
 
 ;;;### autoload
 (defun ssh-deploy-remote-terminal-handler ()
