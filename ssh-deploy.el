@@ -4,7 +4,7 @@
 ;; Maintainer: Christian Johansson <github.com/cjohansson>
 ;; Created: 5 Jul 2016
 ;; Modified: 20 May 2017
-;; Version: 1.55
+;; Version: 1.56
 ;; Keywords: tools, convenience
 ;; URL: https://github.com/cjohansson/emacs-ssh-deploy
 
@@ -264,8 +264,8 @@
                           (progn
                             (if (or (eq t ,force) (not (file-exists-p ,remote-path)) (and (file-exists-p ,revision-path) (ediff-same-file-contents ,revision-path ,remote-path)))
                                 (progn
-                                  (if (not (file-directory-p (directory-file-name ,remote-path)))
-                                      (make-directory (directory-file-name ,remote-path) t))
+                                  (if (not (file-directory-p (file-name-directory ,remote-path)))
+                                      (make-directory (file-name-directory ,remote-path) t))
                                   (copy-file ,local ,remote-path t t t t)
                                   (copy-file ,local ,revision-path t t t t)
                                   (list 0 (format "Upload '%s' completed." ,remote-path)))
@@ -281,8 +281,8 @@
                   (progn
                     (async-start
                      `(lambda()
-                        (if (not (file-directory-p (directory-file-name ,remote-path)))
-                            (make-directory (directory-file-name ,remote-path) t))
+                        (if (not (file-directory-p (file-name-directory ,remote-path)))
+                            (make-directory (file-name-directory ,remote-path) t))
                         (copy-directory ,local ,remote-path t t t)
                         ,local)
                      (lambda(return-path)
@@ -290,7 +290,7 @@
                 (progn
                   (async-start
                    `(lambda()
-                      (copy-directory ,local ,(file-name-directory (directory-file-name remote-path)) t t)
+                      (copy-directory ,local ,(file-name-directory (directory-file-name remote-path)) t t t)
                       ,local)
                    (lambda(return-path)
                      (message "Upload '%s' finished." return-path)))))))))
@@ -305,6 +305,8 @@
           (if (or (boundp 'force) (not (ssh-deploy--remote-has-changed local remote-path)))
               (progn
                 (message "Uploading file '%s' to '%s' via tramp synchronously.." local remote-path)
+                (if (not (file-directory-p (file-name-directory remote-path)))
+                    (make-directory (file-name-directory remote-path) t))
                 (copy-file local remote-path t t t t)
                 (message "Upload '%s' finished" local)
                 (ssh-deploy-store-revision local))
@@ -316,7 +318,7 @@
               (copy-directory local remote-path t t t)
               (message "Upload '%s' finished" local))
           (progn
-            (copy-directory local (file-name-directory (directory-file-name remote-path)) t t)
+            (copy-directory local (file-name-directory (directory-file-name remote-path)) t t t)
             (message "Upload '%s' finished" local)))))))
 
 (defun ssh-deploy--download-via-tramp-async (remote local local-root)
@@ -348,7 +350,7 @@
                 (progn
                   (async-start
                    `(lambda()
-                      (copy-directory ,remote-path ,(file-name-directory (directory-file-name remote-path)) t t)
+                      (copy-directory ,remote-path ,(file-name-directory (directory-file-name remote-path)) t t t)
                       ,local)
                    (lambda(return-path)
                      (message "Download '%s' finished." return-path)))))))))
@@ -371,7 +373,7 @@
               (copy-directory remote-path local t t t)
               (message "Download '%s' finished." local))
           (progn
-            (copy-directory remote-path (file-name-directory (directory-file-name remote-path)) t t)
+            (copy-directory remote-path (file-name-directory (directory-file-name remote-path)) t t t)
             (message "Download '%s' finished." local))
           )))))
 
