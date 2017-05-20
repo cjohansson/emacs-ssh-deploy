@@ -3,14 +3,14 @@
 ;; Author: Christian Johansson <github.com/cjohansson>
 ;; Maintainer: Christian Johansson <github.com/cjohansson>
 ;; Created: 5 Jul 2016
-;; Modified: 15 May 2017
-;; Version: 1.54
+;; Modified: 20 May 2017
+;; Version: 1.55
 ;; Keywords: tools, convenience
 ;; URL: https://github.com/cjohansson/emacs-ssh-deploy
 
 ;; This file is not part of GNU Emacs.
 
-;; Copyright (C) 2016 Christian Johansson
+;; Copyright (C) 2017 Christian Johansson
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -264,6 +264,8 @@
                           (progn
                             (if (or (eq t ,force) (not (file-exists-p ,remote-path)) (and (file-exists-p ,revision-path) (ediff-same-file-contents ,revision-path ,remote-path)))
                                 (progn
+                                  (if (not (file-directory-p (directory-file-name ,remote-path)))
+                                      (make-directory (directory-file-name ,remote-path) t))
                                   (copy-file ,local ,remote-path t t t t)
                                   (copy-file ,local ,revision-path t t t t)
                                   (list 0 (format "Upload '%s' completed." ,remote-path)))
@@ -279,6 +281,8 @@
                   (progn
                     (async-start
                      `(lambda()
+                        (if (not (file-directory-p (directory-file-name ,remote-path)))
+                            (make-directory (directory-file-name ,remote-path) t))
                         (copy-directory ,local ,remote-path t t t)
                         ,local)
                      (lambda(return-path)
