@@ -1,12 +1,35 @@
 # `emacs-ssh-deploy` [![MELPA](http://melpa.org/packages/ssh-deploy-badge.svg)](http://melpa.org/#/ssh-deploy) [![MELPA Stable](http://stable.melpa.org/packages/ssh-deploy-badge.svg)](http://stable.melpa.org/#/ssh-deploy)
 
-The `ssh-deploy` plug-in for Emacs makes it possible to effortlessly deploy local files and directories to remote hosts via SSH and FTP. It also makes it possible to define remote paths per directory and whether or not you want to deploy on explicit save actions or not and whether you want transfers to be asynchronous or not. For asynchronous transfers you need a setup which doesn't require a interactive authorization. The plug-in also enables manual upload and download of files and directories. It also features automatic detection of remote changes. You can also check differences between local files and remote files if you have `ediff` installed. You can rename and delete files and directories synced to remote host. You can also browse remote hosts. Lastly you can easily open remote hosts terminal if you have `tramp-term` installed. For asynchronous transfers **you need to have a setup which allows automatic connections to servers via SSH and FTP and have async.el installed**.
+The `ssh-deploy` plug-in for Emacs makes it possible to effortlessly deploy local files and directories to remote hosts via SSH and FTP using TRAMP. It tries to provide functions that can be easily used by custom scripts.
 
-`ssh-deploy` works with `DirectoryVariables` so you can have different deploy setups in different ways for different folders.
+## Features:
+* Define syncing configuration globally or per directory (using `DirectoryVariables`)
+* Control whether uploads should be on save or manually
+* Automatic and manual uploads of files
+* Manual downloads and uploads of directories
+* Manual downloads of files
+* Automatic and manual detection of remote changes
+* Launch remote terminals with the integrated `tramp-term` functionality (SSH)
+* Launch remote browsing using `dired-mode` (SSH)
+* Launch difference sessions using `ediff-mode`
+* Supports asynchronous operations if `async.el` is installed. (You need to setup an automatic authorization for this, like `~/.netrc` or key-based authorization)
+* Supports renaming and deletion of files and directories
 
 The idea for this plug-in was to mimic the behavior of **PhpStorm** deployment functionality.
 
 This application is made by Christian Johansson <christian@cvj.se> 2016 and is licensed under GNU General Public License 3.
+
+## Configuration
+
+Here is a list of other variables you can set globally or per directory:
+
+* `ssh-deploy-root-local` The local root that should be under deployment [string]
+* `ssh-deploy-root-remote` The remote root that should be under deployment, should follow a `/protocol:user@host:path` format [string]
+* `ssh-deploy-debug` Enables debugging messages [boolean]
+* `ssh-deploy-revision-folder` The folder used for storing local revisions [string]
+* `ssh-deploy-automatically-detect-remote-changes` Enables automatic detection of remote changes [boolean]
+* `ssh-deploy-exclude-list` A list defining what paths to exclude from deployment [list]
+* `ssh-deploy-async` Enables asynchronous transfers (you need to install `async.el' as well) [boolean]
 
 
 ## A setup example
