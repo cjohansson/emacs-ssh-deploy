@@ -29,7 +29,7 @@ Here is a list of other variables you can set globally or per directory:
 * `ssh-deploy-revision-folder` The folder used for storing local revisions [string]
 * `ssh-deploy-automatically-detect-remote-changes` Enables automatic detection of remote changes [boolean]
 * `ssh-deploy-exclude-list` A list defining what paths to exclude from deployment [list]
-* `ssh-deploy-async` Enables asynchronous transfers (you need to install `async.el' as well) [boolean]
+* `ssh-deploy-async` Enables asynchronous transfers (you need to have `async.el` installed as well) [boolean]
 
 
 ## A setup example
