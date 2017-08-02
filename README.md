@@ -8,6 +8,7 @@ The `ssh-deploy` plug-in for Emacs makes it possible to effortlessly deploy loca
 * Manual downloads and uploads of directories and files
 * Automatic and manual detection of remote changes of files
 * Launch remote terminals with the integrated `tramp-term` functionality (if it's installed) (SSH)
+* Launch remote `eshell` terminals (SSH, FTP)
 * Launch remote browsing using `dired-mode`
 * Launch difference sessions using `ediff-mode`
 * Supports asynchronous operations if `async.el` is installed. (You need to setup an automatic authorization for this, like `~/.netrc` or key-based authorization)
@@ -96,6 +97,7 @@ Set your user and group as owner and file permissions to `700`. Emacs should now
     (global-set-key (kbd "C-c C-z d") (lambda() (interactive)(ssh-deploy-download-handler) ))
     (global-set-key (kbd "C-c C-z x") (lambda() (interactive)(ssh-deploy-diff-handler) ))
     (global-set-key (kbd "C-c C-z t") (lambda() (interactive)(ssh-deploy-remote-terminal-handler) ))
+    (global-set-key (kbd "C-c C-z T") (lambda() (interactive)(ssh-deploy-remote-terminal-eshell-handler) ))
     (global-set-key (kbd "C-c C-z R") (lambda() (interactive)(ssh-deploy-rename-handler) ))
     (global-set-key (kbd "C-c C-z e") (lambda() (interactive)(ssh-deploy-remote-changes-handler) ))
     (global-set-key (kbd "C-c C-z b") (lambda() (interactive)(ssh-deploy-browse-remote-handler) )))
@@ -112,6 +114,7 @@ You can remove the `add-to-list` line if you installed via `MELPA` repository.
 * If you press `C-c C-z d` you will download the current file or directory from remote host and then reload current buffer.
 * If you press `C-c C-z D` you will delete the current file or directory after a confirmation on local and remote host.
 * If you press `C-c C-z t` you will open a terminal with remote host via `tramp-term`.
+* If you press `C-c C-z T` you will open a terminal with remote host via `eshell`.
 * If you press `C-c C-z b` you will browse current directory on remote host in `dired-mode`.
 * If you press `C-c C-z R` you will rename current file or directory.
 * If you press `C-c C-z e` you will check for remote changes to the current file.

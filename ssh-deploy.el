@@ -3,8 +3,8 @@
 ;; Author: Christian Johansson <github.com/cjohansson>
 ;; Maintainer: Christian Johansson <github.com/cjohansson>
 ;; Created: 5 Jul 2016
-;; Modified: 25 Jul 2017
-;; Version: 1.59
+;; Modified: 1 Aug 2017
+;; Version: 1.6
 ;; Keywords: tools, convenience
 ;; URL: https://github.com/cjohansson/emacs-ssh-deploy
 
@@ -63,6 +63,7 @@
 ;;     (global-set-key (kbd "C-c C-z d") (lambda() (interactive)(ssh-deploy-download-handler) ))
 ;;     (global-set-key (kbd "C-c C-z x") (lambda() (interactive)(ssh-deploy-diff-handler) ))
 ;;     (global-set-key (kbd "C-c C-z t") (lambda() (interactive)(ssh-deploy-remote-terminal-handler) ))
+;;     (global-set-key (kbd "C-c C-z T") (lambda() (interactive)(ssh-deploy-remote-terminal-eshell-handler) ))
 ;;     (global-set-key (kbd "C-c C-z R") (lambda() (interactive)(ssh-deploy-rename-handler) ))
 ;;     (global-set-key (kbd "C-c C-z e") (lambda() (interactive)(ssh-deploy-remote-changes-handler) ))
 ;;     (global-set-key (kbd "C-c C-z b") (lambda() (interactive)(ssh-deploy-browse-remote-handler) ))
@@ -526,6 +527,19 @@
             (dired command))))))
 
 ;;;### autoload
+(defun ssh-deploy-remote-terminal-eshell (local-root remote-root-string path)
+  "Browse relative to LOCAL-ROOT on REMOTE-ROOT-STRING the path PATH in `dired-mode`."
+  (if (and (ssh-deploy--file-is-in-path path local-root)
+           (ssh-deploy--file-is-included path))
+      (let ((remote-path (concat remote-root-string (ssh-deploy--get-relative-path local-root path))))
+        (let ((remote-root (ssh-deploy--parse-remote remote-path)))
+          (let ((command (concat "/" (alist-get 'protocol remote-root) ":" (alist-get 'username remote-root) "@" (alist-get 'server remote-root) ":" (alist-get 'path remote-root))))
+            (let ((old-directory default-directory))
+              (message "Opening eshell on '%s'.." command)
+              (cd command)
+              (eshell)))))))
+
+;;;### autoload
 (defun ssh-deploy-remote-terminal (remote-host-string)
   "Opens REMOTE-HOST-STRING in terminal."
   (let ((remote-root (ssh-deploy--parse-remote remote-host-string)))
@@ -713,6 +727,16 @@
   "Open remote host in TRAMP-terminal it is configured for deployment."
   (if (ssh-deploy--is-not-empty-string ssh-deploy-root-remote)
       (ssh-deploy-remote-terminal ssh-deploy-root-remote)))
+
+;;;### autoload
+(defun ssh-deploy-remote-terminal-eshell-handler ()
+  "Open current relative path on remote host in `shell' but only if it's configured for deployment."
+  (if (and (ssh-deploy--is-not-empty-string ssh-deploy-root-local)
+           (ssh-deploy--is-not-empty-string ssh-deploy-root-remote)
+           (ssh-deploy--is-not-empty-string default-directory))
+      (let ((local-path (file-truename default-directory))
+            (local-root (file-truename ssh-deploy-root-local)))
+        (ssh-deploy-remote-terminal-eshell local-root ssh-deploy-root-remote local-path))))
 
 ;;;### autoload
 (defun ssh-deploy-browse-remote-handler ()
