@@ -7,7 +7,7 @@ The `ssh-deploy` plug-in for Emacs makes it possible to effortlessly deploy loca
 * Control whether uploads of files should be automatic on save
 * Manual downloads and uploads of directories and files
 * Automatic and manual detection of remote changes of files
-* Launch remote terminals with the integrated `tramp-term` functionality (if it's installed) (SSH)
+* Launch remote terminals with the integrated `tramp-term` functionality (if it's installed) or built-in `eshell` (SSH)
 * Launch remote `eshell` terminals (SSH, FTP)
 * Launch remote browsing using `dired-mode`
 * Launch difference sessions using `ediff-mode`

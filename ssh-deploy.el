@@ -3,8 +3,8 @@
 ;; Author: Christian Johansson <github.com/cjohansson>
 ;; Maintainer: Christian Johansson <github.com/cjohansson>
 ;; Created: 5 Jul 2016
-;; Modified: 1 Aug 2017
-;; Version: 1.6
+;; Modified: 3 Aug 2017
+;; Version: 1.61
 ;; Keywords: tools, convenience
 ;; URL: https://github.com/cjohansson/emacs-ssh-deploy
 
@@ -535,9 +535,15 @@
         (let ((remote-root (ssh-deploy--parse-remote remote-path)))
           (let ((command (concat "/" (alist-get 'protocol remote-root) ":" (alist-get 'username remote-root) "@" (alist-get 'server remote-root) ":" (alist-get 'path remote-root))))
             (let ((old-directory default-directory))
+              (require 'eshell)
               (message "Opening eshell on '%s'.." command)
-              (cd command)
-              (eshell)))))))
+              (setq eshell-buffer-name (alist-get 'server remote-root))
+              (let ((eshell-buffer (eshell)))
+                (end-of-buffer)
+                (eshell-kill-input)
+                (insert (concat "cd " command))
+                (eshell-send-input)
+                (end-of-buffer))))))))
 
 ;;;### autoload
 (defun ssh-deploy-remote-terminal (remote-host-string)
