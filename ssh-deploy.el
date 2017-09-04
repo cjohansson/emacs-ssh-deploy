@@ -4,7 +4,7 @@
 ;; Maintainer: Christian Johansson <github.com/cjohansson>
 ;; Created: 5 Jul 2016
 ;; Modified: 4 Sep 2017
-;; Version: 1.62
+;; Version: 1.63
 ;; Keywords: tools, convenience
 ;; URL: https://github.com/cjohansson/emacs-ssh-deploy
 
@@ -536,15 +536,21 @@
           (let ((command (concat "/" (alist-get 'protocol remote-root) ":" (alist-get 'username remote-root) "@" (alist-get 'server remote-root) ":" (alist-get 'path remote-root))))
             (let ((old-directory default-directory))
               (require 'eshell)
-              (message "Opening eshell on '%s'.." command)
-              (defvar eshell-buffer-name)
-              (setq eshell-buffer-name (alist-get 'server remote-root))
-              (let ((eshell-buffer (eshell)))
-                (goto-char (point-max))
-                (eshell-kill-input)
-                (insert (concat "cd " command))
-                (eshell-send-input)
-                (goto-char (point-max)))))))))
+              (if (and (fboundp 'eshell-kill-input)
+                       (fboundp 'eshell-send-input))
+                  (progn
+                    (message "Opening eshell on '%s'.." command)
+                    (defvar eshell-buffer-name)
+                    (let ((old-eshell-buffer-name eshell-buffer-name))
+                      (setq eshell-buffer-name (alist-get 'server remote-root))
+                      (let ((eshell-buffer (eshell)))
+                        (goto-char (point-max))
+                        (eshell-kill-input)
+                        (insert (concat "cd " command))
+                        (eshell-send-input)
+                        (goto-char (point-max))
+                        (setq eshell-buffer-name old-eshell-buffer-name))))
+                (message "Missing required eshell functions"))))))))
 
 ;;;### autoload
 (defun ssh-deploy-remote-terminal (remote-host-string)
