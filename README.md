@@ -31,19 +31,6 @@ Here is a list of other variables you can set globally or per directory:
 * `ssh-deploy-exclude-list` A list defining what paths to exclude from deployment *(list)*
 * `ssh-deploy-async` Enables asynchronous transfers (you need to have `async.el` installed as well) *(boolean)*
 
-To avoid the *DirectoryVariables* warning add this:
-
-``` elisp
-        (put 'ssh-deploy-root-local 'safe-local-variable 'stringp)
-        (put 'ssh-deploy-root-remote 'safe-local-variable 'stringp)
-        (put 'ssh-deploy-debug 'safe-local-variable 'booleanp)
-        (put 'ssh-deploy-revision-folder 'safe-local-variable 'stringp)
-        (put 'ssh-deploy-automatically-detect-remote-changes 'safe-local-variable 'booleanp)
-        (put 'ssh-deploy-on-explicit-save 'safe-local-variable 'booleanp)
-        (put 'ssh-deploy-exclude-list 'safe-local-variable 'listp)
-        (put 'ssh-deploy-async 'safe-local-variable 'booleanp)
-```
-
 ## A setup example
 
 * Download ssh-deploy and place it at `~/.emacs.d/ssh-deploy/` or install via `package.el` (`M-x list-packages`) from the `MELPA` repository.
@@ -83,14 +70,6 @@ Set your user and group as owner and file permissions to `700`. Emacs should now
     :config
     (add-hook 'after-save-hook (lambda() (if ssh-deploy-on-explicit-save (ssh-deploy-upload-handler)) ))
     (add-hook 'find-file-hook (lambda() (if ssh-deploy-automatically-detect-remote-changes (ssh-deploy-remote-changes-handler)) ))
-    (put 'ssh-deploy-root-local 'safe-local-variable 'stringp)
-    (put 'ssh-deploy-root-remote 'safe-local-variable 'stringp)
-    (put 'ssh-deploy-debug 'safe-local-variable 'booleanp)
-    (put 'ssh-deploy-revision-folder 'safe-local-variable 'stringp)
-    (put 'ssh-deploy-automatically-detect-remote-changes 'safe-local-variable 'booleanp)
-    (put 'ssh-deploy-on-explicit-save 'safe-local-variable 'booleanp)
-    (put 'ssh-deploy-exclude-list 'safe-local-variable 'listp)
-    (put 'ssh-deploy-async 'safe-local-variable 'booleanp)
     (global-set-key (kbd "C-c C-z f") (lambda() (interactive)(ssh-deploy-upload-handler-forced) ))
     (global-set-key (kbd "C-c C-z u") (lambda() (interactive)(ssh-deploy-upload-handler) ))
     (global-set-key (kbd "C-c C-z D") (lambda() (interactive)(ssh-deploy-delete-handler) ))
