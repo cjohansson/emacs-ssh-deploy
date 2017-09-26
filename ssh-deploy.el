@@ -3,8 +3,8 @@
 ;; Author: Christian Johansson <github.com/cjohansson>
 ;; Maintainer: Christian Johansson <github.com/cjohansson>
 ;; Created: 5 Jul 2016
-;; Modified: 7 Sep 2017
-;; Version: 1.64
+;; Modified: 26 Sep 2017
+;; Version: 1.65
 ;; Keywords: tools, convenience
 ;; URL: https://github.com/cjohansson/emacs-ssh-deploy
 
@@ -57,11 +57,12 @@
 ;;     (global-set-key (kbd "C-c C-z D") (lambda() (interactive)(ssh-deploy-delete-handler) ))
 ;;     (global-set-key (kbd "C-c C-z d") (lambda() (interactive)(ssh-deploy-download-handler) ))
 ;;     (global-set-key (kbd "C-c C-z x") (lambda() (interactive)(ssh-deploy-diff-handler) ))
-;;     (global-set-key (kbd "C-c C-z t") (lambda() (interactive)(ssh-deploy-remote-terminal-handler) ))
+;;     (global-set-key (kbd "C-c C-z t") (lambda() (interactive)(ssh-deploy-remote-terminal-eshell-base-handler) ))
 ;;     (global-set-key (kbd "C-c C-z T") (lambda() (interactive)(ssh-deploy-remote-terminal-eshell-handler) ))
 ;;     (global-set-key (kbd "C-c C-z R") (lambda() (interactive)(ssh-deploy-rename-handler) ))
 ;;     (global-set-key (kbd "C-c C-z e") (lambda() (interactive)(ssh-deploy-remote-changes-handler) ))
-;;     (global-set-key (kbd "C-c C-z b") (lambda() (interactive)(ssh-deploy-browse-remote-handler) ))
+;;     (global-set-key (kbd "C-c C-z b") (lambda() (interactive)(ssh-deploy-browse-remote-base-handler) ))
+;;     (global-set-key (kbd "C-c C-z B") (lambda() (interactive)(ssh-deploy-browse-remote-handler) ))
 ;;
 ;; Here is an example for SSH deployment, /Users/Chris/Web/Site1/.dir.locals.el:
 ;; ((nil . (
@@ -511,7 +512,7 @@
 
 ;;;### autoload
 (defun ssh-deploy-browse-remote (local-root remote-root-string path)
-  "Browse relative to LOCAL-ROOT on REMOTE-ROOT-STRING the path PATH in `dired-mode`."
+  "Browse relative to LOCAL-ROOT on REMOTE-ROOT-STRING the path PATH in `dired-mode'."
   (if (and (ssh-deploy--file-is-in-path path local-root)
            (ssh-deploy--file-is-included path))
       (let ((remote-path (concat remote-root-string (ssh-deploy--get-relative-path local-root path))))
@@ -522,7 +523,7 @@
 
 ;;;### autoload
 (defun ssh-deploy-remote-terminal-eshell (local-root remote-root-string path)
-  "Browse relative to LOCAL-ROOT on REMOTE-ROOT-STRING the path PATH in `dired-mode`."
+  "Browse relative to LOCAL-ROOT on REMOTE-ROOT-STRING the path PATH in `eshell-mode'."
   (if (and (ssh-deploy--file-is-in-path path local-root)
            (ssh-deploy--file-is-included path))
       (let ((remote-path (concat remote-root-string (ssh-deploy--get-relative-path local-root path))))
@@ -745,7 +746,7 @@
 
 ;;;### autoload
 (defun ssh-deploy-remote-terminal-eshell-handler ()
-  "Open current relative path on remote host in `shell' but only if it's configured for deployment."
+  "Open current relative path on remote host in `eshell' but only if it's configured for deployment."
   (interactive)
   (if (and (ssh-deploy--is-not-empty-string ssh-deploy-root-local)
            (ssh-deploy--is-not-empty-string ssh-deploy-root-remote)
@@ -753,6 +754,15 @@
       (let ((local-path (file-truename default-directory))
             (local-root (file-truename ssh-deploy-root-local)))
         (ssh-deploy-remote-terminal-eshell local-root ssh-deploy-root-remote local-path))))
+
+;;;### autoload
+(defun ssh-deploy-remote-terminal-eshell-base-handler ()
+  "Open base path on remote host in `eshell' but only if it's configured for deployment."
+  (interactive)
+  (if (and (ssh-deploy--is-not-empty-string ssh-deploy-root-local)
+           (ssh-deploy--is-not-empty-string ssh-deploy-root-remote))
+      (let ((local-root (file-truename ssh-deploy-root-local)))
+        (ssh-deploy-remote-terminal-eshell local-root ssh-deploy-root-remote local-root))))
 
 ;;;### autoload
 (defun ssh-deploy-browse-remote-handler ()
@@ -764,6 +774,16 @@
       (let ((local-path (file-truename default-directory))
             (local-root (file-truename ssh-deploy-root-local)))
         (ssh-deploy-browse-remote local-root ssh-deploy-root-remote local-path))))
+
+;;;### autoload
+(defun ssh-deploy-browse-remote-base-handler ()
+  "Open base path on remote host in `dired-mode' if it is configured for deployment."
+  (interactive)
+  (if (and (ssh-deploy--is-not-empty-string ssh-deploy-root-local)
+           (ssh-deploy--is-not-empty-string ssh-deploy-root-remote))
+      (let ((local-root (file-truename ssh-deploy-root-local)))
+        (ssh-deploy-browse-remote local-root ssh-deploy-root-remote local-root))))
+
 
 ;; Mark variables as safe
 (put 'ssh-deploy-root-local 'safe-local-variable 'stringp)
