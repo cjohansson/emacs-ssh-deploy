@@ -83,6 +83,39 @@ Set your user and group as owner and file permissions to `700`. Emacs should now
     (global-set-key (kbd "C-c C-z B") (lambda() (interactive)(ssh-deploy-browse-remote-handler) )))
 ```
 
+* Or use the hydra-script I'm using:
+
+``` elisp
+      (use-package ssh-deploy
+        :bind (("C-c C-z" . hydra-ssh-deploy/body))
+        :config
+        (setq ssh-deploy-debug t)
+        (add-hook 'after-save-hook (lambda() (if ssh-deploy-on-explicit-save (ssh-deploy-upload-handler)) ))
+        (add-hook 'find-file-hook (lambda() (if ssh-deploy-automatically-detect-remote-changes (ssh-deploy-remote-changes-handler)) ))
+        (defhydra hydra-ssh-deploy (:color red :hint nil)
+          "
+    _u_: Upload                              _f_: Force Upload
+    _d_: Download
+    _D_: Delete
+    _x_: Difference
+    _t_: Eshell Base Terminal                _T_: Eshell Relative Terminal
+    _e_: Detect Remote Changes
+    _R_: Rename
+    _b_: Browse Base                         _B_: Browse Relative
+    "
+          ("f" ssh-deploy-upload-handler-forced)
+          ("u" ssh-deploy-upload-handler)
+          ("d" ssh-deploy-download-handler)
+          ("D" ssh-deploy-delete-handler)
+          ("x" ssh-deploy-diff-handler)
+          ("t" ssh-deploy-remote-terminal-eshell-base-handler)
+          ("T" ssh-deploy-remote-terminal-eshell-handler)
+          ("e" ssh-deploy-remote-changes-handler)
+          ("R" ssh-deploy-rename-handler)
+          ("b" ssh-deploy-browse-remote-base-handler)
+          ("B" ssh-deploy-browse-remote-handler)))
+```
+
 You can remove the `add-to-list` line if you installed via `MELPA` repository.
 
 * Restart Emacs
