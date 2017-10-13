@@ -87,6 +87,7 @@ Set your user and group as owner and file permissions to `700`. Emacs should now
 
 ``` elisp
       (use-package ssh-deploy
+        :demand
         :bind (("C-c C-z" . hydra-ssh-deploy/body))
         :config
         (setq ssh-deploy-debug t)
