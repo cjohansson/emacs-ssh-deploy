@@ -149,6 +149,16 @@ Host remote-host
     IdentityFile identity-file
 ```
 
+## TRAMP FTP problem in macOS 10.13
+
+macOS 10.13 removed the Darwin port of BSD `ftp` which is needed for `ange-ftp`, which is required by TRAMP. You can get it back by doing this:
+
+1. Download <https://opensource.apple.com/tarballs/lukemftp/lukemftp-16.tar.gz> or some other version from <https://opensource.apple.com/tarballs/lukemftp/>
+2. Extract archive
+3. Visit folder for `tnftp` inside the extracted archive in terminal
+4. Type `./configure` then `make` and then `sudo make install`
+5. Type `mv ./src/ftp /usr/local/bin/ftp`
+
 ## Read more
 * <https://www.emacswiki.org/emacs/DirectoryVariables>
 * <http://www.gnu.org/software/tramp/>
