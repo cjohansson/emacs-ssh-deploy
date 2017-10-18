@@ -3,8 +3,8 @@
 ;; Author: Christian Johansson <github.com/cjohansson>
 ;; Maintainer: Christian Johansson <github.com/cjohansson>
 ;; Created: 5 Jul 2016
-;; Modified: 26 Sep 2017
-;; Version: 1.65
+;; Modified: 17 Oct 2017
+;; Version: 1.66
 ;; Keywords: tools, convenience
 ;; URL: https://github.com/cjohansson/emacs-ssh-deploy
 
@@ -32,7 +32,7 @@
 ;; ssh-deploy enables automatic deploys on explicit-save, manual uploads, renaming,
 ;; deleting, downloads, file differences, remote terminals, detection of remote changes and remote directory browsing via TRAMP.
 ;;
-;; To do this it progressively uses tramp-term and async.
+;; For asynchrous operations it uses async.el,
 ;;
 ;; By setting the variables (globally, per directory or per file):
 ;; ssh-deploy-root-local,ssh-deploy-root-remote, ssh-deploy-on-explicit-save
@@ -168,42 +168,20 @@
   "Return a string for the relative path based on ROOT and PATH."
   (replace-regexp-in-string root "" path))
 
-(defun ssh-deploy--parse-remote (string)
-  "Return alist with connection attributes parsed from STRING."
-  (let ((remote string))
-    (let ((split (split-string remote "@")))
-      (let ((left (nth 0 split))
-            (right (nth 1 split)))
-        (let ((server-path (split-string right ":")))
-          (let ((server (nth 0 server-path))
-                (path (nth 1 server-path)))
-            (let ((protocol-user-password (split-string left ":")))
-              (if (not (null (string-match "/" (nth 0 protocol-user-password))))
-                  (let ((protocol (replace-regexp-in-string "/" "" (nth 0 protocol-user-password)))
-                        (username (nth 1 protocol-user-password))
-                        (password (nth 2 protocol-user-password)))
-                    (let ((connection `((protocol . ,protocol) (username . ,username) (password . ,password) (server . ,server) (path . ,path) (string . ,remote))))
-                      connection))
-                (let ((username (nth 0 protocol-user-password))
-                      (password (nth 1 protocol-user-password)))
-                  (let ((connection `((protocol . "ssh") (username . ,username) (password . ,password) (server . ,server) (path . ,path) (string . ,remote))))
-                    connection))))))))))
-
 (defun ssh-deploy--is-not-empty-string (string)
   "Return true if the STRING is not empty and not nil.  Expects string."
   (and (not (null string))
        (not (zerop (length string)))))
 
-(defun ssh-deploy--upload-via-tramp-async (local remote local-root force)
-  "Upload LOCAL path to REMOTE and LOCAL-ROOT via TRAMP asynchronously and FORCE upload despite external change."
+(defun ssh-deploy--upload-via-tramp-async (local-path remote-path force)
+  "Upload LOCAL-PATH to REMOTE-PATH via TRAMP asynchronously and FORCE upload despite external change."
   (if (fboundp 'async-start)
       (progn
-        (let ((remote-path (concat "/" (shell-quote-argument (alist-get 'protocol remote)) ":" (shell-quote-argument (alist-get 'username remote)) "@" (shell-quote-argument (alist-get 'server remote)) ":" (alist-get 'path remote)))
-              (file-or-directory (file-regular-p local)))
+        (let ((file-or-directory (file-regular-p local-path)))
           (if file-or-directory
               (progn
-                (let ((revision-path (ssh-deploy--get-revision-path local)))
-                  (message "Uploading file '%s' to '%s' via TRAMP asynchronously.." local remote-path)
+                (let ((revision-path (ssh-deploy--get-revision-path local-path)))
+                  (message "Uploading file '%s' to '%s' via TRAMP asynchronously.." local-path remote-path)
                   (async-start
                    `(lambda()
                       (require 'ediff)
@@ -213,8 +191,8 @@
                                 (progn
                                   (if (not (file-directory-p (file-name-directory ,remote-path)))
                                       (make-directory (file-name-directory ,remote-path) t))
-                                  (copy-file ,local ,remote-path t t t t)
-                                  (copy-file ,local ,revision-path t t t t)
+                                  (copy-file ,local-path ,remote-path t t t t)
+                                  (copy-file ,local-path ,revision-path t t t t)
                                   (list 0 (format "Upload '%s' completed." ,remote-path)))
                               (list 1 (format "External file '%s' has changed, please download or diff." ,remote-path))))
                         (list 1 "Function ediff-same-file-contents is missing.")))
@@ -223,106 +201,72 @@
                          (message (nth 1 return))
                        (display-warning "ssh-deploy" (nth 1 return) :warning))))))
             (progn
-              (message "Uploading directory '%s' to '%s' via TRAMP asynchronously.." local remote-path)
-              (if (string= remote-path (alist-get 'string remote))
-                  (progn
-                    (async-start
-                     `(lambda()
-                        (if (not (file-directory-p (file-name-directory ,remote-path)))
-                            (make-directory (file-name-directory ,remote-path) t))
-                        (copy-directory ,local ,remote-path t t t)
-                        ,local)
-                     (lambda(return-path)
-                       (message "Upload '%s' finished." return-path))))
-                (progn
-                  (async-start
-                   `(lambda()
-                      (copy-directory ,local ,(file-name-directory (directory-file-name remote-path)) t t t)
-                      ,local)
-                   (lambda(return-path)
-                     (message "Upload '%s' finished." return-path)))))))))
+              (message "Uploading directory '%s' to '%s' via TRAMP asynchronously.." local-path remote-path)
+              (async-start
+               `(lambda()
+                  (copy-directory ,local-path ,remote-path t t t)
+                  ,local-path)
+               (lambda(return-path)
+                 (message "Upload '%s' finished." return-path)))))))
     (message "async.el is not installed")))
 
-(defun ssh-deploy--upload-via-tramp (local remote local-root force)
-  "Upload LOCAL path to REMOTE and LOCAL-ROOT via TRAMP synchrously and FORCE despite external change."
-  (let ((remote-path (concat "/" (shell-quote-argument (alist-get 'protocol remote)) ":" (shell-quote-argument (alist-get 'username remote)) "@" (shell-quote-argument (alist-get 'server remote)) ":" (alist-get 'path remote)))
-        (file-or-directory (file-regular-p local)))
+(defun ssh-deploy--upload-via-tramp (local-path remote-path force)
+  "Upload LOCAL-PATH to REMOTE-PATH via TRAMP synchronously and FORCE despite external change."
+  (let ((file-or-directory (file-regular-p local-path)))
     (if file-or-directory
         (progn
-          (if (or (boundp 'force) (not (ssh-deploy--remote-has-changed local remote-path)))
+          (if (or (boundp 'force) (not (ssh-deploy--remote-has-changed local-path remote-path)))
               (progn
-                (message "Uploading file '%s' to '%s' via TRAMP synchronously.." local remote-path)
+                (message "Uploading file '%s' to '%s' via TRAMP synchronously.." local-path remote-path)
                 (if (not (file-directory-p (file-name-directory remote-path)))
                     (make-directory (file-name-directory remote-path) t))
-                (copy-file local remote-path t t t t)
-                (message "Upload '%s' finished" local)
-                (ssh-deploy-store-revision local))
+                (copy-file local-path remote-path t t t t)
+                (message "Upload '%s' finished" local-path)
+                (ssh-deploy-store-revision local-path))
             (display-warning "ssh-deploy" "Remote contents has changed or no base revision exists, please download or diff." :warning)))
       (progn
-        (message "Uploading directory '%s' to '%s' via TRAMP synchronously.." local remote-path)
-        (if (string= remote-path (alist-get 'string remote))
-            (progn
-              (copy-directory local remote-path t t t)
-              (message "Upload '%s' finished" local))
-          (progn
-            (copy-directory local (file-name-directory (directory-file-name remote-path)) t t t)
-            (message "Upload '%s' finished" local)))))))
+        (message "Uploading directory '%s' to '%s' via TRAMP synchronously.." local-path remote-path)
+        (copy-directory local-path remote-path t t t)
+        (message "Upload '%s' finished" local-path)))))
 
-(defun ssh-deploy--download-via-tramp-async (remote local local-root)
-  "Download REMOTE path to LOCAL and LOCAL-ROOT via TRAMP asynchronously."
+(defun ssh-deploy--download-via-tramp-async (remote-path local-path)
+  "Download REMOTE-PATH to LOCAL-PATH via TRAMP asynchronously."
   (if (fboundp 'async-start)
       (progn
-        (let ((remote-path (concat "/" (shell-quote-argument (alist-get 'protocol remote)) ":" (shell-quote-argument (alist-get 'username remote)) "@" (shell-quote-argument (alist-get 'server remote)) ":" (alist-get 'path remote)))
-              (file-or-directory (file-regular-p local)))
+        (let ((file-or-directory (file-regular-p local-path)))
           (if file-or-directory
               (progn
-                (message "Downloading file '%s' to '%s' via TRAMP asynchronously.." remote-path local)
+                (message "Downloading file '%s' to '%s' via TRAMP asynchronously.." remote-path local-path)
                 (async-start
                  `(lambda()
-                    (copy-file ,remote-path ,local t t t t)
-                    ,local)
+                    (copy-file ,remote-path ,local-path t t t t)
+                    ,local-path)
                  (lambda(return-path)
                    (message "Download '%s' finished." return-path)
                    (ssh-deploy-store-revision return-path))))
             (progn
-              (message "Downloading directory '%s' to '%s' via TRAMP asynchronously.." remote-path local)
-              (if (string= remote-path (alist-get 'string remote))
-                  (progn
-                    (async-start
-                     `(lambda()
-                        (copy-directory ,remote-path ,local t t t)
-                        ,local)
-                     (lambda(return-path)
-                       (message "Download '%s' finished." return-path))))
-                (progn
-                  (async-start
-                   `(lambda()
-                      (copy-directory ,remote-path ,(file-name-directory (directory-file-name remote-path)) t t t)
-                      ,local)
-                   (lambda(return-path)
-                     (message "Download '%s' finished." return-path)))))))))
+              (message "Downloading directory '%s' to '%s' via TRAMP synchronously.." remote-path local-path)
+              (async-start
+               `(lambda()
+                  (copy-directory ,remote-path ,local-path t t t)
+                  ,local-path)
+               (lambda(return-path)
+                 (message "Download '%s' finished." return-path)))))))
     (message "async.el is not installed")))
 
-(defun ssh-deploy--download-via-tramp (remote local local-root)
-  "Download REMOTE path to LOCAL and LOCAL-ROOT via TRAMP synchronously."
-  (let ((remote-path (concat "/" (shell-quote-argument (alist-get 'protocol remote)) ":" (shell-quote-argument (alist-get 'username remote)) "@" (shell-quote-argument (alist-get 'server remote)) ":" (alist-get 'path remote)))
-        (file-or-directory (file-regular-p local)))
+(defun ssh-deploy--download-via-tramp (remote-path local-path)
+  "Download REMOTE-PATH to LOCAL-PATH via TRAMP synchronously."
+  (let ((file-or-directory (file-regular-p local-path)))
     (if file-or-directory
         (progn
-          (message "Downloading file '%s' to '%s' via TRAMP synchronously.." remote-path local)
-          (copy-file remote-path local t t t t)
-          (message "Download '%s' finished." local)
-          (ssh-deploy-store-revision local))
+          (message "Downloading file '%s' to '%s' via TRAMP synchronously.." remote-path local-path)
+          (copy-file remote-path local-path t t t t)
+          (message "Download '%s' finished." local-path)
+          (ssh-deploy-store-revision local-path))
       (progn
-        (message "Downloading directory '%s' to '%s' via TRAMP synchronously.." remote-path local)
-        (if (string= remote-path (alist-get 'string remote))
-            (progn
-              (copy-directory remote-path local t t t)
-              (message "Download '%s' finished." local))
-          (progn
-            (copy-directory remote-path (file-name-directory (directory-file-name remote-path)) t t t)
-            (message "Download '%s' finished." local))
-          )))))
+        (message "Downloading directory '%s' to '%s' via TRAMP synchronously.." remote-path local-path)
+        (copy-directory remote-path local-path t t t)
+        (message "Download '%s' finished." local-path)))))
 
 (defun ssh-deploy--remote-has-changed (local remote)
   "Check if last stored revision of LOCAL exists or has changed on REMOTE synchronously."
@@ -354,11 +298,11 @@
            (ssh-deploy--file-is-included path))
       (progn
         (let ((file-or-directory (file-regular-p path)))
-          (let ((remote-path (concat remote-root (ssh-deploy--get-relative-path local-root path))))
-            (let ((connection (ssh-deploy--parse-remote remote-path)))
-              (if (not (null upload-or-download))
-                  (ssh-deploy-upload path connection local-root async force)
-                (ssh-deploy-download connection path local-root async))))))
+          (let ((local-path (concat local-root (ssh-deploy--get-relative-path local-root path)))
+                (remote-path (concat remote-root (ssh-deploy--get-relative-path local-root path))))
+            (if (not (null upload-or-download))
+                (ssh-deploy-upload local-path remote-path async force)
+              (ssh-deploy-download remote-path local-path async)))))
     (if debug
         (message "Path '%s' is not in the root '%s' or is excluded from it." path local-root))))
 
@@ -516,10 +460,8 @@
   (if (and (ssh-deploy--file-is-in-path path local-root)
            (ssh-deploy--file-is-included path))
       (let ((remote-path (concat remote-root-string (ssh-deploy--get-relative-path local-root path))))
-        (let ((remote-root (ssh-deploy--parse-remote remote-path)))
-          (let ((command (concat "/" (alist-get 'protocol remote-root) ":" (alist-get 'username remote-root) "@" (alist-get 'server remote-root) ":" (alist-get 'path remote-root))))
-            (message "Opening '%s' for browsing on remote host.." command)
-            (dired command))))))
+        (message "Opening '%s' for browsing on remote host.." remote-path)
+        (dired remote-path))))
 
 ;;;### autoload
 (defun ssh-deploy-remote-terminal-eshell (local-root remote-root-string path)
@@ -527,44 +469,23 @@
   (if (and (ssh-deploy--file-is-in-path path local-root)
            (ssh-deploy--file-is-included path))
       (let ((remote-path (concat remote-root-string (ssh-deploy--get-relative-path local-root path))))
-        (let ((remote-root (ssh-deploy--parse-remote remote-path)))
-          (let ((command (concat "/" (alist-get 'protocol remote-root) ":" (alist-get 'username remote-root) "@" (alist-get 'server remote-root) ":" (alist-get 'path remote-root))))
-            (let ((old-directory default-directory))
-              (require 'eshell)
-              (if (and (fboundp 'eshell-kill-input)
-                       (fboundp 'eshell-send-input))
-                  (progn
-                    (message "Opening eshell on '%s'.." command)
-                    (defvar eshell-buffer-name)
-                    (let ((old-eshell-buffer-name eshell-buffer-name))
-                      (setq eshell-buffer-name (alist-get 'server remote-root))
-                      (let ((eshell-buffer (eshell)))
-                        (goto-char (point-max))
-                        (eshell-kill-input)
-                        (insert (concat "cd " command))
-                        (eshell-send-input)
-                        (goto-char (point-max))
-                        (setq eshell-buffer-name old-eshell-buffer-name))))
-                (message "Missing required eshell functions"))))))))
-
-;;;### autoload
-(defun ssh-deploy-remote-terminal (remote-host-string)
-  "Opens REMOTE-HOST-STRING in terminal."
-  (let ((remote-root (ssh-deploy--parse-remote remote-host-string)))
-    (if (string= (alist-get 'protocol remote-root) "ssh")
-        (if (and (fboundp 'tramp-term)
-                 (fboundp 'tramp-term--initialize)
-                 (fboundp 'tramp-term--do-ssh-login))
-            (progn
-              (let ((hostname (concat (alist-get 'username remote-root) "@" (alist-get 'server remote-root))))
-                (let ((host (split-string hostname "@")))
-                  (message "Opening TRAMP-terminal for remote host '%s@%s' and '%s'.." (car host) (car (last host)) hostname)
-                  (unless (eql (catch 'tramp-term--abort (tramp-term--do-ssh-login host)) 'tramp-term--abort)
-                    (tramp-term--initialize hostname)
-                    (run-hook-with-args 'tramp-term-after-initialized-hook hostname)
-                    (message "tramp-term initialized")))))
-          (message "tramp-term is not installed."))
-      (message "Remote terminal is only available for the SSH protocol"))))
+        (let ((old-directory default-directory))
+          (require 'eshell)
+          (if (and (fboundp 'eshell-kill-input)
+                   (fboundp 'eshell-send-input))
+              (progn
+                (message "Opening eshell on '%s'.." remote-path)
+                (defvar eshell-buffer-name)
+                (let ((old-eshell-buffer-name eshell-buffer-name))
+                  (setq eshell-buffer-name remote-path)
+                  (let ((eshell-buffer (eshell)))
+                    (goto-char (point-max))
+                    (eshell-kill-input)
+                    (insert (concat "cd " remote-path))
+                    (eshell-send-input)
+                    (goto-char (point-max))
+                    (setq eshell-buffer-name old-eshell-buffer-name))))
+            (message "Missing required eshell functions"))))))
 
 ;;;### autoload
 (defun ssh-deploy-store-revision (path)
@@ -581,36 +502,34 @@
              (ssh-deploy--file-is-included path))
         (progn
           (let ((remote-path (concat remote-root-string (ssh-deploy--get-relative-path local-root path))))
-            (let ((remote (ssh-deploy--parse-remote remote-path)))
-              (let ((command (concat "/" (alist-get 'protocol remote) ":" (alist-get 'username remote) "@" (alist-get 'server remote) ":" (alist-get 'path remote))))
-                (if file-or-directory
-                    (progn
-                      (require 'ediff)
-                      (if (fboundp 'ediff-same-file-contents)
-                          (progn
-                            (message "Comparing file '%s' to '%s'.." path command)
-                            (if (ediff-same-file-contents path command)
-                                (message "Files have identical contents.")
-                              (ediff path command)))
-                        (message "Function ediff-same-file-contents is missing.")))
-                  (progn
-                    (message "Unfortunately directory differences are not yet implemented.")))))))
-      (if debug
-          (message "Path '%s' is not in the root '%s' or is excluded from it." path local-root)))))
+            (if file-or-directory
+                (progn
+                  (require 'ediff)
+                  (if (fboundp 'ediff-same-file-contents)
+                      (progn
+                        (message "Comparing file '%s' to '%s'.." path remote-path)
+                        (if (ediff-same-file-contents path remote-path)
+                            (message "Files have identical contents.")
+                          (ediff path remote-path))
+                        (message "Function ediff-same-file-contents is missing."))))
+              (progn
+                (message "Unfortunately directory differences are not yet implemented."))))))
+    (if debug
+        (message "Path '%s' is not in the root '%s' or is excluded from it." path local-root))))
 
 ;;;### autoload
-(defun ssh-deploy-upload (local remote local-root async force)
-  "Upload LOCAL to REMOTE and LOCAL-ROOT via TRAMP, ASYNC determines if transfer should be asynchronously or not, FORCE uploads despite external change."
+(defun ssh-deploy-upload (local-path remote-path async force)
+  "Upload LOCAL-PATH to REMOTE-PATH and LOCAL-ROOT via TRAMP, ASYNC determines if transfer should be asynchronously or not, FORCE uploads despite external change."
   (if (and async (fboundp 'async-start))
-      (ssh-deploy--upload-via-tramp-async local remote local-root force)
-    (ssh-deploy--upload-via-tramp local remote local-root force)))
+      (ssh-deploy--upload-via-tramp-async local-path remote-path force)
+    (ssh-deploy--upload-via-tramp local-path remote-path force)))
 
 ;;;### autoload
-(defun ssh-deploy-download (remote local local-root async)
-  "Download REMOTE to LOCAL with the LOCAL-ROOT via TRAMP, ASYNC determines if transfer should be asynchrous or not."
+(defun ssh-deploy-download (remote-path local-path async)
+  "Download REMOTE-PATH to LOCAL-PATH via TRAMP, ASYNC determines if transfer should be asynchrous or not."
   (if (and async (fboundp 'async-start))
-      (ssh-deploy--download-via-tramp-async remote local local-root)
-    (ssh-deploy--download-via-tramp remote local local-root)))
+      (ssh-deploy--download-via-tramp-async remote-path local-path)
+    (ssh-deploy--download-via-tramp remote-path local-path)))
 
 
 ;; HANDLERS - the idea is that these are interactive functions and can be bound to various Emacs commands.
@@ -736,13 +655,6 @@
                    (new-local-path (file-truename new-local-path-tmp)))
               (if (not (string= old-local-path new-local-path))
                   (ssh-deploy-rename old-local-path new-local-path local-root ssh-deploy-root-remote ssh-deploy-async ssh-deploy-debug)))))))
-
-;;;### autoload
-(defun ssh-deploy-remote-terminal-handler ()
-  "Open remote host in TRAMP-terminal it is configured for deployment."
-  (interactive)
-  (if (ssh-deploy--is-not-empty-string ssh-deploy-root-remote)
-      (ssh-deploy-remote-terminal ssh-deploy-root-remote)))
 
 ;;;### autoload
 (defun ssh-deploy-remote-terminal-eshell-handler ()
