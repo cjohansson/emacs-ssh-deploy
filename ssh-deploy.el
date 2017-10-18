@@ -581,36 +581,34 @@
              (ssh-deploy--file-is-included path))
         (progn
           (let ((remote-path (concat remote-root-string (ssh-deploy--get-relative-path local-root path))))
-            (let ((remote (ssh-deploy--parse-remote remote-path)))
-              (let ((command (concat "/" (alist-get 'protocol remote) ":" (alist-get 'username remote) "@" (alist-get 'server remote) ":" (alist-get 'path remote))))
-                (if file-or-directory
-                    (progn
-                      (require 'ediff)
-                      (if (fboundp 'ediff-same-file-contents)
-                          (progn
-                            (message "Comparing file '%s' to '%s'.." path command)
-                            (if (ediff-same-file-contents path command)
-                                (message "Files have identical contents.")
-                              (ediff path command)))
-                        (message "Function ediff-same-file-contents is missing.")))
-                  (progn
-                    (message "Unfortunately directory differences are not yet implemented.")))))))
-      (if debug
-          (message "Path '%s' is not in the root '%s' or is excluded from it." path local-root)))))
+            (if file-or-directory
+                (progn
+                  (require 'ediff)
+                  (if (fboundp 'ediff-same-file-contents)
+                      (progn
+                        (message "Comparing file '%s' to '%s'.." path remote-path)
+                        (if (ediff-same-file-contents path remote-path)
+                            (message "Files have identical contents.")
+                          (ediff path remote-path))
+                        (message "Function ediff-same-file-contents is missing."))))
+              (progn
+                (message "Unfortunately directory differences are not yet implemented."))))))
+    (if debug
+        (message "Path '%s' is not in the root '%s' or is excluded from it." path local-root))))
 
 ;;;### autoload
-(defun ssh-deploy-upload (local remote local-root async force)
-  "Upload LOCAL to REMOTE and LOCAL-ROOT via TRAMP, ASYNC determines if transfer should be asynchronously or not, FORCE uploads despite external change."
+(defun ssh-deploy-upload (local-path remote-path async force)
+  "Upload LOCAL-PATH to REMOTE-PATH and LOCAL-ROOT via TRAMP, ASYNC determines if transfer should be asynchronously or not, FORCE uploads despite external change."
   (if (and async (fboundp 'async-start))
-      (ssh-deploy--upload-via-tramp-async local remote local-root force)
-    (ssh-deploy--upload-via-tramp local remote local-root force)))
+      (ssh-deploy--upload-via-tramp-async local-path remote-path force)
+    (ssh-deploy--upload-via-tramp local-path remote-path force)))
 
 ;;;### autoload
-(defun ssh-deploy-download (remote local local-root async)
-  "Download REMOTE to LOCAL with the LOCAL-ROOT via TRAMP, ASYNC determines if transfer should be asynchrous or not."
+(defun ssh-deploy-download (remote-path local-path async)
+  "Download REMOTE-PATH to LOCAL-PATH via TRAMP, ASYNC determines if transfer should be asynchrous or not."
   (if (and async (fboundp 'async-start))
-      (ssh-deploy--download-via-tramp-async remote local local-root)
-    (ssh-deploy--download-via-tramp remote local local-root)))
+      (ssh-deploy--download-via-tramp-async remote-path local-path)
+    (ssh-deploy--download-via-tramp remote-path local-path)))
 
 
 ;; HANDLERS - the idea is that these are interactive functions and can be bound to various Emacs commands.
