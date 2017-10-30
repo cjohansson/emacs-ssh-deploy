@@ -707,7 +707,7 @@
   (if (and (ssh-deploy--is-not-empty-string ssh-deploy-root-local)
            (ssh-deploy--is-not-empty-string ssh-deploy-root-remote))
       (let ((root-local (file-truename ssh-deploy-root-local)))
-        (ssh-deploy-remote-terminal-eshell root-local ssh-deploy-root-remote root-local ssh-deploy-exclude-list))))
+        (ssh-deploy-remote-terminal-eshell root-local root-local ssh-deploy-root-remote ssh-deploy-exclude-list))))
 
 ;;;### autoload
 (defun ssh-deploy-browse-remote-handler ()
