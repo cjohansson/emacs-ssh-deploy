@@ -83,7 +83,7 @@
 ;; Here is a list of other variables you can set globally or per directory:
 
 ;; * ssh-deploy-root-local - The local root that should be under deployment *(string)*
-;; * ssh-deploy-root-remote - The remote root that should be under deployment, should follow a `/protocol:user@host:path` format *(string)*
+;; * ssh-deploy-root-remote - The remote TRAMP root that is used for deployment *(string)*
 ;; * ssh-deploy-debug - Enables debugging messages *(boolean)*
 ;; * ssh-deploy-revision-folder - The folder used for storing local revisions *(string)*
 ;; * ssh-deploy-automatically-detect-remote-changes - Enables automatic detection of remote changes *(boolean)*
