@@ -6,10 +6,10 @@ The `ssh-deploy` plug-in for Emacs makes it possible to effortlessly deploy loca
 * Define syncing configuration per directory or per file (using `DirectoryVariables` or `File Variables`)
 * Control whether uploads of files should be automatic on save
 * Manual downloads and uploads of directories and files
-* Automatic and manual detection of remote changes of files using revisions
+* Automatic and manual detection of remote changes of files using local revisions
 * Launch remote `eshell` terminals in base or relative directory
-* Launch remote `dired-mode` browsing in base or relative directory
-* Launch difference sessions using `ediff-mode`
+* Launch remote `dired` browsing in base or relative directory
+* Launch difference sessions for files and directories using `ediff-mode`
 * Supports asynchronous operations if `async.el` is installed. (You need to setup an automatic authorization for this, i.e. `~/.netrc` or key-based password-less authorization)
 * Supports renaming and deletion of files and directories on local host and mirrored on remote
 
@@ -35,6 +35,8 @@ Here is a list of other variables you can set globally or per directory:
 * Download ssh-deploy and place it at `~/.emacs.d/ssh-deploy/` or install via `package.el` (`M-x list-packages`) from the `MELPA` repository.
 * So if you want to deploy `/Users/username/Web/MySite/` to create this `DirectoryVariables` file in your project root at `/Users/username/Web/MySite/.dir-locals.el`.
 
+You really need to research how you connect via different protocols using TRAMP on your operating system, I think Windows users should use `plink` for most protocols.
+
 ### SSH/SFTP
 
 ``` emacs-lisp
@@ -44,6 +46,29 @@ Here is a list of other variables you can set globally or per directory:
   (ssh-deploy-on-explicit-save . t)
 )))
 ```
+
+NOTE: I'm not sure how to get pure `sftp` working on macOS, but this should work on other *NIX systems:
+
+``` emacs-lisp
+((nil . (
+  (ssh-deploy-root-local . "/Users/username/Web/MySite/")
+  (ssh-deploy-root-remote . "/sftp:myuser@myserver.com:/var/www/MySite/")
+  (ssh-deploy-on-explicit-save . t)
+)))
+```
+
+You can pipe remote connections as well like this:
+
+``` emacs-lisp
+((nil . (
+  (ssh-deploy-root-local . "/Users/username/Web/MySite/")
+  (ssh-deploy-root-remote . "/ssh:myuser@myserver.com|sudo:web@myserver.com:/var/www/MySite/")
+  (ssh-deploy-async . nil)
+  (ssh-deploy-on-explicit-save . t)
+)))
+```
+
+If you have a password-less sudo on your remote host you should be to enable `async`.
 
 ### FTP
 
@@ -112,7 +137,6 @@ Set your user and group as owner and file permissions to `600`. Emacs should now
         :demand
         :bind (("C-c C-z" . hydra-ssh-deploy/body))
         :config
-        (setq ssh-deploy-debug t)
         (add-hook 'after-save-hook (lambda() (if ssh-deploy-on-explicit-save (ssh-deploy-upload-handler)) ))
         (add-hook 'find-file-hook (lambda() (if ssh-deploy-automatically-detect-remote-changes (ssh-deploy-remote-changes-handler)) ))
         (defhydra hydra-ssh-deploy (:color red :hint nil)
@@ -146,7 +170,7 @@ You can remove the `add-to-list` line if you installed via `MELPA` repository.
 ## Usage
 
 * Now when you save a file somewhere under the directory `/Users/username/Web/MySite/`, the script will launch and deploy the file with the remote server.
-* If you press `C-c C-z x` and the current buffer is a file, you will launch a `ediff` session showing differences between local file and remote file via `tramp`, or if current buffer is a directory it will show a error that directories are not yet supported for differences.
+* If you press `C-c C-z x` and the current buffer is a file, you will launch a `ediff` session showing differences between local file and remote file via `tramp`, or if current buffer is a directory it will open a buffer showing directory differences
 * If you press `C-c C-z f` you will **force** upload local file or directory to remote host even if they have external changes.
 * If you press `C-c C-z u` you will upload local file or directory to remote host.
 * If you press `C-c C-z d` you will download the current file or directory from remote host and then reload current buffer.
