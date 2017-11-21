@@ -3,8 +3,8 @@
 ;; Author: Christian Johansson <github.com/cjohansson>
 ;; Maintainer: Christian Johansson <github.com/cjohansson>
 ;; Created: 5 Jul 2016
-;; Modified: 20 Nov 2017
-;; Version: 1.69
+;; Modified: 21 Nov 2017
+;; Version: 1.70
 ;; Keywords: tools, convenience
 ;; URL: https://github.com/cjohansson/emacs-ssh-deploy
 
@@ -320,9 +320,6 @@
                        (push relative-path files-a-relative-list)))))))
          files-a)
 
-        ;; (message "A-hashes:")
-        ;; (maphash (lambda (key value) (message (format "%s:%s" key value))) files-a-relative-hash)
-
         ;; Collected included files in directory b with relative paths
         (mapc
          (lambda (file-b-tmp)
@@ -344,9 +341,6 @@
                          (setq files-b-relative-list (list relative-path))
                        (push relative-path files-b-relative-list)))))))
          files-b)
-
-        ;; (message "B-hashes:")
-        ;; (maphash (lambda (key value) (message (format "%s:%s" key value))) files-b-relative-hash)
 
         ;; Collect files that only exists in directory a and files that exist in both directory a and b
         (mapc
@@ -470,7 +464,6 @@
             (require 'ssh-deploy)
             (ssh-deploy--diff-directories-data ,directory-a ,directory-b (list ,@exclude-list)))
          (lambda(diff)
-           (message "Returned from async")
            (ssh-deploy--diff-directories-present diff))))
     (progn
       (message "Generating differences between directory '%s' and '%s' synchronously.." directory-a directory-b)
