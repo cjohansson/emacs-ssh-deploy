@@ -3,8 +3,8 @@
 ;; Author: Christian Johansson <github.com/cjohansson>
 ;; Maintainer: Christian Johansson <github.com/cjohansson>
 ;; Created: 5 Jul 2016
-;; Modified: 21 Nov 2017
-;; Version: 1.70
+;; Modified: 22 Nov 2017
+;; Version: 1.71
 ;; Keywords: tools, convenience
 ;; URL: https://github.com/cjohansson/emacs-ssh-deploy
 
@@ -457,18 +457,22 @@
       (setq exclude-list ssh-deploy-exclude-list))
   (if (and async (fboundp 'async-start))
       (let ((script-filename (file-name-directory (symbol-file 'ssh-deploy-diff-directories))))
-        (message "Generating differences between directory '%s' and '%s' asynchronously from '%s'.." directory-a directory-b script-filename)
+        (message "Generating differences asynchronously between directory '%s' and '%s'.." directory-a directory-b)
         (async-start
          `(lambda()
             (add-to-list 'load-path ,script-filename)
             (require 'ssh-deploy)
             (ssh-deploy--diff-directories-data ,directory-a ,directory-b (list ,@exclude-list)))
          (lambda(diff)
-           (ssh-deploy--diff-directories-present diff))))
+           (message "Differences calculated: %s only in A, %s only in B, %s differs" (length (nth 4 diff)) (length (nth 5 diff)) (length (nth 7 diff)))
+           (if (or (> (length (nth 4 diff)) 0) (> (length (nth 5 diff)) 0) (> (length (nth 7 diff)) 0))
+               (ssh-deploy--diff-directories-present diff)))))
     (progn
-      (message "Generating differences between directory '%s' and '%s' synchronously.." directory-a directory-b)
+      (message "Generating differences synchronously between directory '%s' and '%s'.." directory-a directory-b)
       (let ((diff (ssh-deploy--diff-directories-data directory-a directory-b exclude-list)))
-          (ssh-deploy--diff-directories-present diff)))))
+        (message "Differences calculated: %s only in A, %s only in B, %s differs" (length (nth 4 diff)) (length (nth 5 diff)) (length (nth 7 diff)))
+        (if (or (> (length (nth 4 diff)) 0) (> (length (nth 5 diff)) 0) (> (length (nth 7 diff)) 0))
+            (ssh-deploy--diff-directories-present diff))))))
 
 ;;;### autoload
 (defun ssh-deploy-remote-changes (path-local &optional root-local root-remote async revision-folder exclude-list)
