@@ -114,44 +114,30 @@ Set your user and group as owner and file permissions to `600`. Emacs should now
 ;; ssh-deploy - prefix = C-c C-z, f = forced upload, u = upload, d = download, x = diff, t = terminal, b = browse
 (add-to-list 'load-path "~/.emacs.d/ssh-deploy/")
 (use-package ssh-deploy
-        :demand
-        :bind (("C-c C-z" . hydra-ssh-deploy/body))
-        :hook ((after-save . (lambda() (if ssh-deploy-on-explicit-save (ssh-deploy-upload-handler)) ))
-               (find-file . (lambda() (if ssh-deploy-automatically-detect-remote-changes (ssh-deploy-remote-changes-handler)) )))
-        :config
-        (defhydra hydra-ssh-deploy (:color red :hint nil)
-          "
-    _u_: Upload                              _f_: Force Upload
-    _d_: Download
-    _D_: Delete
-    _x_: Difference
-    _t_: Eshell Base Terminal                _T_: Eshell Relative Terminal
-    _e_: Detect Remote Changes
-    _R_: Rename
-    _b_: Browse Base                         _B_: Browse Relative
-    "
-          ("f" ssh-deploy-upload-handler-forced)
-          ("u" ssh-deploy-upload-handler)
-          ("d" ssh-deploy-download-handler)
-          ("D" ssh-deploy-delete-handler)
-          ("x" ssh-deploy-diff-handler)
-          ("t" ssh-deploy-remote-terminal-eshell-base-handler)
-          ("T" ssh-deploy-remote-terminal-eshell-handler)
-          ("e" ssh-deploy-remote-changes-handler)
-          ("R" ssh-deploy-rename-handler)
-          ("b" ssh-deploy-browse-remote-base-handler)
-          ("B" ssh-deploy-browse-remote-handler)))
+    :config
+    (add-hook 'after-save-hook (lambda() (if ssh-deploy-on-explicit-save (ssh-deploy-upload-handler)) ))
+    (add-hook 'find-file-hook (lambda() (if ssh-deploy-automatically-detect-remote-changes (ssh-deploy-remote-changes-handler)) ))
+    (global-set-key (kbd "C-c C-z f") (lambda() (interactive)(ssh-deploy-upload-handler-forced) ))
+    (global-set-key (kbd "C-c C-z u") (lambda() (interactive)(ssh-deploy-upload-handler) ))
+    (global-set-key (kbd "C-c C-z D") (lambda() (interactive)(ssh-deploy-delete-handler) ))
+    (global-set-key (kbd "C-c C-z d") (lambda() (interactive)(ssh-deploy-download-handler) ))
+    (global-set-key (kbd "C-c C-z x") (lambda() (interactive)(ssh-deploy-diff-handler) ))
+    (global-set-key (kbd "C-c C-z t") (lambda() (interactive)(ssh-deploy-remote-terminal-eshell-base-handler) ))
+    (global-set-key (kbd "C-c C-z T") (lambda() (interactive)(ssh-deploy-remote-terminal-eshell-handler) ))
+    (global-set-key (kbd "C-c C-z R") (lambda() (interactive)(ssh-deploy-rename-handler) ))
+    (global-set-key (kbd "C-c C-z e") (lambda() (interactive)(ssh-deploy-remote-changes-handler) ))
+    (global-set-key (kbd "C-c C-z b") (lambda() (interactive)(ssh-deploy-browse-remote-base-handler) )))
 ```
 
 * Or use the hydra-script I'm using:
 
 ``` elisp
       (use-package ssh-deploy
-        :demand
+:demand
         :bind (("C-c C-z" . hydra-ssh-deploy/body))
+        :hook ((after-save . (lambda() (if ssh-deploy-on-explicit-save (ssh-deploy-upload-handler)) ))
+               (find-file . (lambda() (if ssh-deploy-automatically-detect-remote-changes (ssh-deploy-remote-changes-handler)) )))
         :config
-        (add-hook 'after-save-hook (lambda() (if ssh-deploy-on-explicit-save (ssh-deploy-upload-handler)) ))
-        (add-hook 'find-file-hook (lambda() (if ssh-deploy-automatically-detect-remote-changes (ssh-deploy-remote-changes-handler)) ))
         (defhydra hydra-ssh-deploy (:color red :hint nil)
           "
     _u_: Upload                              _f_: Force Upload
