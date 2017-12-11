@@ -3,8 +3,8 @@
 ;; Author: Christian Johansson <github.com/cjohansson>
 ;; Maintainer: Christian Johansson <github.com/cjohansson>
 ;; Created: 5 Jul 2016
-;; Modified: 22 Nov 2017
-;; Version: 1.71
+;; Modified: 11 Dec 2017
+;; Version: 1.72
 ;; Keywords: tools, convenience
 ;; URL: https://github.com/cjohansson/emacs-ssh-deploy
 
@@ -36,7 +36,7 @@
 ;;
 ;; By setting the variables (globally, per directory or per file):
 ;; ssh-deploy-root-local,ssh-deploy-root-remote, ssh-deploy-on-explicit-save
-;; you can setup a directory for SSH or FTP deployment.
+;; you can setup a directory for TRAMP deployment.
 ;;
 ;; For asynchronous transfers you need to setup ~/.netrc or key-based authorization or equivalent for automatic authentication.
 ;;
@@ -64,21 +64,21 @@
 ;;     (global-set-key (kbd "C-c C-z b") (lambda() (interactive)(ssh-deploy-browse-remote-base-handler) ))
 ;;     (global-set-key (kbd "C-c C-z B") (lambda() (interactive)(ssh-deploy-browse-remote-handler) ))
 ;;
-;; Here is an example for SSH deployment, /Users/Chris/Web/Site1/.dir.locals.el:
+;; Here is an example for SSH/SFTP deployment, /Users/Chris/Web/Site1/.dir-locals.el:
 ;; ((nil . (
 ;;   (ssh-deploy-root-local . "/Users/Chris/Web/Site1/")
 ;;   (ssh-deploy-root-remote . "/ssh:myuser@myserver.com:/var/www/site1/")
 ;;   (ssh-deploy-on-explicity-save . t)
 ;; )))
 ;;
-;; Here is an example for FTP deployment, /Users/Chris/Web/Site2/.dir.locals.el:
+;; Here is an example for FTP deployment, /Users/Chris/Web/Site2/.dir-locals.el:
 ;; ((nil . (
 ;;   (ssh-deploy-root-local . "/Users/Chris/Web/Site2/")
 ;;   (ssh-deploy-root-remote . "/ftp:myuser@myserver.com:/var/www/site2/")
 ;;   (ssh-deploy-on-explicit-save . nil)
 ;; )))
 ;;
-;; Now when you are in a directory which is deployed via SSH or FTP you can access these features.
+;; Now when you are in a directory which is configured for deployment.
 ;;
 ;; Here is a list of other variables you can set globally or per directory:
 
@@ -96,7 +96,7 @@
 ;;; Code:
 
 (defgroup ssh-deploy nil
-  "Upload, download, difference, browse and terminal handler for files and directories on remote hosts via SSH and FTP."
+  "Upload, download, difference, browse and terminal handler for files and directories on remote hosts via TRAMP."
   :group 'tools
   :group 'convenience)
 
@@ -550,8 +550,7 @@
                               (message "Remote file '%s' has not changed, created base revision." path-remote))
                           (display-warning "ssh-deploy" (format "Remote file '%s' has changed, please download or diff." path-remote) :warning))
                         (display-warning "ssh-deploy" "Function 'ediff-same-file-contents' is missing." :warning)))
-                  (message "Remote file '%s' doesn't exist." path-remote)))
-            (message "Directory differences not implemented yet"))))))
+                  (message "Remote file '%s' doesn't exist." path-remote))))))))
 
 ;;;### autoload
 (defun ssh-deploy-delete (path-local &optional root-local root-remote async debug exclude-list)
