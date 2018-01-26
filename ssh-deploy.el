@@ -3,8 +3,8 @@
 ;; Author: Christian Johansson <github.com/cjohansson>
 ;; Maintainer: Christian Johansson <github.com/cjohansson>
 ;; Created: 5 Jul 2016
-;; Modified: 11 Dec 2017
-;; Version: 1.72
+;; Modified: 26 Jan 2018
+;; Version: 1.73
 ;; Keywords: tools, convenience
 ;; URL: https://github.com/cjohansson/emacs-ssh-deploy
 
@@ -46,10 +46,10 @@
 ;; Set permissions to this file to 700 with you as the owner.
 ;;
 ;; - To setup a upload hook on save do this:
-;;     (add-hook 'after-save-hook (lambda() (if ssh-deploy-on-explicit-save (ssh-deploy-upload-handler)) ))
+;;     (add-hook 'after-save-hook (lambda() (if (and (boundp 'ssh-deploy-on-explicit-save) ssh-deploy-on-explicit-save) (ssh-deploy-upload-handler)) ))
 ;;
 ;; - To setup automatic storing of base revisions and detection of remote changes do this:
-;;     (add-hook 'find-file-hook (lambda() (if ssh-deploy-automatically-detect-remote-changes (ssh-deploy-remote-changes-handler)) ))
+;;     (add-hook 'find-file-hook (lambda() (if (and (boundp 'ssh-deploy-automatically-detect-remote-changes) ssh-deploy-automatically-detect-remote-changes) (ssh-deploy-remote-changes-handler)) ))
 ;;
 ;; - To set key-bindings do something like this:
 ;;     (global-set-key (kbd "C-c C-z f") (lambda() (interactive)(ssh-deploy-upload-handler-forced) ))
@@ -104,41 +104,49 @@
   "String variable of local root, nil by default."
   :type 'string
   :group 'ssh-deploy)
+(put 'ssh-deploy-root-local 'permanent-local t)
 
 (defcustom ssh-deploy-root-remote nil
   "String variable of remote root, nil by default."
   :type 'string
   :group 'ssh-deploy)
+(put 'ssh-deploy-root-remote 'permanent-local t)
 
 (defcustom ssh-deploy-on-explicit-save t
   "Boolean variable if deploy should be made on explicit save, t by default."
   :type 'boolean
   :group 'ssh-deploy)
+(put 'ssh-deploy-on-explicit-save 'permanent-local t)
 
 (defcustom ssh-deploy-debug nil
   "Boolean variable if debug messages should be shown, nil by default."
   :type 'boolean
   :group 'ssh-deploy)
+(put 'ssh-deploy-debug 'permanent-local t)
 
 (defcustom ssh-deploy-async t
   "Boolean variable if asynchrous method for transfers should be used, t by default."
   :type 'boolean
   :group 'ssh-deploy)
+(put 'ssh-deploy-async 'permanent-local t)
 
 (defcustom ssh-deploy-revision-folder "~/.ssh-deploy-revisions/"
   "String variable with path to revisions with trailing slash."
   :type 'string
   :group 'ssh-deploy)
+(put 'ssh-deploy-revision-folder 'permanent-local t)
 
 (defcustom ssh-deploy-automatically-detect-remote-changes t
   "Detect remote changes and store base revisions automatically, t by default."
   :type 'boolean
   :group 'ssh-deploy)
+(put 'ssh-deploy-automatically-detect-remote-changes 'permanent-local t)
 
 (defcustom ssh-deploy-exclude-list '(".git/" ".dir-locals.el")
   "List of strings that if found in paths will exclude paths from sync, '(\"/.git\"/' \".dir-locals.el\") by default."
   :type 'list
   :group 'ssh-deploy)
+(put 'ssh-deploy-exclude-list 'permanent-local t)
 
 
 ;; PRIVATE FUNCTIONS
