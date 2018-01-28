@@ -95,13 +95,15 @@ Host remote-host
     IdentityFile identity-file
 ```
 
-## Interaction-free FTP setup on *NIX systems
+## Interaction-free password-based setup on *NIX systems
 
 For automatic **FTP** connections you need to setup `~/.netrc` with your login credentials. An example:
 `~/.netrc` contents:
 
 ``` shell
 machine myserver.com login myuser port ftp password mypassword
+machine myserver2.com login myuser2 port ssh password mypassword2
+machine myserver3.com login myuser3 port sftp password mypassword3
 ```
 
 Set your user and group as owner and file permissions to `600`. Emacs should now be able to automatically connect to this server via FTP without any user interaction.
@@ -113,6 +115,7 @@ Set your user and group as owner and file permissions to `600`. Emacs should now
 ``` elisp
 ;; ssh-deploy - prefix = C-c C-z, f = forced upload, u = upload, d = download, x = diff, t = terminal, b = browse
 (add-to-list 'load-path "~/.emacs.d/ssh-deploy/")
+(require 'ssh-deploy')
 (add-hook 'after-save-hook (lambda() (if (and (boundp 'ssh-deploy-on-explicit-save) ssh-deploy-on-explicit-save) (ssh-deploy-upload-handler)) ))
 (add-hook 'find-file-hook (lambda() (if (and (boundp 'ssh-deploy-automatically-detect-remote-changes) ssh-deploy-automatically-detect-remote-changes) (ssh-deploy-remote-changes-handler)) ))
 (global-set-key (kbd "C-c C-z f") (lambda() (interactive)(ssh-deploy-upload-handler-forced) ))
@@ -160,7 +163,7 @@ Set your user and group as owner and file permissions to `600`. Emacs should now
           ("B" ssh-deploy-browse-remote-handler)))
 ```
 
-You can remove the `add-to-list` line if you installed via `MELPA` repository.
+You can remove the `(add-to-list)` and `(require)` lines if you installed via `MELPA` repository.
 
 * Restart Emacs
 
