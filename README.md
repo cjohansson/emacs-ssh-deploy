@@ -1,6 +1,6 @@
 # `emacs-ssh-deploy` [![MELPA](http://melpa.org/packages/ssh-deploy-badge.svg)](http://melpa.org/#/ssh-deploy) [![MELPA Stable](http://stable.melpa.org/packages/ssh-deploy-badge.svg)](http://stable.melpa.org/#/ssh-deploy)
 
-The `ssh-deploy` plug-in for Emacs makes it possible to effortlessly deploy local files and directories to remote hosts via SSH and FTP using TRAMP. It tries to provide functions that can be easily used by custom scripts.
+The `ssh-deploy` plug-in for Emacs makes it possible to effortlessly deploy local files and directories to remote hosts via TRAMP (including but not limited to SSH, SFTP, FTP). It tries to provide functions that can be easily used by custom scripts.
 
 ## Features:
 * Define syncing configuration per directory or per file (using `DirectoryVariables` or `File Variables`)
@@ -115,7 +115,7 @@ Set your user and group as owner and file permissions to `600`. Emacs should now
 ``` elisp
 ;; ssh-deploy - prefix = C-c C-z, f = forced upload, u = upload, d = download, x = diff, t = terminal, b = browse
 (add-to-list 'load-path "~/.emacs.d/ssh-deploy/")
-(require 'ssh-deploy')
+(require 'ssh-deploy)
 (add-hook 'after-save-hook (lambda() (if (and (boundp 'ssh-deploy-on-explicit-save) ssh-deploy-on-explicit-save) (ssh-deploy-upload-handler)) ))
 (add-hook 'find-file-hook (lambda() (if (and (boundp 'ssh-deploy-automatically-detect-remote-changes) ssh-deploy-automatically-detect-remote-changes) (ssh-deploy-remote-changes-handler)) ))
 (global-set-key (kbd "C-c C-z f") (lambda() (interactive)(ssh-deploy-upload-handler-forced) ))
