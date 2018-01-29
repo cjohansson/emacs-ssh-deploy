@@ -46,7 +46,7 @@
 ;; machine myserver2.com login myuser2 port ssh password mypassword2
 ;; machine myserver3.com login myuser3 port sftp password mypassword3
 ;;
-;; Set permissions to this file to 700 with you as the owner.
+;; Set permissions to this file to 600 with your user as the owner.
 ;;
 ;; - To setup a upload hook on save do this:
 ;;     (add-hook 'after-save-hook (lambda() (if (and (boundp 'ssh-deploy-on-explicit-save) ssh-deploy-on-explicit-save) (ssh-deploy-upload-handler)) ))
@@ -67,19 +67,60 @@
 ;;     (global-set-key (kbd "C-c C-z b") (lambda() (interactive)(ssh-deploy-browse-remote-base-handler) ))
 ;;     (global-set-key (kbd "C-c C-z B") (lambda() (interactive)(ssh-deploy-browse-remote-handler) ))
 ;;
-;; Here is an example for SSH/SFTP deployment, /Users/Chris/Web/Site1/.dir-locals.el:
+;; - To install and set-up using use-package and hydra do this:
+;;   (use-package ssh-deploy
+;;     :ensure t
+;;     :demand
+;;     :bind (("C-c C-z" . hydra-ssh-deploy/body))
+;;     :hook ((after-save . (lambda() (if (and (boundp 'ssh-deploy-on-explicit-save) ssh-deploy-on-explicit-save) (ssh-deploy-upload-handler)) ))
+;;            (find-file . (lambda() (if (and (boundp 'ssh-deploy-automatically-detect-remote-changes) ssh-deploy-automatically-detect-remote-changes) (ssh-deploy-remote-changes-handler)) )))
+;;     :config
+;;     (defhydra hydra-ssh-deploy (:color red :hint nil)
+;;       "
+;; _u_: Upload                              _f_: Force Upload
+;; _d_: Download
+;; _D_: Delete
+;; _x_: Difference
+;; _t_: Eshell Base Terminal                _T_: Eshell Relative Terminal
+;; _e_: Detect Remote Changes
+;; _R_: Rename
+;; _b_: Browse Base                         _B_: Browse Relative
+;; "
+;;       ("f" ssh-deploy-upload-handler-forced)
+;;       ("u" ssh-deploy-upload-handler)
+;;       ("d" ssh-deploy-download-handler)
+;;       ("D" ssh-deploy-delete-handler)
+;;       ("x" ssh-deploy-diff-handler)
+;;       ("t" ssh-deploy-remote-terminal-eshell-base-handler)
+;;       ("T" ssh-deploy-remote-terminal-eshell-handler)
+;;       ("e" ssh-deploy-remote-changes-handler)
+;;       ("R" ssh-deploy-rename-handler)
+;;       ("b" ssh-deploy-browse-remote-base-handler)
+;;       ("B" ssh-deploy-browse-remote-handler)))
+;;
+;;
+;; Here is an example for SSH deployment, /Users/Chris/Web/Site1/.dir-locals.el:
 ;; ((nil . (
 ;;   (ssh-deploy-root-local . "/Users/Chris/Web/Site1/")
 ;;   (ssh-deploy-root-remote . "/ssh:myuser@myserver.com:/var/www/site1/")
-;;   (ssh-deploy-on-explicity-save . t)
+;;   (ssh-deploy-on-explicit-save . t)
+;;   (ssh-deploy-async . t)
 ;; )))
 ;;
-;; Here is an example for FTP deployment, /Users/Chris/Web/Site2/.dir-locals.el:
+;; Here is an example for SFTP deployment, /Users/Chris/Web/Site2/.dir-locals.el:
 ;; ((nil . (
 ;;   (ssh-deploy-root-local . "/Users/Chris/Web/Site2/")
-;;   (ssh-deploy-root-remote . "/ftp:myuser@myserver.com:/var/www/site2/")
+;;   (ssh-deploy-root-remote . "/sftp:myuser@myserver.com:/var/www/site2/")
 ;;   (ssh-deploy-on-explicit-save . nil)
+;;   (ssh-deploy-async . nil)
 ;; )))
+;;
+;; Here is an example for FTP deployment, /Users/Chris/Web/Site3/.dir-locals.el:
+;; ((nil . (
+;;   (ssh-deploy-root-local . "/Users/Chris/Web/Site3/")
+;;   (ssh-deploy-root-remote . "/ftp:myuser@myserver.com:/var/www/site3/")
+;; )))
+;;
 ;;
 ;; Now when you are in a directory which is configured for deployment.
 ;;
@@ -94,7 +135,7 @@
 ;; * ssh-deploy-exclude-list - A list defining what paths to exclude from deployment *(list)*
 ;; * ssh-deploy-async - Enables asynchronous transfers (you need to have `async.el` installed as well) *(boolean)*
 ;;
-;; Please see README.md from the same repository for documentation.
+;; Please see README.md from the same repository for extended documentation.
 
 ;;; Code:
 

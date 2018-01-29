@@ -9,9 +9,11 @@ The `ssh-deploy` plug-in for Emacs makes it possible to effortlessly deploy loca
 * Automatic and manual detection of remote changes of files using local revisions
 * Launch remote `eshell` terminals in base or relative directory
 * Launch remote `dired` browsing in base or relative directory
-* Launch difference sessions for files and directories using `ediff-mode`
-* Supports asynchronous operations if `async.el` is installed. (You need to setup an automatic authorization for this, i.e. `~/.netrc` or key-based password-less authorization)
-* Supports renaming and deletion of files and directories on local host and mirrored on remote
+* Launch difference sessions for files using `ediff`
+* Launch difference sessions for directories using a custom implementation of recursive directory differences over TRAMP based on `ediff`
+* Rename files and directories on local host and have it mirrored on the remote
+* Delete files and directories on local host and have it mirrored on the remote
+* All operations support asynchronous mode if `async.el` is installed. (You need to setup an automatic authorization for this, i.e. `~/.netrc` and/or key-based password-less authorization)
 
 The idea for this plug-in was to mimic the behavior of **PhpStorm** deployment functionality.
 
@@ -32,10 +34,10 @@ Here is a list of other variables you can set globally or per directory:
 
 ## Deployment configuration examples
 
-* Download ssh-deploy and place it at `~/.emacs.d/ssh-deploy/` or install via `package.el` (`M-x list-packages`) from the `MELPA` repository.
+* Download ssh-deploy and place it at `~/.emacs.d/ssh-deploy/` or install via `package.el` (`M-x list-packages` or `M-x package-install` + `ssh-deploy`) from the `MELPA` repository.
 * So if you want to deploy `/Users/username/Web/MySite/` to create this `DirectoryVariables` file in your project root at `/Users/username/Web/MySite/.dir-locals.el`.
 
-You really need to research how you connect via different protocols using TRAMP on your operating system, I think Windows users should use `plink` for most protocols.
+You really need to do a bit of research about how to connect via different protocols using TRAMP on your operating system, I think Windows users should use `plink` for most protocols. Linux should work out of the box and macOS requires a bit of tweaking to get FTP support.
 
 ### SSH/SFTP
 
@@ -46,8 +48,6 @@ You really need to research how you connect via different protocols using TRAMP 
   (ssh-deploy-on-explicit-save . t)
 )))
 ```
-
-NOTE: I'm not sure how to get pure `sftp` working on macOS, but this should work on other *NIX systems:
 
 ``` emacs-lisp
 ((nil . (
@@ -68,7 +68,7 @@ You can pipe remote connections as well like this:
 )))
 ```
 
-If you have a password-less sudo on your remote host you should be to enable `async`.
+If you have a password-less sudo on your remote host you should be to do this asynchronously.
 
 ### FTP
 
@@ -80,13 +80,13 @@ If you have a password-less sudo on your remote host you should be to enable `as
 )))
 ```
 
-## Interaction-free SSH setup
+## Interaction-free SSH setup using password-less public-key authorization
 
-For automatic **SSH** connections you need to setup a password-less public-key authorization.
+For automatic **SSH** connections you need to setup a password-less public-key authorization. You need to research how to setup this on your operating system.
 
-## More complex SSH connections
+## Changing SSH port or public-key identify-file per host
 
-If you have a SSH connection that is using a different identity-file than the default, or if it is using a different port than the default you just need to edit your local SSH-config `~/ssh/config` to make it work using this plugin, like this:
+If you have a SSH connection that is using a different identity-file than the default, or if it is using a different port than the default you just need to edit your local SSH-config `~/.ssh/config` to make it work using this plug-in, like this:
 
 ``` bash
 ## My special connection (replace remote-host, remote-port and identity-file with your values)
@@ -108,9 +108,13 @@ machine myserver3.com login myuser3 port sftp password mypassword3
 
 Set your user and group as owner and file permissions to `600`. Emacs should now be able to automatically connect to this server via FTP without any user interaction.
 
-## Emacs init script
+## Interaction-free SSH setup using public-key password-based authorization
 
-* And add this to your *emacs-init-script*:
+By combining a `~/.netrc` setup and a `public-key` setup you should be able to have a interaction-free public-key password-based authorization that can be used asynchronously.
+
+## Emacs configuration example
+
+* And add this to your *emacs-init-script*: (1)
 
 ``` elisp
 ;; ssh-deploy - prefix = C-c C-z, f = forced upload, u = upload, d = download, x = diff, t = terminal, b = browse
@@ -134,6 +138,7 @@ Set your user and group as owner and file permissions to `600`. Emacs should now
 
 ``` elisp
       (use-package ssh-deploy
+        :ensure t
         :demand
         :bind (("C-c C-z" . hydra-ssh-deploy/body))
         :hook ((after-save . (lambda() (if (and (boundp 'ssh-deploy-on-explicit-save) ssh-deploy-on-explicit-save) (ssh-deploy-upload-handler)) ))
@@ -163,26 +168,26 @@ Set your user and group as owner and file permissions to `600`. Emacs should now
           ("B" ssh-deploy-browse-remote-handler)))
 ```
 
-You can remove the `(add-to-list)` and `(require)` lines if you installed via `MELPA` repository.
+(1) You can remove the `(add-to-list)` and `(require)` lines if you installed via `MELPA` repository.
 
-* Restart Emacs
+* Restart Emacs or re-evaluate your *emacs-init-script*
 
-## Usage
+## Example usage
 
 * Now when you save a file somewhere under the directory `/Users/username/Web/MySite/`, the script will launch and deploy the file with the remote server.
-* If you press `C-c C-z x` and the current buffer is a file, you will launch a `ediff` session showing differences between local file and remote file via `tramp`, or if current buffer is a directory it will open a buffer showing directory differences
+* If you press `C-c C-z x` and the current buffer is a file, you will launch a `ediff` session showing differences between local file and remote file via TRAMP, or if current buffer is a directory it will open a buffer showing directory differences
 * If you press `C-c C-z f` you will **force** upload local file or directory to remote host even if they have external changes.
 * If you press `C-c C-z u` you will upload local file or directory to remote host.
 * If you press `C-c C-z d` you will download the current file or directory from remote host and then reload current buffer.
 * If you press `C-c C-z D` you will delete the current file or directory after a confirmation on local and remote host.
 * If you press `C-c C-z t` you will open a terminal with remote host in base directory via `eshell`.
 * If you press `C-c C-z T` you will open a terminal with remote host in current directory via `eshell`.
-* If you press `C-c C-z b` you will browse base directory on remote host in `dired-mode`.
-* If you press `C-c C-z B` you will browse current directory on remote host in `dired-mode`.
+* If you press `C-c C-z b` you will browse base directory on remote host in `dired`.
+* If you press `C-c C-z B` you will browse current directory on remote host in `dired`.
 * If you press `C-c C-z R` you will rename current file or directory.
 * If you press `C-c C-z e` you will check for remote changes to the current file.
 
-The local path and local root is evaluated based on their **truename** so if you use different symbolic local paths it shouldn't affect the deployment procedure.
+The local path and local root is evaluated based on their `truename` so if you use different symbolic local paths it shouldn't affect the deployment procedure.
 
 The above configuration example uses the Emacs plug-in `use-package` which I highly recommend.
 
@@ -197,9 +202,9 @@ macOS 10.13 removed the Darwin port of BSD `ftp` which is needed for `ange-ftp`,
 5. Type `mv ./src/ftp /usr/local/bin/ftp`
 
 ## Read more
-* <https://www.emacswiki.org/emacs/DirectoryVariables>
 * <http://www.gnu.org/software/tramp/>
-* <https://github.com/jwiegley/use-package>
-* <https://www.emacswiki.org/emacs/EdiffMode>
 * <http://melpa.org/>
+* <https://www.emacswiki.org/emacs/DirectoryVariables>
+* <https://www.emacswiki.org/emacs/EdiffMode>
 * <https://github.com/jwiegley/emacs-async>
+* <https://github.com/jwiegley/use-package>
