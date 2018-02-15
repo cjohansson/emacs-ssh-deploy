@@ -3,12 +3,12 @@
 ;; Author: Christian Johansson <github.com/cjohansson>
 ;; Maintainer: Christian Johansson <github.com/cjohansson>
 ;; Created: 5 Jul 2016
-;; Modified: 14 Feb 2018
+;; Modified: 15 Feb 2018
 ;; Version: 1.74
 ;; Keywords: tools, convenience
 ;; URL: https://github.com/cjohansson/emacs-ssh-deploy
 
-;; Package-Requires: ((emacs "24") (ssh-deploy-diff-mode "1.0"))
+;; Package-Requires: ((emacs "24"))
 
 ;; Copyright (C) 2017 - 2018 Christian Johansson
 
