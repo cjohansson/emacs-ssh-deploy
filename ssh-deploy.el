@@ -3,8 +3,8 @@
 ;; Author: Christian Johansson <github.com/cjohansson>
 ;; Maintainer: Christian Johansson <github.com/cjohansson>
 ;; Created: 5 Jul 2016
-;; Modified: 15 Feb 2018
-;; Version: 1.74
+;; Modified: 16 Feb 2018
+;; Version: 1.75
 ;; Keywords: tools, convenience
 ;; URL: https://github.com/cjohansson/emacs-ssh-deploy
 
@@ -41,9 +41,9 @@
 ;; ssh-deploy-root-local,ssh-deploy-root-remote, ssh-deploy-on-explicit-save
 ;; you can setup a directory for TRAMP deployment.
 ;;
-;; For asynchronous transfers you need to setup ~/.netrc or key-based authorization or equivalent for automatic authentication.
+;; For asynchronous transfers you need to setup ~/.netrc, ~/.authinfo or ~/.authinfo.gpg or key-based authorization or equivalent for automatic authentication.
 ;;
-;; Example contents of ~/.netrc for password-based interaction-free authentication:
+;; Example contents of ~/.netrc, ~/.authinfo or ~/.authinfo.gpg for password-based interaction-free authentication:
 ;; machine myserver.com login myuser port ftp password mypassword
 ;; machine myserver2.com login myuser2 port ssh password mypassword2
 ;; machine myserver3.com login myuser3 port sftp password mypassword3
@@ -68,6 +68,7 @@
 ;;     (global-set-key (kbd "C-c C-z e") (lambda() (interactive)(ssh-deploy-remote-changes-handler) ))
 ;;     (global-set-key (kbd "C-c C-z b") (lambda() (interactive)(ssh-deploy-browse-remote-base-handler) ))
 ;;     (global-set-key (kbd "C-c C-z B") (lambda() (interactive)(ssh-deploy-browse-remote-handler) ))
+;;     (global-set-key (kbd "C-c C-z o") (lambda() (interactive)(ssh-deploy-open-remote-file-handler) ))
 ;;
 ;; - To install and set-up using use-package and hydra do this:
 ;;   (use-package ssh-deploy
@@ -87,6 +88,7 @@
 ;; _e_: Detect Remote Changes
 ;; _R_: Rename
 ;; _b_: Browse Base                         _B_: Browse Relative
+;; _o_: Open current file on remote
 ;; "
 ;;       ("f" ssh-deploy-upload-handler-forced)
 ;;       ("u" ssh-deploy-upload-handler)
@@ -98,7 +100,8 @@
 ;;       ("e" ssh-deploy-remote-changes-handler)
 ;;       ("R" ssh-deploy-rename-handler)
 ;;       ("b" ssh-deploy-browse-remote-base-handler)
-;;       ("B" ssh-deploy-browse-remote-handler)))
+;;       ("B" ssh-deploy-browse-remote-handler)
+;;       ("o" ssh-deploy-open-remote-file-handler)))
 ;;
 ;;
 ;; Here is an example for SSH deployment, /Users/Chris/Web/Site1/.dir-locals.el:
@@ -302,31 +305,24 @@
   "Download PATH-REMOTE to PATH-LOCAL via TRAMP asynchronously and make a copy in REVISION-FOLDER."
   (if (fboundp 'async-start)
       (progn
-        (let ((file-or-directory (file-regular-p path-local)))
-          (if file-or-directory
-              (progn
-                (let ((revision-path (ssh-deploy--get-revision-path path-local revision-folder)))
-                  (message "Downloading file '%s' to '%s'.. (asynchronously)" path-remote path-local)
-                  (async-start
-                   `(lambda()
-                      (copy-file ,path-remote ,path-local t t t t)
-                      (copy-file ,path-local ,revision-path t t t t)
-                      ,path-local)
-                   (lambda(return-path)
-                     (message "Download of file '%s' finished. (asynchronously)" return-path)))))
-            (progn
-              (message "Downloading directory '%s' to '%s'.. (asynchronously)" path-remote path-local)
-              (async-start
-               `(lambda()
-                  (copy-directory ,path-remote ,path-local t t t)
-                  ,path-local)
-               (lambda(return-path)
-                 (message "Download of directory '%s' finished. (asynchronously)" return-path)))))))
+        (message "Downloading '%s' to '%s'.. (asynchronously)" path-remote path-local)
+        (async-start
+         `(lambda()
+            (let ((file-or-directory (file-regular-p ,path-remote))
+                  (revision-path (ssh-deploy--get-revision-path ,path-local ,revision-folder)))
+              (if file-or-directory
+                  (progn
+                    (copy-file ,path-remote ,path-local t t t t)
+                    (copy-file ,path-local ,revision-path t t t t))
+                (copy-directory ,path-remote ,path-local t t t))
+              ,path-local))
+         (lambda(return-path)
+           (message "Download of '%s' finished. (asynchronously)" return-path))))
     (display-warning "ssh-deploy" "async.el is not installed" :warning)))
 
 (defun ssh-deploy--download-via-tramp (path-remote path-local revision-folder)
   "Download PATH-REMOTE to PATH-LOCAL via TRAMP synchronously and store a copy in REVISION-FOLDER."
-  (let ((file-or-directory (file-regular-p path-local)))
+  (let ((file-or-directory (file-regular-p path-remote)))
     (if file-or-directory
         (progn
           (message "Downloading file '%s' to '%s'.. (synchronously)" path-remote path-local)
@@ -338,6 +334,7 @@
         (copy-directory path-remote path-local t t t)
         (message "Download of directory '%s' finished. (synchronously)" path-local)))))
 
+;; TODO Support cases where directory-a or directory-b does not exist
 (defun ssh-deploy--diff-directories-data (directory-a directory-b exclude-list)
   "Find difference between DIRECTORY-A and DIRECTORY-B but exclude paths matching EXCLUDE-LIST."
   ;; (message "Comparing a: %s to b: %s" directory-a directory-b)
@@ -461,7 +458,7 @@
     (ssh-deploy--insert-keyword "DIRECTORY B: ")
     (insert (nth 1 diff) "\n")
 
-    (if (length (nth 2 diff))
+    (if (> (length (nth 2 diff)) 0)
         (progn
           (insert "\n")
           (ssh-deploy--insert-keyword (format "EXCLUDE-LIST: (%d)" (length (nth 2 diff))))
@@ -471,21 +468,21 @@
 
     (insert "\n")
 
-    (if (length (nth 4 diff))
+    (if (> (length (nth 4 diff)) 0)
         (progn
           (ssh-deploy--insert-keyword (format "FILES ONLY IN A: (%d)" (length (nth 4 diff))))
           (dolist (element (nth 4 diff))
             (insert "\n- " element))
           (insert "\n\n")))
 
-    (if (length (nth 5 diff))
+    (if (> (length (nth 5 diff)) 0)
         (progn
           (ssh-deploy--insert-keyword (format "FILES ONLY IN B: (%d)" (length (nth 5 diff))))
           (dolist (element (nth 5 diff))
             (insert "\n- " element))
           (insert "\n\n")))
 
-    (if (length (nth 7 diff))
+    (if (> (length (nth 7 diff)) 0)
         (progn
           (ssh-deploy--insert-keyword (format "FILES IN BOTH BUT DIFFERS: (%d)" (length (nth 7 diff))))
           (dolist (element (nth 7 diff))
@@ -846,6 +843,19 @@
            (ssh-deploy--is-not-empty-string ssh-deploy-root-remote)
            (ssh-deploy--is-not-empty-string buffer-file-name))
       (ssh-deploy-remote-changes (file-truename buffer-file-name) (file-truename ssh-deploy-root-local) ssh-deploy-root-remote ssh-deploy-async ssh-deploy-revision-folder ssh-deploy-exclude-list)))
+
+;;;### autoload
+(defun ssh-deploy-open-remote-file-handler()
+  "Check if local revision exists or remote file has changed if path is configured for deployment."
+  (interactive)
+  (if (and (ssh-deploy--is-not-empty-string ssh-deploy-root-local)
+           (ssh-deploy--is-not-empty-string ssh-deploy-root-remote)
+           (ssh-deploy--is-not-empty-string buffer-file-name))
+      (let* ((root-local (file-truename ssh-deploy-root-local))
+             (path-local (file-truename buffer-file-name))
+             (path-remote (concat ssh-deploy-root-remote (ssh-deploy--get-relative-path root-local path-local))))
+        (message "Opening file on remote '%s'" path-remote)
+        (find-file path-remote))))
 
 ;;;### autoload
 (defun ssh-deploy-download-handler ()

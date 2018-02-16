@@ -13,11 +13,12 @@ The `ssh-deploy` plug-in for Emacs makes it possible to effortlessly deploy loca
 * Launch difference sessions for directories using a custom implementation of recursive directory differences over TRAMP based on `ediff`
 * Rename files and directories on local host and have it mirrored on the remote
 * Delete files and directories on local host and have it mirrored on the remote
-* All operations support asynchronous mode if `async.el` is installed. (You need to setup an automatic authorization for this, i.e. `~/.netrc` and/or key-based password-less authorization)
+* Open corresponding file on the remote host
+* All operations support asynchronous mode if `async.el` is installed. (You need to setup an automatic authorization for this, i.e. `~/.netrc`, `~/.authinfo` or `~/.authinfo.gpg` and/or key-based password-less authorization)
 
 The idea for this plug-in was to mimic the behavior of **PhpStorm** deployment functionality.
 
-This application is made by Christian Johansson <christian@cvj.se> 2016-2017 and is licensed under GNU General Public License 3 (GNU GPL 3).
+This application is made by Christian Johansson <christian@cvj.se> 2016-2018 and is licensed under GNU General Public License 3 (GNU GPL 3).
 
 ## Configuration
 
@@ -97,7 +98,7 @@ Host remote-host
 
 ## Interaction-free password-based setup on *NIX systems
 
-For automatic **FTP** connections you need to setup `~/.netrc` with your login credentials. An example:
+For automatic **FTP** connections you need to setup `~/.netrc`, `~/.authinfo` or `~/.authinfo.gpg` with your login credentials. An example:
 `~/.netrc` contents:
 
 ``` shell
@@ -110,7 +111,7 @@ Set your user and group as owner and file permissions to `600`. Emacs should now
 
 ## Interaction-free SSH setup using public-key password-based authorization
 
-By combining a `~/.netrc` setup and a `public-key` setup you should be able to have a interaction-free public-key password-based authorization that can be used asynchronously.
+By combining a `~/.netrc`, `~/.authinfo` or `~/.authinfo.gpg` setup and a `public-key` setup you should be able to have a interaction-free public-key password-based authorization that can be used asynchronously.
 
 ## Emacs configuration example
 
@@ -132,6 +133,7 @@ By combining a `~/.netrc` setup and a `public-key` setup you should be able to h
 (global-set-key (kbd "C-c C-z R") (lambda() (interactive)(ssh-deploy-rename-handler) ))
 (global-set-key (kbd "C-c C-z e") (lambda() (interactive)(ssh-deploy-remote-changes-handler) ))
 (global-set-key (kbd "C-c C-z b") (lambda() (interactive)(ssh-deploy-browse-remote-base-handler) ))
+(global-set-key (kbd "C-c C-z o") (lambda() (interactive)(ssh-deploy-open-remote-file-handler) ))
 ```
 
 * Or use the `use-package` and `hydra-script` I'm using:
@@ -154,6 +156,7 @@ By combining a `~/.netrc` setup and a `public-key` setup you should be able to h
     _e_: Detect Remote Changes
     _R_: Rename
     _b_: Browse Base                         _B_: Browse Relative
+    _o_; Open current file on remote
     "
           ("f" ssh-deploy-upload-handler-forced)
           ("u" ssh-deploy-upload-handler)

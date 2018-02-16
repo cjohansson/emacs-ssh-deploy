@@ -3,8 +3,8 @@
 ;; Author: Christian Johansson <github.com/cjohansson>
 ;; Maintainer: Christian Johansson <github.com/cjohansson>
 ;; Created: 1 Feb 2018
-;; Modified: 15 Feb 2018
-;; Version: 1.0
+;; Modified: 16 Feb 2018
+;; Version: 1.1
 ;; Keywords: tools, convenience
 ;; URL: https://github.com/cjohansson/emacs-ssh-deploy
 
@@ -35,6 +35,10 @@
 
 ;;; Code:
 
+;; TODO: Must explicitly send global variables, seems like settings are lost sometimes?
+;; TODO: Downloading and deletion of remote files that does not exist on local root does not work?
+;; TODO: Pressing return on a file in both roots should show some kind of message
+;; TODO: Pressing action at first line causing endless loop
 
 (defvar ssh-deploy-diff-mode nil)
 
@@ -51,6 +55,7 @@
 (defconst ssh-deploy-diff-mode--action-delete 3 "Action for delete.")
 (defconst ssh-deploy-diff-mode--action-difference 4 "Action for difference.")
 (defconst ssh-deploy-diff-mode--action-refresh 5 "Action for refreshing differences.")
+(defconst ssh-deploy-diff-mode--action-open 6 "Action for open file.")
 
 (defconst ssh-deploy-diff-mode--keywords
   (list
@@ -78,8 +83,9 @@
     (define-key map "a" 'ssh-deploy-diff-mode-copy-a-handler)
     (define-key map "b" 'ssh-deploy-diff-mode-copy-b-handler)
     (define-key map "d" 'ssh-deploy-diff-mode-delete-handler)
-    (define-key map "\t" 'ssh-deploy-diff-mode-difference-handler)
+    (define-key map (kbd "<tab>") 'ssh-deploy-diff-mode-difference-handler)
     (define-key map "g" 'ssh-deploy-diff-mode-refresh-handler)
+    (define-key map (kbd "<return>") 'ssh-deploy-diff-mode-open-handler)
     map)
   "Key-map for SSH Deploy Diff major mode.")
 
@@ -89,6 +95,7 @@
 (defun ssh-deploy-diff-mode-delete-handler() "Start the delete action." (interactive)(ssh-deploy-diff-mode--action-handler ssh-deploy-diff-mode--action-delete))
 (defun ssh-deploy-diff-mode-difference-handler() "Start the difference action." (interactive)(ssh-deploy-diff-mode--action-handler ssh-deploy-diff-mode--action-difference))
 (defun ssh-deploy-diff-mode-refresh-handler() "Start the refresh action." (interactive)(ssh-deploy-diff-mode--action-handler ssh-deploy-diff-mode--action-refresh))
+(defun ssh-deploy-diff-mode-open-handler() "Start the open action." (interactive)(ssh-deploy-diff-mode--action-handler ssh-deploy-diff-mode--action-open))
 
 (defun ssh-deploy-diff-mode--get-parts ()
   "Return current file and section if any."
@@ -141,14 +148,14 @@
   (let ((parts (ssh-deploy-diff-mode--get-parts)))
     (if (not (eq parts nil))
         (progn
-          ;; (message "Parts %s %s" action parts)
           (cond ((and (not (null (nth 0 parts))) (= action ssh-deploy-diff-mode--action-copy)) (ssh-deploy-diff-mode--copy parts))
                 ((and (not (null (nth 0 parts))) (= action ssh-deploy-diff-mode--action-copy-a)) (ssh-deploy-diff-mode--copy-a parts))
                 ((and (not (null (nth 0 parts))) (= action ssh-deploy-diff-mode--action-copy-b)) (ssh-deploy-diff-mode--copy-b parts))
                 ((and (not (null (nth 0 parts))) (= action ssh-deploy-diff-mode--action-delete)) (ssh-deploy-diff-mode--delete parts))
                 ((and (not (null (nth 0 parts))) (= action ssh-deploy-diff-mode--action-difference)) (ssh-deploy-diff-mode--difference parts))
+                ((and (not (null (nth 0 parts))) (= action ssh-deploy-diff-mode--action-open)) (ssh-deploy-diff-mode--open parts))
                 ((= action ssh-deploy-diff-mode--action-refresh) (ssh-deploy-diff-mode--refresh parts))
-                (t (message "Found no function for %s" action))))
+                (t (message "Found nothing to do in the section for action %s" action))))
       (message "Found nothing to do"))))
 
 (defun ssh-deploy-diff-mode--refresh (parts)
@@ -258,6 +265,27 @@
                 (ssh-deploy-diff-files path-local path-remote)))
           (display-warning "ssh-deploy" "Function ssh-deploy-diff-files is missing" :warning))
       (message "File must exists in both roots to perform a difference action."))))
+
+(defun ssh-deploy-diff-mode--open (parts)
+  "Perform a open file action based on PARTS from section A or section B."
+  (require 'ssh-deploy)
+  (let* ((section (nth 1 parts))
+         (file-name (nth 0 parts))
+         (root-local (nth 2 parts))
+         (root-remote (nth 3 parts))
+         (path-local (concat root-local file-name))
+         (path-remote (concat root-remote file-name)))
+    (let* ((path-local (file-truename path-local))
+           (root-local (file-truename root-local)))
+      (cond ((= section ssh-deploy-diff-mode--section-only-in-a)
+             (progn
+               (message "Opening file '%s'" path-local)
+               (find-file path-local)))
+            ((= section ssh-deploy-diff-mode--section-only-in-b)
+             (progn
+               (message "Opening file '%s'" path-remote)
+               (find-file path-remote)))
+            (t (message "Open is not available in this section"))))))
 
 (defun ssh-deploy-diff-mode ()
   "Major mode for SSH Deploy interactive directory differences."
