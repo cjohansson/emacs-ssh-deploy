@@ -98,8 +98,7 @@ Host remote-host
 
 ## Interaction-free password-based setup on *NIX systems
 
-For automatic **FTP** connections you need to setup `~/.netrc`, `~/.authinfo` or `~/.authinfo.gpg` with your login credentials. An example:
-`~/.netrc` contents:
+For automatic **FTP** connections you need to setup `~/.netrc`, `~/.authinfo` or `~/.authinfo.gpg` with your login credentials. An example of contents:
 
 ``` shell
 machine myserver.com login myuser port ftp password mypassword
@@ -156,7 +155,7 @@ By combining a `~/.netrc`, `~/.authinfo` or `~/.authinfo.gpg` setup and a `publi
     _e_: Detect Remote Changes
     _R_: Rename
     _b_: Browse Base                         _B_: Browse Relative
-    _o_; Open current file on remote
+    _o_: Open current file on remote
     "
           ("f" ssh-deploy-upload-handler-forced)
           ("u" ssh-deploy-upload-handler)
@@ -168,7 +167,8 @@ By combining a `~/.netrc`, `~/.authinfo` or `~/.authinfo.gpg` setup and a `publi
           ("e" ssh-deploy-remote-changes-handler)
           ("R" ssh-deploy-rename-handler)
           ("b" ssh-deploy-browse-remote-base-handler)
-          ("B" ssh-deploy-browse-remote-handler)))
+          ("B" ssh-deploy-browse-remote-handler)
+          ("o" ssh-deploy-open-remote-file-handler)))
 ```
 
 (1) You can remove the `(add-to-list)` and `(require)` lines if you installed via `MELPA` repository.
@@ -189,6 +189,7 @@ By combining a `~/.netrc`, `~/.authinfo` or `~/.authinfo.gpg` setup and a `publi
 * If you press `C-c C-z B` you will browse current directory on remote host in `dired`.
 * If you press `C-c C-z R` you will rename current file or directory.
 * If you press `C-c C-z e` you will check for remote changes to the current file.
+* If you press `C-c C-z o` you will open remote file corresponding to local file.
 
 The local path and local root is evaluated based on their `truename` so if you use different symbolic local paths it shouldn't affect the deployment procedure.
 
