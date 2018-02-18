@@ -3,8 +3,8 @@
 ;; Author: Christian Johansson <github.com/cjohansson>
 ;; Maintainer: Christian Johansson <github.com/cjohansson>
 ;; Created: 1 Feb 2018
-;; Modified: 16 Feb 2018
-;; Version: 1.1
+;; Modified: 18 Feb 2018
+;; Version: 1.11
 ;; Keywords: tools, convenience
 ;; URL: https://github.com/cjohansson/emacs-ssh-deploy
 
@@ -37,8 +37,6 @@
 
 ;; TODO: Must explicitly send global variables, seems like settings are lost sometimes?
 ;; TODO: Downloading and deletion of remote files that does not exist on local root does not work?
-;; TODO: Pressing return on a file in both roots should show some kind of message
-;; TODO: Pressing action at first line causing endless loop
 
 (defvar ssh-deploy-diff-mode nil)
 
@@ -107,7 +105,7 @@
           (let* ((start (+ 2 (line-beginning-position)))
                  (end (line-end-position)))
             (setq file (buffer-substring-no-properties start end))))
-      (while (and (> (line-number-at-pos) 0)
+      (while (and (> (line-number-at-pos) 1)
                   (not (looking-at "^[A-Z]+")))
         (forward-line -1))
       (if (looking-at "^[A-Z]")
@@ -122,8 +120,7 @@
                   ((string= section "FILES ONLY IN B") (setq section ssh-deploy-diff-mode--section-only-in-b))
                   ((string= section "FILES IN BOTH BUT DIFFERS") (setq section ssh-deploy-diff-mode--section-in-both))
                   (t (message "Could not find section %s" section)))
-
-            (while (and (> (line-number-at-pos) 0)
+            (while (and (> (line-number-at-pos) 1)
                         (not (looking-at "^DIRECTORY B:")))
               (forward-line -1))
             (if (looking-at "^DIRECTORY B:")
@@ -132,7 +129,7 @@
                        (directory-b (buffer-substring-no-properties start end)))
                   (setq directory-b (replace-regexp-in-string "DIRECTORY B: " "" directory-b))
 
-                  (while (and (> (line-number-at-pos) 0)
+                  (while (and (> (line-number-at-pos) 1)
                               (not (looking-at "^DIRECTORY A:")))
                     (forward-line -1))
                   (if (looking-at "^DIRECTORY A:")
@@ -147,15 +144,14 @@
   (interactive)
   (let ((parts (ssh-deploy-diff-mode--get-parts)))
     (if (not (eq parts nil))
-        (progn
-          (cond ((and (not (null (nth 0 parts))) (= action ssh-deploy-diff-mode--action-copy)) (ssh-deploy-diff-mode--copy parts))
-                ((and (not (null (nth 0 parts))) (= action ssh-deploy-diff-mode--action-copy-a)) (ssh-deploy-diff-mode--copy-a parts))
-                ((and (not (null (nth 0 parts))) (= action ssh-deploy-diff-mode--action-copy-b)) (ssh-deploy-diff-mode--copy-b parts))
-                ((and (not (null (nth 0 parts))) (= action ssh-deploy-diff-mode--action-delete)) (ssh-deploy-diff-mode--delete parts))
-                ((and (not (null (nth 0 parts))) (= action ssh-deploy-diff-mode--action-difference)) (ssh-deploy-diff-mode--difference parts))
-                ((and (not (null (nth 0 parts))) (= action ssh-deploy-diff-mode--action-open)) (ssh-deploy-diff-mode--open parts))
-                ((= action ssh-deploy-diff-mode--action-refresh) (ssh-deploy-diff-mode--refresh parts))
-                (t (message "Found nothing to do in the section for action %s" action))))
+        (cond ((and (not (null (nth 0 parts))) (= action ssh-deploy-diff-mode--action-copy)) (ssh-deploy-diff-mode--copy parts))
+              ((and (not (null (nth 0 parts))) (= action ssh-deploy-diff-mode--action-copy-a)) (ssh-deploy-diff-mode--copy-a parts))
+              ((and (not (null (nth 0 parts))) (= action ssh-deploy-diff-mode--action-copy-b)) (ssh-deploy-diff-mode--copy-b parts))
+              ((and (not (null (nth 0 parts))) (= action ssh-deploy-diff-mode--action-delete)) (ssh-deploy-diff-mode--delete parts))
+              ((and (not (null (nth 0 parts))) (= action ssh-deploy-diff-mode--action-difference)) (ssh-deploy-diff-mode--difference parts))
+              ((and (not (null (nth 0 parts))) (= action ssh-deploy-diff-mode--action-open)) (ssh-deploy-diff-mode--open parts))
+              ((= action ssh-deploy-diff-mode--action-refresh) (ssh-deploy-diff-mode--refresh parts))
+              (t (message "Found nothing to do in the section for action %s" action)))
       (message "Found nothing to do"))))
 
 (defun ssh-deploy-diff-mode--refresh (parts)
