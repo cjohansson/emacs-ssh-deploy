@@ -633,7 +633,7 @@
             (list ,path 1)))
        (lambda(response)
          (cond ((= 0 (nth 1 response)) (message "Deleted '%s'. (asynchronously)" (nth 0 response)))
-               ((t (display-warning "ssh-deploy" (format "Did not find '%s'. (asynchronously)" (nth 0 response)) :warning))))))
+               (t (display-warning "ssh-deploy" (format "Did not find '%s'. (asynchronously)" (nth 0 response)) :warning)))))
     (if (file-exists-p path)
         (let ((file-or-directory (file-regular-p path)))
           (progn
