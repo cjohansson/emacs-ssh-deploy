@@ -251,7 +251,7 @@
                   (if (fboundp 'ediff-same-file-contents)
                       (if (or (eq t ,force) (not (file-exists-p ,path-remote)) (and (file-exists-p ,revision-path) (ediff-same-file-contents ,revision-path ,path-remote)))
                           (progn
-                            (if (file-regular-p (file-name-directory ,path-remote))
+                            (if (not (file-directory-p (file-name-directory ,path-remote)))
                                 (make-directory (file-name-directory ,path-remote) t))
                             (copy-file ,path-local ,path-remote t t t t)
                             (copy-file ,path-local ,revision-path t t t t)
