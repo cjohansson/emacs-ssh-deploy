@@ -205,6 +205,7 @@
 ;; these functions are only used internally and should be of no value to outside public and handler functions.
 ;; these functions MUST not use module variables.
 
+
 (defun ssh-deploy--insert-keyword (text)
   "Insert TEXT as bold text."
   (put-text-property 0 (length text) 'face 'font-lock-keyword-face text)
