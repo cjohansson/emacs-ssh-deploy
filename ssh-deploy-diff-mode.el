@@ -3,8 +3,8 @@
 ;; Author: Christian Johansson <github.com/cjohansson>
 ;; Maintainer: Christian Johansson <github.com/cjohansson>
 ;; Created: 1 Feb 2018
-;; Modified: 19 Feb 2018
-;; Version: 1.12
+;; Modified: 22 Feb 2018
+;; Version: 1.13
 ;; Keywords: tools, convenience
 ;; URL: https://github.com/cjohansson/emacs-ssh-deploy
 
@@ -35,7 +35,6 @@
 
 ;;; Code:
 
-;; TODO: Must explicitly send global variables, seems like settings are lost sometimes?
 ;; TODO: Downloading and deletion of remote files that does not exist on local root does not work?
 ;; TODO: On some FTP hosts, TRAMP wrongly thinks some files are directories
 
@@ -240,7 +239,8 @@
          (debug (cond ((boundp 'ssh-deploy-debug) ssh-deploy-debug)(t nil)))
          (exclude-list (cond ((boundp 'ssh-deploy-exclude-list) ssh-deploy-exclude-list)(t nil)))
          (revision-folder (cond ((boundp 'ssh-deploy-revision-folder) ssh-deploy-revision-folder)(t nil))))
-    (if (fboundp 'ssh-deploy-delete)
+    (if (and (fboundp 'ssh-deploy-delete)
+             (fboundp 'ssh-deploy-delete-both))
         (cond ((= section ssh-deploy-diff-mode--section-in-both)
                (let ((yes-no-prompt (read-string (format "Type 'yes' to confirm that you want to delete the file '%s': " file-name))))
                  (if (string= yes-no-prompt "yes")
@@ -249,7 +249,7 @@
               ((= section ssh-deploy-diff-mode--section-only-in-b) (ssh-deploy-delete path-remote async debug))
               ((= section ssh-deploy-diff-mode--section-in-both) (ssh-deploy-delete-both path-local root-local root-remote async debug exclude-list))
               (t (message "Delete is not available in this section")))
-      (display-warning "ssh-deploy" "Function ssh-deploy-delete is missing" :warning))))
+      (display-warning "ssh-deploy" "Function ssh-deploy-delete or ssh-deploy-delete-both is missing" :warning))))
 
 (defun ssh-deploy-diff-mode--difference (parts)
   "If file exists in both start a difference session based on PARTS."

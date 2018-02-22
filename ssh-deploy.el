@@ -3,8 +3,8 @@
 ;; Author: Christian Johansson <github.com/cjohansson>
 ;; Maintainer: Christian Johansson <github.com/cjohansson>
 ;; Created: 5 Jul 2016
-;; Modified: 19 Feb 2018
-;; Version: 1.77
+;; Modified: 22 Feb 2018
+;; Version: 1.78
 ;; Keywords: tools, convenience
 ;; URL: https://github.com/cjohansson/emacs-ssh-deploy
 
@@ -242,7 +242,7 @@
 (defun ssh-deploy--upload-via-tramp-async (path-local path-remote force revision-folder)
   "Upload PATH-LOCAL to PATH-REMOTE via TRAMP asynchronously and FORCE upload despite remote change, check for revisions in REVISION-FOLDER."
   (if (fboundp 'async-start)
-      (let ((file-or-directory (file-regular-p path-local)))
+      (let ((file-or-directory (not (file-directory-p path-local))))
         (if file-or-directory
             (let ((revision-path (ssh-deploy--get-revision-path path-local revision-folder)))
               (message "Uploading file '%s' to '%s'.. (asynchronously)" path-local path-remote)
@@ -275,7 +275,7 @@
 
 (defun ssh-deploy--upload-via-tramp (path-local path-remote force revision-folder)
   "Upload PATH-LOCAL to PATH-REMOTE via TRAMP synchronously and FORCE despite remote change compared with copy in REVISION-FOLDER."
-  (let ((file-or-directory (file-regular-p path-local))
+  (let ((file-or-directory (not (file-directory-p path-local)))
         (revision-path (ssh-deploy--get-revision-path path-local revision-folder)))
     (if file-or-directory
         (progn
@@ -305,7 +305,7 @@
         (message "Downloading '%s' to '%s'.. (asynchronously)" path-remote path-local)
         (async-start
          `(lambda()
-            (let ((file-or-directory (file-regular-p ,path-remote)))
+            (let ((file-or-directory (not (file-directory-p ,path-remote))))
               (if file-or-directory
                   (progn
                     (copy-file ,path-remote ,path-local t t t t)
@@ -318,7 +318,7 @@
 
 (defun ssh-deploy--download-via-tramp (path-remote path-local revision-folder)
   "Download PATH-REMOTE to PATH-LOCAL via TRAMP synchronously and store a copy in REVISION-FOLDER."
-  (let ((file-or-directory (file-regular-p path-remote)))
+  (let ((file-or-directory (not (file-directory-p path-remote))))
     (if file-or-directory
         (progn
           (message "Downloading file '%s' to '%s'.. (synchronously)" path-remote path-local)
@@ -557,7 +557,7 @@
                (exclude-list (or exclude-list ssh-deploy-exclude-list))
                (revision-path (ssh-deploy--get-revision-path path-local revision-folder))
                (path-remote (concat root-remote (ssh-deploy--get-relative-path root-local path-local))))
-          (if (file-regular-p path-local)
+          (if (not (file-directory-p path-local))
               (if (file-exists-p revision-path)
                   (if (and async (fboundp 'async-start))
                       (async-start
@@ -624,7 +624,7 @@
       (async-start
        `(lambda()
           (if (file-exists-p ,path)
-              (let ((file-or-directory (file-regular-p ,path)))
+              (let ((file-or-directory (not (file-directory-p ,path))))
                 (progn
                   (if file-or-directory
                       (delete-file ,path t)
@@ -635,7 +635,7 @@
          (cond ((= 0 (nth 1 response)) (message "Deleted '%s'. (asynchronously)" (nth 0 response)))
                (t (display-warning "ssh-deploy" (format "Did not find '%s'. (asynchronously)" (nth 0 response)) :warning)))))
     (if (file-exists-p path)
-        (let ((file-or-directory (file-regular-p path)))
+        (let ((file-or-directory (not (file-directory-p path))))
           (progn
             (if file-or-directory
                 (delete-file path t)
@@ -651,7 +651,7 @@
     (if (and (ssh-deploy--file-is-in-path path-local root-local)
              (ssh-deploy--file-is-included path-local exclude-list))
         (let ((exclude-list (or exclude-list ssh-deploy-exclude-list))
-              (file-or-directory (file-regular-p path-local))
+              (file-or-directory (not (file-directory-p path-local)))
               (path-remote (concat root-remote (ssh-deploy--get-relative-path root-local path-local))))
           (ssh-deploy-delete path-local async debug)
           (kill-this-buffer)
@@ -673,11 +673,11 @@
              (ssh-deploy--file-is-included old-path-local exclude-list)
              (ssh-deploy--file-is-included new-path-local exclude-list))
         (let ((exclude-list (or exclude-list ssh-deploy-exclude-list))
-              (file-or-directory (file-regular-p old-path-local))
+              (file-or-directory (not (file-directory-p old-path-local)))
               (old-path-remote (concat root-remote (ssh-deploy--get-relative-path root-local old-path-local)))
               (new-path-remote (concat root-remote (ssh-deploy--get-relative-path root-local new-path-local))))
           (rename-file old-path-local new-path-local t)
-          (if (file-regular-p new-path-local)
+          (if (not (file-directory-p new-path-local))
               (progn
                 (rename-buffer new-path-local)
                 (set-buffer-modified-p nil)
@@ -739,7 +739,7 @@
 ;;;### autoload
 (defun ssh-deploy-store-revision (path &optional root)
   "Store PATH in revision-folder ROOT."
-  (if (file-regular-p path)
+  (if (not (file-directory-p path))
       (let* ((root (or root ssh-deploy-revision-folder))
              (revision-path (ssh-deploy--get-revision-path path root)))
         (message "Storing revision of '%s' at '%s'.." path revision-path)
@@ -748,7 +748,7 @@
 ;;;### autoload
 (defun ssh-deploy-diff (path-local path-remote &optional root-local debug exclude-list async)
   "Find differences between PATH-LOCAL and PATH-REMOTE, where PATH-LOCAL is inside ROOT-LOCAL.  DEBUG enables feedback message, check if PATH-LOCAL is not in EXCLUDE-LIST.   ASYNC make the process work asynchronously."
-  (let ((file-or-directory (file-regular-p path-local))
+  (let ((file-or-directory (not (file-directory-p path-local)))
         (exclude-list (or exclude-list ssh-deploy-exclude-list)))
     (if (not (boundp 'root-local))
         (setq root-local ssh-deploy-root-local))
