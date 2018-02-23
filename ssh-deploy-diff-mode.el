@@ -3,8 +3,8 @@
 ;; Author: Christian Johansson <github.com/cjohansson>
 ;; Maintainer: Christian Johansson <github.com/cjohansson>
 ;; Created: 1 Feb 2018
-;; Modified: 22 Feb 2018
-;; Version: 1.13
+;; Modified: 23 Feb 2018
+;; Version: 1.14
 ;; Keywords: tools, convenience
 ;; URL: https://github.com/cjohansson/emacs-ssh-deploy
 
@@ -35,8 +35,6 @@
 
 ;;; Code:
 
-;; TODO: Downloading and deletion of remote files that does not exist on local root does not work?
-;; TODO: On some FTP hosts, TRAMP wrongly thinks some files are directories
 
 (defvar ssh-deploy-diff-mode nil)
 

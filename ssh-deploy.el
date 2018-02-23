@@ -3,8 +3,8 @@
 ;; Author: Christian Johansson <github.com/cjohansson>
 ;; Maintainer: Christian Johansson <github.com/cjohansson>
 ;; Created: 5 Jul 2016
-;; Modified: 22 Feb 2018
-;; Version: 1.78
+;; Modified: 23 Feb 2018
+;; Version: 1.79
 ;; Keywords: tools, convenience
 ;; URL: https://github.com/cjohansson/emacs-ssh-deploy
 
@@ -308,6 +308,8 @@
             (let ((file-or-directory (not (file-directory-p ,path-remote))))
               (if file-or-directory
                   (progn
+                    (if (not (file-directory-p (file-name-directory ,path-local)))
+                        (make-directory (file-name-directory ,path-local) t))
                     (copy-file ,path-remote ,path-local t t t t)
                     (copy-file ,path-local ,revision-path t t t t))
                 (copy-directory ,path-remote ,path-local t t t))
@@ -322,6 +324,8 @@
     (if file-or-directory
         (progn
           (message "Downloading file '%s' to '%s'.. (synchronously)" path-remote path-local)
+          (if (not (file-directory-p (file-name-directory path-local)))
+              (make-directory (file-name-directory path-local) t))
           (copy-file path-remote path-local t t t t)
           (ssh-deploy-store-revision path-local revision-folder)
           (message "Download of file '%s' finished. (synchronously)" path-local))
