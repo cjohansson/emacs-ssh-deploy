@@ -750,14 +750,12 @@
 ;;;### autoload
 (defun ssh-deploy-remote-sql (remote-path &optional type)
   "Open remote sql on REMOTE-PATH, TYPE determines type and defaults to mysql."
-  (let ((buffer (generate-new-buffer (format "ssh-deploy-sql-mysql-%s" remote-path)))
-        (sql-type (or type "mysql"))
+  (let ((sql-type (or type "mysql"))
         (old-ssh-deploy-remote-sql-database ssh-deploy-remote-sql-database)
         (old-ssh-deploy-remote-sql-password ssh-deploy-remote-sql-password)
         (old-ssh-deploy-remote-sql-server ssh-deploy-remote-sql-server)
-        (old-ssh-deploy-remote-sql-user ssh-deploy-remote-sql-user))
-    (switch-to-buffer buffer)
-    (cd remote-path)
+        (old-ssh-deploy-remote-sql-user ssh-deploy-remote-sql-user)
+        (default-directory remote-path))
     (set (make-local-variable 'sql-database) old-ssh-deploy-remote-sql-database)
     (set (make-local-variable 'sql-password) old-ssh-deploy-remote-sql-password)
     (set (make-local-variable 'sql-server) old-ssh-deploy-remote-sql-server)
@@ -793,16 +791,10 @@
                      (fboundp 'eshell-send-input))
                 (progn
                   (message "Opening eshell on '%s'.." path-remote)
-                  (defvar eshell-buffer-name)
-                  (let ((old-eshell-buffer-name eshell-buffer-name))
+                  (let ((default-directory path-remote))
+                    (defvar eshell-buffer-name)
                     (setq eshell-buffer-name path-remote)
-                    (let ((eshell-buffer (eshell)))
-                      (goto-char (point-max))
-                      (eshell-kill-input)
-                      (insert (concat "cd " path-remote))
-                      (eshell-send-input)
-                      (goto-char (point-max))
-                      (setq eshell-buffer-name old-eshell-buffer-name))))
+                    (eshell)))
               (message "Missing required eshell functions")))))))
 
 ;;;### autoload
