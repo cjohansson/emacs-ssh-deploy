@@ -14,6 +14,7 @@ The `ssh-deploy` plug-in for Emacs makes it possible to effortlessly deploy loca
 * Rename files and directories on local host and have it mirrored on the remote
 * Delete files and directories on local host and have it mirrored on the remote
 * Open corresponding file on the remote host
+* Open SQL database-session on remote hosts
 * All operations support asynchronous mode if `async.el` is installed. (You need to setup an automatic authorization for this, i.e. `~/.netrc`, `~/.authinfo` or `~/.authinfo.gpg` and/or key-based password-less authorization)
 
 The idea for this plug-in was to mimic the behavior of **PhpStorm** deployment functionality.
@@ -32,6 +33,11 @@ Here is a list of other variables you can set globally or per directory:
 * `ssh-deploy-on-explicit-save` Enabled automatic uploads on save *(boolean)*
 * `ssh-deploy-exclude-list` A list defining what paths to exclude from deployment *(list)*
 * `ssh-deploy-async` Enables asynchronous transfers (you need to have `async.el` installed as well) *(boolean)*
+* `ssh-deploy-remote-sql-database` Default database when connecting to remote SQL database *(string)*
+* `ssh-deploy-remote-sql-password` Default password when connecting to remote SQL database *(string)*
+* `ssh-deploy-remote-sql-server` Default server when connecting to remote SQL database *(string)*
+* `ssh-deploy-remote-sql-user` Default user when connecting to remote SQL database *(string)*
+
 
 ## Deployment configuration examples
 
@@ -40,13 +46,17 @@ Here is a list of other variables you can set globally or per directory:
 
 You really need to do a bit of research about how to connect via different protocols using TRAMP on your operating system, I think Windows users should use `plink` for most protocols. Linux should work out of the box and macOS requires a bit of tweaking to get FTP support.
 
-### SSH/SFTP
+### SSH/SFTP with SQL
 
 ``` emacs-lisp
 ((nil . (
   (ssh-deploy-root-local . "/Users/username/Web/MySite/")
   (ssh-deploy-root-remote . "/ssh:myuser@myserver.com:/var/www/MySite/")
   (ssh-deploy-on-explicit-save . t)
+  (ssh-deploy-remote-sql-database . "myuser")
+  (ssh-deploy-remote-sql-password . "mypassword")
+  (ssh-deploy-remote-sql-server . "myserver")
+  (ssh-deploy-remote-sql-user . "myuser")
 )))
 ```
 
@@ -133,6 +143,7 @@ By combining a `~/.netrc`, `~/.authinfo` or `~/.authinfo.gpg` setup and a `publi
 (global-set-key (kbd "C-c C-z e") (lambda() (interactive)(ssh-deploy-remote-changes-handler) ))
 (global-set-key (kbd "C-c C-z b") (lambda() (interactive)(ssh-deploy-browse-remote-base-handler) ))
 (global-set-key (kbd "C-c C-z o") (lambda() (interactive)(ssh-deploy-open-remote-file-handler) ))
+(global-set-key (kbd "C-c C-z m") (lambda() (interactive)(ssh-deploy-remote-sql-mysql-handler) ))
 ```
 
 * Or use the `use-package` and `hydra-script` I'm using:
@@ -155,7 +166,7 @@ By combining a `~/.netrc`, `~/.authinfo` or `~/.authinfo.gpg` setup and a `publi
     _e_: Detect Remote Changes
     _R_: Rename
     _b_: Browse Base                         _B_: Browse Relative
-    _o_: Open current file on remote
+    _o_: Open current file on remote         _m_: Open sql-mysql on remote
     "
           ("f" ssh-deploy-upload-handler-forced)
           ("u" ssh-deploy-upload-handler)
@@ -168,7 +179,8 @@ By combining a `~/.netrc`, `~/.authinfo` or `~/.authinfo.gpg` setup and a `publi
           ("R" ssh-deploy-rename-handler)
           ("b" ssh-deploy-browse-remote-base-handler)
           ("B" ssh-deploy-browse-remote-handler)
-          ("o" ssh-deploy-open-remote-file-handler)))
+          ("o" ssh-deploy-open-remote-file-handler)
+          ("m" ssh-deploy-remote-sql-mysql-handler)))
 ```
 
 (1) You can remove the `(add-to-list)` and `(require)` lines if you installed via `MELPA` repository.
@@ -190,6 +202,7 @@ By combining a `~/.netrc`, `~/.authinfo` or `~/.authinfo.gpg` setup and a `publi
 * If you press `C-c C-z R` you will rename current file or directory.
 * If you press `C-c C-z e` you will check for remote changes to the current file.
 * If you press `C-c C-z o` you will open remote file corresponding to local file.
+* If you press `C-c C-z m` you will open remote sql-mysql session on remote host.
 
 The local path and local root is evaluated based on their `truename` so if you use different symbolic local paths it shouldn't affect the deployment procedure.
 

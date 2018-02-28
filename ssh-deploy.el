@@ -3,8 +3,8 @@
 ;; Author: Christian Johansson <github.com/cjohansson>
 ;; Maintainer: Christian Johansson <github.com/cjohansson>
 ;; Created: 5 Jul 2016
-;; Modified: 23 Feb 2018
-;; Version: 1.79
+;; Modified: 28 Feb 2018
+;; Version: 1.80
 ;; Keywords: tools, convenience
 ;; URL: https://github.com/cjohansson/emacs-ssh-deploy
 
@@ -33,7 +33,7 @@
 
 ;; ssh-deploy enables automatic deploys on explicit-save actions, manual uploads, renaming,
 ;; deleting, downloads, file and directory differences, launching remote terminals,
-;; detection of remote changes and remote directory browsing via TRAMP.
+;; detection of remote changes, remote directory browsing, remote SQL database sessions via TRAMP.
 ;;
 ;; For asynchrous operations it uses package async.el.
 ;;
@@ -69,6 +69,7 @@
 ;;     (global-set-key (kbd "C-c C-z b") (lambda() (interactive)(ssh-deploy-browse-remote-base-handler) ))
 ;;     (global-set-key (kbd "C-c C-z B") (lambda() (interactive)(ssh-deploy-browse-remote-handler) ))
 ;;     (global-set-key (kbd "C-c C-z o") (lambda() (interactive)(ssh-deploy-open-remote-file-handler) ))
+;;     (global-set-key (kbd "C-c C-z m") (lambda() (interactive)(ssh-deploy-remote-sql-mysql-handler) ))
 ;;
 ;; - To install and set-up using use-package and hydra do this:
 ;;   (use-package ssh-deploy
@@ -88,7 +89,7 @@
 ;; _e_: Detect Remote Changes
 ;; _R_: Rename
 ;; _b_: Browse Base                         _B_: Browse Relative
-;; _o_: Open current file on remote
+;; _o_: Open current file on remote         _m_: Open sql-mysql on remote
 ;; "
 ;;       ("f" ssh-deploy-upload-handler-forced)
 ;;       ("u" ssh-deploy-upload-handler)
@@ -101,7 +102,8 @@
 ;;       ("R" ssh-deploy-rename-handler)
 ;;       ("b" ssh-deploy-browse-remote-base-handler)
 ;;       ("B" ssh-deploy-browse-remote-handler)
-;;       ("o" ssh-deploy-open-remote-file-handler)))
+;;       ("o" ssh-deploy-open-remote-file-handler)
+;;       ("m" ssh-deploy-remote-sql-mysql-handler)))
 ;;
 ;;
 ;; Here is an example for SSH deployment, /Users/Chris/Web/Site1/.dir-locals.el:
@@ -139,10 +141,18 @@
 ;; * ssh-deploy-on-explicit-save - Enabled automatic uploads on save *(boolean)*
 ;; * ssh-deploy-exclude-list - A list defining what paths to exclude from deployment *(list)*
 ;; * ssh-deploy-async - Enables asynchronous transfers (you need to have `async.el` installed as well) *(boolean)*
+;; * ssh-deploy-remote-sql-database - Default database when connecting to remote SQL database *(string)*
+;; * ssh-deploy-remote-sql-password - Default password when connecting to remote SQL database *(string)*
+;; * ssh-deploy-remote-sql-server - Default server when connecting to remote SQL database *(string)*
+;; * ssh-deploy-remote-sql-user - Default user when connecting to remote SQL database *(string)*
 ;;
 ;; Please see README.md from the same repository for extended documentation.
 
 ;;; Code:
+
+
+;; TODO Rename function does not work properly sometimes
+;; TODO Downloading/uploading file asynchronously from diff-mode sometimes outputs tramp in messages, investigate this, it should show any tramp output
 
 (require 'ssh-deploy-diff-mode)
 
@@ -156,48 +166,84 @@
   :type 'string
   :group 'ssh-deploy)
 (put 'ssh-deploy-root-local 'permanent-local t)
+(put 'ssh-deploy-root-local 'safe-local-variable 'stringp)
 
 (defcustom ssh-deploy-root-remote nil
   "String variable of remote root, nil by default."
   :type 'string
   :group 'ssh-deploy)
 (put 'ssh-deploy-root-remote 'permanent-local t)
+(put 'ssh-deploy-root-remote 'safe-local-variable 'stringp)
 
 (defcustom ssh-deploy-on-explicit-save t
   "Boolean variable if deploy should be made on explicit save, t by default."
   :type 'boolean
   :group 'ssh-deploy)
 (put 'ssh-deploy-on-explicit-save 'permanent-local t)
+(put 'ssh-deploy-on-explicit-save 'safe-local-variable 'booleanp)
 
 (defcustom ssh-deploy-debug nil
   "Boolean variable if debug messages should be shown, nil by default."
   :type 'boolean
   :group 'ssh-deploy)
 (put 'ssh-deploy-debug 'permanent-local t)
+(put 'ssh-deploy-debug 'safe-local-variable 'booleanp)
 
 (defcustom ssh-deploy-async t
   "Boolean variable if asynchrous method for transfers should be used, t by default."
   :type 'boolean
   :group 'ssh-deploy)
 (put 'ssh-deploy-async 'permanent-local t)
+(put 'ssh-deploy-async 'safe-local-variable 'booleanp)
 
 (defcustom ssh-deploy-revision-folder "~/.ssh-deploy-revisions/"
   "String variable with path to revisions with trailing slash."
   :type 'string
   :group 'ssh-deploy)
 (put 'ssh-deploy-revision-folder 'permanent-local t)
+(put 'ssh-deploy-revision-folder 'safe-local-variable 'stringp)
 
 (defcustom ssh-deploy-automatically-detect-remote-changes t
   "Detect remote changes and store base revisions automatically, t by default."
   :type 'boolean
   :group 'ssh-deploy)
 (put 'ssh-deploy-automatically-detect-remote-changes 'permanent-local t)
+(put 'ssh-deploy-automatically-detect-remote-changes 'safe-local-variable 'booleanp)
 
 (defcustom ssh-deploy-exclude-list '(".git/" ".dir-locals.el")
   "List of strings that if found in paths will exclude paths from sync, '(\"/.git\"/' \".dir-locals.el\") by default."
   :type 'list
   :group 'ssh-deploy)
 (put 'ssh-deploy-exclude-list 'permanent-local t)
+(put 'ssh-deploy-exclude-list 'safe-local-variable 'listp)
+
+(defcustom ssh-deploy-remote-sql-database nil
+  "String variable of remote sql database, nil by default."
+  :type 'string
+  :group 'ssh-deploy)
+(put 'ssh-deploy-remote-sql-database 'permanent-local t)
+(put 'ssh-deploy-remote-sql-database 'safe-local-variable 'stringp)
+
+(defcustom ssh-deploy-remote-sql-password nil
+  "String variable of remote sql password, nil by default."
+  :type 'string
+  :group 'ssh-deploy)
+(put 'ssh-deploy-remote-sql-password 'permanent-local t)
+(put 'ssh-deploy-remote-sql-password 'safe-local-variable 'stringp)
+
+(defcustom ssh-deploy-remote-sql-server nil
+  "String variable of remote sql server, nil by default."
+  :type 'string
+  :group 'ssh-deploy)
+(put 'ssh-deploy-remote-sql-server 'permanent-local t)
+(put 'ssh-deploy-remote-sql-server 'safe-local-variable 'stringp)
+
+(defcustom ssh-deploy-remote-sql-user nil
+  "String variable of remote sql user, nil by default."
+  :type 'string
+  :group 'ssh-deploy)
+(put 'ssh-deploy-remote-sql-user 'permanent-local t)
+(put 'ssh-deploy-remote-sql-user 'safe-local-variable 'stringp)
 
 
 ;; PRIVATE FUNCTIONS
@@ -702,6 +748,25 @@
           (message "Path '%s' or '%s' is not in the root '%s' or is excluded from it." old-path-local new-path-local root-local)))))
 
 ;;;### autoload
+(defun ssh-deploy-remote-sql (remote-path &optional type)
+  "Open remote sql on REMOTE-PATH, TYPE determines type and defaults to mysql."
+  (let ((buffer (generate-new-buffer (format "ssh-deploy-sql-mysql-%s" remote-path)))
+        (sql-type (or type "mysql"))
+        (old-ssh-deploy-remote-sql-database ssh-deploy-remote-sql-database)
+        (old-ssh-deploy-remote-sql-password ssh-deploy-remote-sql-password)
+        (old-ssh-deploy-remote-sql-server ssh-deploy-remote-sql-server)
+        (old-ssh-deploy-remote-sql-user ssh-deploy-remote-sql-user))
+    (switch-to-buffer buffer)
+    (cd remote-path)
+    (set (make-local-variable 'sql-database) old-ssh-deploy-remote-sql-database)
+    (set (make-local-variable 'sql-password) old-ssh-deploy-remote-sql-password)
+    (set (make-local-variable 'sql-server) old-ssh-deploy-remote-sql-server)
+    (set (make-local-variable 'sql-user) old-ssh-deploy-remote-sql-user)
+    (cond ((string= sql-type "mysql") (sql-mysql))
+          ((string= sql-type "postgres") (sql-postgres))
+          (t (display-warning (format "SQL type %s not supported" type))))))
+
+;;;### autoload
 (defun ssh-deploy-browse-remote (path-local &optional root-local root-remote exclude-list)
   "Browse PATH-LOCAL in `dired-mode' on remote where it is inside ROOT-LOCAL and mirrored on ROOT-REMOTE and not in EXCLUDE-LIST."
   (let ((exclude-list (or exclude-list ssh-deploy-exclude-list))
@@ -835,6 +900,19 @@
            (ssh-deploy--is-not-empty-string ssh-deploy-root-remote)
            (ssh-deploy--is-not-empty-string buffer-file-name))
       (ssh-deploy-remote-changes (file-truename buffer-file-name) (file-truename ssh-deploy-root-local) ssh-deploy-root-remote ssh-deploy-async ssh-deploy-revision-folder ssh-deploy-exclude-list)))
+
+;;;### autoload
+(defun ssh-deploy-remote-sql-mysql-handler()
+  "Open `sql-mysql' on remote path if path is configured for deployment."
+  (interactive)
+  (when (ssh-deploy--is-not-empty-string ssh-deploy-root-remote)
+    (ssh-deploy-remote-sql ssh-deploy-root-remote "mysql")))
+
+(defun ssh-deploy-remote-sql-postgres-handler()
+  "Open `sql-postgres' on remote path if path is configured for deployment."
+  (interactive)
+  (when (ssh-deploy--is-not-empty-string ssh-deploy-root-remote)
+    (ssh-deploy-remote-sql ssh-deploy-root-remote "postgres")))
 
 ;;;### autoload
 (defun ssh-deploy-open-remote-file-handler()
@@ -976,16 +1054,6 @@
       (let ((root-local (file-truename ssh-deploy-root-local)))
         (ssh-deploy-browse-remote root-local root-local ssh-deploy-root-remote ssh-deploy-exclude-list))))
 
-
-;; Mark variables as safe
-(put 'ssh-deploy-root-local 'safe-local-variable 'stringp)
-(put 'ssh-deploy-root-remote 'safe-local-variable 'stringp)
-(put 'ssh-deploy-debug 'safe-local-variable 'booleanp)
-(put 'ssh-deploy-revision-folder 'safe-local-variable 'stringp)
-(put 'ssh-deploy-automatically-detect-remote-changes 'safe-local-variable 'booleanp)
-(put 'ssh-deploy-on-explicit-save 'safe-local-variable 'booleanp)
-(put 'ssh-deploy-exclude-list 'safe-local-variable 'listp)
-(put 'ssh-deploy-async 'safe-local-variable 'booleanp)
 
 (provide 'ssh-deploy)
 ;;; ssh-deploy.el ends here
