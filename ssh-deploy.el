@@ -756,13 +756,17 @@
         (old-ssh-deploy-remote-sql-server ssh-deploy-remote-sql-server)
         (old-ssh-deploy-remote-sql-user ssh-deploy-remote-sql-user)
         (default-directory remote-path))
+    (defvar sql-database)
     (set (make-local-variable 'sql-database) old-ssh-deploy-remote-sql-database)
+    (defvar sql-password)
     (set (make-local-variable 'sql-password) old-ssh-deploy-remote-sql-password)
+    (defvar sql-server)
     (set (make-local-variable 'sql-server) old-ssh-deploy-remote-sql-server)
+    (defvar sql-user)
     (set (make-local-variable 'sql-user) old-ssh-deploy-remote-sql-user)
     (cond ((string= sql-type "mysql") (sql-mysql))
           ((string= sql-type "postgres") (sql-postgres))
-          (t (display-warning (format "SQL type %s not supported" type))))))
+          (t (display-warning "ssh-deploy" (format "SQL type %s not supported" type) :warning)))))
 
 ;;;### autoload
 (defun ssh-deploy-browse-remote (path-local &optional root-local root-remote exclude-list)
