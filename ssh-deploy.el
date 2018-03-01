@@ -3,8 +3,8 @@
 ;; Author: Christian Johansson <github.com/cjohansson>
 ;; Maintainer: Christian Johansson <github.com/cjohansson>
 ;; Created: 5 Jul 2016
-;; Modified: 28 Feb 2018
-;; Version: 1.80
+;; Modified: 1 Mar 2018
+;; Version: 1.81
 ;; Keywords: tools, convenience
 ;; URL: https://github.com/cjohansson/emacs-ssh-deploy
 
@@ -764,8 +764,8 @@
     (set (make-local-variable 'sql-server) old-ssh-deploy-remote-sql-server)
     (defvar sql-user)
     (set (make-local-variable 'sql-user) old-ssh-deploy-remote-sql-user)
-    (cond ((string= sql-type "mysql") (sql-mysql))
-          ((string= sql-type "postgres") (sql-postgres))
+    (cond ((string= sql-type "mysql") (sql-mysql remote-path))
+          ((string= sql-type "postgres") (sql-postgres remote-path))
           (t (display-warning "ssh-deploy" (format "SQL type %s not supported" type) :warning)))))
 
 ;;;### autoload
