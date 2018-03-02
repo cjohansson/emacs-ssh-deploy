@@ -3,8 +3,8 @@
 ;; Author: Christian Johansson <github.com/cjohansson>
 ;; Maintainer: Christian Johansson <github.com/cjohansson>
 ;; Created: 5 Jul 2016
-;; Modified: 1 Mar 2018
-;; Version: 1.81
+;; Modified: 2 Mar 2018
+;; Version: 1.82
 ;; Keywords: tools, convenience
 ;; URL: https://github.com/cjohansson/emacs-ssh-deploy
 
@@ -133,18 +133,19 @@
 ;;
 ;; Here is a list of other variables you can set globally or per directory:
 
-;; * ssh-deploy-root-local - The local root that should be under deployment *(string)*
-;; * ssh-deploy-root-remote - The remote TRAMP root that is used for deployment *(string)*
-;; * ssh-deploy-debug - Enables debugging messages *(boolean)*
-;; * ssh-deploy-revision-folder - The folder used for storing local revisions *(string)*
-;; * ssh-deploy-automatically-detect-remote-changes - Enables automatic detection of remote changes *(boolean)*
-;; * ssh-deploy-on-explicit-save - Enabled automatic uploads on save *(boolean)*
-;; * ssh-deploy-exclude-list - A list defining what paths to exclude from deployment *(list)*
-;; * ssh-deploy-async - Enables asynchronous transfers (you need to have `async.el` installed as well) *(boolean)*
-;; * ssh-deploy-remote-sql-database - Default database when connecting to remote SQL database *(string)*
-;; * ssh-deploy-remote-sql-password - Default password when connecting to remote SQL database *(string)*
-;; * ssh-deploy-remote-sql-server - Default server when connecting to remote SQL database *(string)*
-;; * ssh-deploy-remote-sql-user - Default user when connecting to remote SQL database *(string)*
+;; * `ssh-deploy-root-local' - The local root that should be under deployment *(string)*
+;; * `ssh-deploy-root-remote' - The remote TRAMP root that is used for deployment *(string)*
+;; * `ssh-deploy-debug' - Enables debugging messages *(boolean)*
+;; * `ssh-deploy-revision-folder' - The folder used for storing local revisions *(string)*
+;; * `ssh-deploy-automatically-detect-remote-changes' - Enables automatic detection of remote changes *(boolean)*
+;; * `ssh-deploy-on-explicit-save' - Enabled automatic uploads on save *(boolean)*
+;; * `ssh-deploy-exclude-list' - A list defining what paths to exclude from deployment *(list)*
+;; * `ssh-deploy-async' - Enables asynchronous transfers (you need to have `async.el` installed as well) *(boolean)*
+;; * `ssh-deploy-remote-sql-database' - Default database when connecting to remote SQL database *(string)*
+;; * `ssh-deploy-remote-sql-password' - Default password when connecting to remote SQL database *(string)*
+;; * `ssh-deploy-remote-sql-port' - Default port when connecting to remote SQL database *(integer)*
+;; * `ssh-deploy-remote-sql-server' - Default server when connecting to remote SQL database *(string)*
+;; * `ssh-deploy-remote-sql-user' - Default user when connecting to remote SQL database *(string)*
 ;;
 ;; Please see README.md from the same repository for extended documentation.
 
@@ -230,6 +231,13 @@
   :group 'ssh-deploy)
 (put 'ssh-deploy-remote-sql-password 'permanent-local t)
 (put 'ssh-deploy-remote-sql-password 'safe-local-variable 'stringp)
+
+(defcustom ssh-deploy-remote-sql-port nil
+  "Integer variable of remote sql port, nil by default."
+  :type 'number
+  :group 'ssh-deploy)
+(put 'ssh-deploy-remote-sql-port 'permanent-local t)
+(put 'ssh-deploy-remote-sql-port 'safe-local-variable 'integerp)
 
 (defcustom ssh-deploy-remote-sql-server nil
   "String variable of remote sql server, nil by default."
@@ -753,6 +761,7 @@
   (let ((sql-type (or type "mysql"))
         (old-ssh-deploy-remote-sql-database ssh-deploy-remote-sql-database)
         (old-ssh-deploy-remote-sql-password ssh-deploy-remote-sql-password)
+        (old-ssh-deploy-remote-sql-port ssh-deploy-remote-sql-port)
         (old-ssh-deploy-remote-sql-server ssh-deploy-remote-sql-server)
         (old-ssh-deploy-remote-sql-user ssh-deploy-remote-sql-user)
         (default-directory remote-path))
@@ -760,6 +769,8 @@
     (set (make-local-variable 'sql-database) old-ssh-deploy-remote-sql-database)
     (defvar sql-password)
     (set (make-local-variable 'sql-password) old-ssh-deploy-remote-sql-password)
+    (defvar sql-port)
+    (set (make-local-variable 'sql-port) old-ssh-deploy-remote-sql-port)
     (defvar sql-server)
     (set (make-local-variable 'sql-server) old-ssh-deploy-remote-sql-server)
     (defvar sql-user)

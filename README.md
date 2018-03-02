@@ -35,6 +35,7 @@ Here is a list of other variables you can set globally or per directory:
 * `ssh-deploy-async` Enables asynchronous transfers (you need to have `async.el` installed as well) *(boolean)*
 * `ssh-deploy-remote-sql-database` Default database when connecting to remote SQL database *(string)*
 * `ssh-deploy-remote-sql-password` Default password when connecting to remote SQL database *(string)*
+* `ssh-deploy-remote-sql-port` - Default port when connecting to remote SQL database *(integer)*
 * `ssh-deploy-remote-sql-server` Default server when connecting to remote SQL database *(string)*
 * `ssh-deploy-remote-sql-user` Default user when connecting to remote SQL database *(string)*
 
@@ -55,7 +56,6 @@ You really need to do a bit of research about how to connect via different proto
   (ssh-deploy-on-explicit-save . t)
   (ssh-deploy-remote-sql-database . "myuser")
   (ssh-deploy-remote-sql-password . "mypassword")
-  (ssh-deploy-remote-sql-server . "myserver")
   (ssh-deploy-remote-sql-user . "myuser")
 )))
 ```
