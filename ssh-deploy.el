@@ -3,8 +3,8 @@
 ;; Author: Christian Johansson <github.com/cjohansson>
 ;; Maintainer: Christian Johansson <github.com/cjohansson>
 ;; Created: 5 Jul 2016
-;; Modified: 2 Mar 2018
-;; Version: 1.82
+;; Modified: 24 Mar 2018
+;; Version: 1.83
 ;; Keywords: tools, convenience
 ;; URL: https://github.com/cjohansson/emacs-ssh-deploy
 
@@ -32,7 +32,7 @@
 ;;; Commentary:
 
 ;; ssh-deploy enables automatic deploys on explicit-save actions, manual uploads, renaming,
-;; deleting, downloads, file and directory differences, launching remote terminals,
+;; deleting, downloads, file and directory differences, launching remote terminals (eshell, shell),
 ;; detection of remote changes, remote directory browsing, remote SQL database sessions via TRAMP.
 ;;
 ;; For asynchrous operations it uses package async.el.
@@ -797,20 +797,31 @@
   (let ((exclude-list (or exclude-list ssh-deploy-exclude-list))
         (root-local (or root-local ssh-deploy-root-local))
         (root-remote (or root-remote ssh-deploy-root-remote)))
-    (if (and (ssh-deploy--file-is-in-path path-local root-local)
+    (when (and (ssh-deploy--file-is-in-path path-local root-local)
              (ssh-deploy--file-is-included path-local exclude-list))
         (let ((path-remote (concat root-remote (ssh-deploy--get-relative-path root-local path-local))))
           (let ((old-directory default-directory))
             (require 'eshell)
-            (if (and (fboundp 'eshell-kill-input)
-                     (fboundp 'eshell-send-input))
-                (progn
-                  (message "Opening eshell on '%s'.." path-remote)
-                  (let ((default-directory path-remote))
-                    (defvar eshell-buffer-name)
-                    (setq eshell-buffer-name path-remote)
-                    (eshell)))
-              (message "Missing required eshell functions")))))))
+            (message "Opening eshell on '%s'.." path-remote)
+            (let ((default-directory path-remote))
+              (defvar eshell-buffer-name)
+              (setq eshell-buffer-name path-remote)
+              (eshell)))))))
+
+;;;### autoload
+(defun ssh-deploy-remote-terminal-shell (path-local &optional root-local root-remote exclude-list)
+  "Browse PATH-LOCAL inside ROOT-LOCAL on ROOT-REMOTE in `eshell-mode' if not in EXCLUDE-LIST."
+  (let ((exclude-list (or exclude-list ssh-deploy-exclude-list))
+        (root-local (or root-local ssh-deploy-root-local))
+        (root-remote (or root-remote ssh-deploy-root-remote)))
+    (when (and (ssh-deploy--file-is-in-path path-local root-local)
+             (ssh-deploy--file-is-included path-local exclude-list))
+        (let ((path-remote (concat root-remote (ssh-deploy--get-relative-path root-local path-local))))
+          (let ((old-directory default-directory))
+            (require 'shell)
+            (message "Opening eshell on '%s'.." path-remote)
+            (let ((default-directory path-remote))
+              (shell path-remote)))))))
 
 ;;;### autoload
 (defun ssh-deploy-store-revision (path &optional root)
@@ -1040,6 +1051,26 @@
            (ssh-deploy--is-not-empty-string ssh-deploy-root-remote))
       (let ((root-local (file-truename ssh-deploy-root-local)))
         (ssh-deploy-remote-terminal-eshell root-local root-local ssh-deploy-root-remote ssh-deploy-exclude-list))))
+
+;;;### autoload
+(defun ssh-deploy-remote-terminal-shell-handler ()
+  "Open current relative path on remote host in `eshell' but only if it's configured for deployment."
+  (interactive)
+  (if (and (ssh-deploy--is-not-empty-string ssh-deploy-root-local)
+           (ssh-deploy--is-not-empty-string ssh-deploy-root-remote)
+           (ssh-deploy--is-not-empty-string default-directory))
+      (let ((path-local (file-truename default-directory))
+            (root-local (file-truename ssh-deploy-root-local)))
+        (ssh-deploy-remote-terminal-shell path-local root-local ssh-deploy-root-remote ssh-deploy-exclude-list))))
+
+;;;### autoload
+(defun ssh-deploy-remote-terminal-shell-base-handler ()
+  "Open base path on remote host in `eshell' but only if it's configured for deployment."
+  (interactive)
+  (if (and (ssh-deploy--is-not-empty-string ssh-deploy-root-local)
+           (ssh-deploy--is-not-empty-string ssh-deploy-root-remote))
+      (let ((root-local (file-truename ssh-deploy-root-local)))
+        (ssh-deploy-remote-terminal-shell root-local root-local ssh-deploy-root-remote ssh-deploy-exclude-list))))
 
 ;;;### autoload
 (defun ssh-deploy-browse-remote-handler ()

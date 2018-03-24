@@ -7,7 +7,7 @@ The `ssh-deploy` plug-in for Emacs makes it possible to effortlessly deploy loca
 * Control whether uploads of files should be automatic on save
 * Manual downloads and uploads of directories and files
 * Automatic and manual detection of remote changes of files using local revisions
-* Launch remote `eshell` terminals in base or relative directory
+* Launch remote `eshell` and `shell` terminals in base or relative directory
 * Launch remote `dired` browsing in base or relative directory
 * Launch difference sessions for files using `ediff`
 * Launch difference sessions for directories using a custom implementation of recursive directory differences over TRAMP based on `ediff`
