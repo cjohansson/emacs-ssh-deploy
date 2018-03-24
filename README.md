@@ -127,7 +127,7 @@ By combining a `~/.netrc`, `~/.authinfo` or `~/.authinfo.gpg` setup and a `publi
 * And add this to your *emacs-init-script*: (1)
 
 ``` elisp
-;; ssh-deploy - prefix = C-c C-z, f = forced upload, u = upload, d = download, x = diff, t = terminal, b = browse
+;; ssh-deploy - prefix = C-c C-z, f = forced upload, u = upload, d = download, x = diff, t = terminal, b = browse, h = shell
 (add-to-list 'load-path "~/.emacs.d/ssh-deploy/")
 (require 'ssh-deploy)
 (add-hook 'after-save-hook (lambda() (if (and (boundp 'ssh-deploy-on-explicit-save) ssh-deploy-on-explicit-save) (ssh-deploy-upload-handler)) ))
@@ -139,6 +139,8 @@ By combining a `~/.netrc`, `~/.authinfo` or `~/.authinfo.gpg` setup and a `publi
 (global-set-key (kbd "C-c C-z x") (lambda() (interactive)(ssh-deploy-diff-handler) ))
 (global-set-key (kbd "C-c C-z t") (lambda() (interactive)(ssh-deploy-remote-terminal-eshell-base-handler) ))
 (global-set-key (kbd "C-c C-z T") (lambda() (interactive)(ssh-deploy-remote-terminal-eshell-handler) ))
+(global-set-key (kbd "C-c C-z h") (lambda() (interactive)(ssh-deploy-remote-terminal-shell-base-handler) ))
+(global-set-key (kbd "C-c C-z H") (lambda() (interactive)(ssh-deploy-remote-terminal-shell-handler) ))
 (global-set-key (kbd "C-c C-z R") (lambda() (interactive)(ssh-deploy-rename-handler) ))
 (global-set-key (kbd "C-c C-z e") (lambda() (interactive)(ssh-deploy-remote-changes-handler) ))
 (global-set-key (kbd "C-c C-z b") (lambda() (interactive)(ssh-deploy-browse-remote-base-handler) ))
@@ -163,6 +165,7 @@ By combining a `~/.netrc`, `~/.authinfo` or `~/.authinfo.gpg` setup and a `publi
     _D_: Delete
     _x_: Difference
     _t_: Eshell Base Terminal                _T_: Eshell Relative Terminal
+    _h_: Shell Base Terminal                 _H_: Shell Relative Terminal
     _e_: Detect Remote Changes
     _R_: Rename
     _b_: Browse Base                         _B_: Browse Relative
@@ -175,6 +178,8 @@ By combining a `~/.netrc`, `~/.authinfo` or `~/.authinfo.gpg` setup and a `publi
           ("x" ssh-deploy-diff-handler)
           ("t" ssh-deploy-remote-terminal-eshell-base-handler)
           ("T" ssh-deploy-remote-terminal-eshell-handler)
+          ("h" ssh-deploy-remote-terminal-shell-base-handler)
+          ("H" ssh-deploy-remote-terminal-shell-handler)
           ("e" ssh-deploy-remote-changes-handler)
           ("R" ssh-deploy-rename-handler)
           ("b" ssh-deploy-browse-remote-base-handler)
