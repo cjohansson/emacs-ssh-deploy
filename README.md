@@ -202,6 +202,8 @@ By combining a `~/.netrc`, `~/.authinfo` or `~/.authinfo.gpg` setup and a `publi
 * If you press `C-c C-z D` you will delete the current file or directory after a confirmation on local and remote host.
 * If you press `C-c C-z t` you will open a terminal with remote host in base directory via `eshell`.
 * If you press `C-c C-z T` you will open a terminal with remote host in current directory via `eshell`.
+* If you press `C-c C-z h` you will open a terminal with remote host in base directory via `shell`.
+* If you press `C-c C-z H` you will open a terminal with remote host in current directory via `shell`.
 * If you press `C-c C-z b` you will browse base directory on remote host in `dired`.
 * If you press `C-c C-z B` you will browse current directory on remote host in `dired`.
 * If you press `C-c C-z R` you will rename current file or directory.
