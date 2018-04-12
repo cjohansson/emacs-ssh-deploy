@@ -3,8 +3,8 @@
 ;; Author: Christian Johansson <github.com/cjohansson>
 ;; Maintainer: Christian Johansson <github.com/cjohansson>
 ;; Created: 5 Jul 2016
-;; Modified: 24 Mar 2018
-;; Version: 1.83
+;; Modified: 12 Apr 2018
+;; Version: 1.84
 ;; Keywords: tools, convenience
 ;; URL: https://github.com/cjohansson/emacs-ssh-deploy
 
@@ -315,7 +315,7 @@
                                 (make-directory (file-name-directory ,path-remote) t))
                             (copy-file ,path-local ,path-remote t t t t)
                             (copy-file ,path-local ,revision-path t t t t)
-                            (list 0 (format "Upload of file '%s' completed. (asynchronously)" ,path-remote)))
+                            (list 0 (format "Completed upload of file '%s'. (asynchronously)" ,path-remote)))
                         (list 1 (format "Remote file '%s' has changed, please download or diff. (asynchronously)" ,path-remote)))
                     (list 1 "Function 'ediff-same-file-contents' is missing. (asynchronously)")))
                (lambda(return)
@@ -329,7 +329,7 @@
                 (copy-directory ,path-local ,path-remote t t t)
                 ,path-local)
              (lambda(return-path)
-               (message "Upload of directory '%s' finished. (asynchronously)" return-path))))))
+               (message "Completed upload of directory '%s'. (asynchronously)" return-path))))))
     (message "async.el is not installed")))
 
 (defun ssh-deploy--upload-via-tramp (path-local path-remote force revision-folder)
@@ -349,13 +349,13 @@
                         (make-directory (file-name-directory path-remote) t))
                     (copy-file path-local path-remote t t t t)
                     (ssh-deploy-store-revision path-local revision-folder)
-                    (message "Upload '%s' completed. (synchronously)" path-local))
+                    (message "Completed upload of '%s'. (synchronously)" path-local))
                 (display-warning "ssh-deploy" (format "Remote file '%s' has changed, please download or diff. (synchronously)" path-remote) :warning))
             (display-warning "ssh-deploy" "Function 'ediff-same-file-contents' is missing." :warning)))
       (progn
         (message "Uploading directory '%s' to '%s'.. (synchronously)" path-local path-remote)
         (copy-directory path-local path-remote t t t)
-        (message "Upload '%s' finished. (synchronously)" path-local)))))
+        (message "Completed upload of '%s'. (synchronously)" path-local)))))
 
 (defun ssh-deploy--download-via-tramp-async (path-remote path-local revision-folder)
   "Download PATH-REMOTE to PATH-LOCAL via TRAMP asynchronously and make a copy in REVISION-FOLDER."
@@ -374,7 +374,7 @@
                 (copy-directory ,path-remote ,path-local t t t))
               ,path-local))
          (lambda(return-path)
-           (message "Download of '%s' finished. (asynchronously)" return-path))))
+           (message "Completed download of '%s'. (asynchronously)" return-path))))
     (display-warning "ssh-deploy" "async.el is not installed" :warning)))
 
 (defun ssh-deploy--download-via-tramp (path-remote path-local revision-folder)
@@ -387,11 +387,11 @@
               (make-directory (file-name-directory path-local) t))
           (copy-file path-remote path-local t t t t)
           (ssh-deploy-store-revision path-local revision-folder)
-          (message "Download of file '%s' finished. (synchronously)" path-local))
+          (message "Completed download of file '%s'. (synchronously)" path-local))
       (progn
         (message "Downloading directory '%s' to '%s'.. (synchronously)" path-remote path-local)
         (copy-directory path-remote path-local t t t)
-        (message "Download of directory '%s' finished. (synchronously)" path-local)))))
+        (message "Completed download of directory '%s'. (synchronously)" path-local)))))
 
 (defun ssh-deploy--diff-directories-data (directory-a directory-b exclude-list)
   "Find difference between DIRECTORY-A and DIRECTORY-B but exclude paths matching EXCLUDE-LIST."
@@ -599,13 +599,13 @@
             (require 'ssh-deploy)
             (ssh-deploy--diff-directories-data ,directory-a ,directory-b (list ,@exclude-list)))
          (lambda(diff)
-           (message "Differences calculated between directory '%s' and '%s' -> %s only in A, %s only in B, %s differs. (asynchronously)" (nth 0 diff) (nth 1 diff) (length (nth 4 diff)) (length (nth 5 diff)) (length (nth 7 diff)))
+           (message "Completed calculated differences between directory '%s' and '%s'. Result: %s only in A, %s only in B, %s differs. (asynchronously)" (nth 0 diff) (nth 1 diff) (length (nth 4 diff)) (length (nth 5 diff)) (length (nth 7 diff)))
            (if (or (> (length (nth 4 diff)) 0) (> (length (nth 5 diff)) 0) (> (length (nth 7 diff)) 0))
                (ssh-deploy--diff-directories-present diff)))))
     (progn
       (message "Generating differences between directory '%s' and '%s'.. (synchronously)" directory-a directory-b)
       (let ((diff (ssh-deploy--diff-directories-data directory-a directory-b exclude-list)))
-        (message "Differences calculated between directory '%s' and '%s' -> %s only in A, %s only in B, %s differs. (synchronously)" (nth 0 diff) (nth 1 diff) (length (nth 4 diff)) (length (nth 5 diff)) (length (nth 7 diff)))
+        (message "Completed calculated differences between directory '%s' and '%s'. Result: %s only in A, %s only in B, %s differs. (synchronously)" (nth 0 diff) (nth 1 diff) (length (nth 4 diff)) (length (nth 5 diff)) (length (nth 7 diff)))
         (if (or (> (length (nth 4 diff)) 0) (> (length (nth 5 diff)) 0) (> (length (nth 7 diff)) 0))
             (ssh-deploy--diff-directories-present diff))))))
 
