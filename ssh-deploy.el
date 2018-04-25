@@ -4,7 +4,7 @@
 ;; Maintainer: Christian Johansson <github.com/cjohansson>
 ;; Created: 5 Jul 2016
 ;; Modified: 20 Apr 2018
-;; Version: 1.86
+;; Version: 1.87
 ;; Keywords: tools, convenience
 ;; URL: https://github.com/cjohansson/emacs-ssh-deploy
 
@@ -321,7 +321,7 @@
                (lambda(return)
                  (if (= (nth 0 return) 0)
                      (message (nth 1 return))
-                   (display-warning "ssh-deploy" (nth 1 return) :warning)))))
+                   (display-warning 'ssh-deploy (nth 1 return) :warning)))))
           (progn
             (message "Uploading directory '%s' to '%s'.. (asynchronously)" path-local path-remote)
             (async-start
@@ -350,8 +350,8 @@
                     (copy-file path-local path-remote t t t t)
                     (ssh-deploy-store-revision path-local revision-folder)
                     (message "Completed upload of '%s'. (synchronously)" path-local))
-                (display-warning "ssh-deploy" (format "Remote file '%s' has changed, please download or diff. (synchronously)" path-remote) :warning))
-            (display-warning "ssh-deploy" "Function 'ediff-same-file-contents' is missing." :warning)))
+                (display-warning 'ssh-deploy (format "Remote file '%s' has changed, please download or diff. (synchronously)" path-remote) :warning))
+            (display-warning 'ssh-deploy "Function 'ediff-same-file-contents' is missing." :warning)))
       (progn
         (message "Uploading directory '%s' to '%s'.. (synchronously)" path-local path-remote)
         (copy-directory path-local path-remote t t t)
@@ -375,7 +375,7 @@
               ,path-local))
          (lambda(return-path)
            (message "Completed download of '%s'. (asynchronously)" return-path))))
-    (display-warning "ssh-deploy" "async.el is not installed" :warning)))
+    (display-warning 'ssh-deploy "async.el is not installed" :warning)))
 
 (defun ssh-deploy--download-via-tramp (path-remote path-local revision-folder)
   "Download PATH-REMOTE to PATH-LOCAL via TRAMP synchronously and store a copy in REVISION-FOLDER."
@@ -495,8 +495,8 @@
                  files-both))
 
             (list directory-a directory-b exclude-list files-both files-a-only files-b-only files-both-equals files-both-differs))
-        (display-warning "ssh-deploy" "Both directories need to exist to perform difference generation." :warning))
-    (display-warning "ssh-deploy" "Function 'string-remove-prefix' is missing." :warning)))
+        (display-warning 'ssh-deploy "Both directories need to exist to perform difference generation." :warning))
+    (display-warning 'ssh-deploy "Function 'string-remove-prefix' is missing." :warning)))
 
 (defun ssh-deploy--diff-directories-present (diff)
   "Present difference data for directories from DIFF."
@@ -581,7 +581,7 @@
         (if (ediff-same-file-contents file-a file-b)
             (message "Files have identical contents.")
           (ediff file-a file-b)))
-    (display-warning "ssh-deploy" "Function 'ediff-same-file-contents' is missing." :warning)))
+    (display-warning 'ssh-deploy "Function 'ediff-same-file-contents' is missing." :warning)))
 
 ;;;### autoload
 (defun ssh-deploy-diff-directories (directory-a directory-b &optional exclude-list async)
@@ -641,15 +641,15 @@
                        (lambda(return)
                          (if (= (nth 0 return) 0)
                              (message (nth 1 return))
-                           (display-warning "ssh-deploy" (nth 1 return) :warning))))
+                           (display-warning 'ssh-deploy (nth 1 return) :warning))))
                     (if (file-exists-p path-remote)
                         (progn
                           (require 'ediff-util)
                           (if (fboundp 'ediff-same-file-contents)
                               (if (ediff-same-file-contents revision-path path-remote)
                                   (message "Remote file '%s' has not changed. (synchronously)" path-remote)
-                                (display-warning "ssh-deploy" (format "Remote file '%s' has changed, please download or diff. (synchronously)" path-remote) :warning))
-                            (display-warning "ssh-deploy" "Function 'ediff-same-file-contents' is missing. (synchronously)" :warning)))
+                                (display-warning 'ssh-deploy (format "Remote file '%s' has changed, please download or diff. (synchronously)" path-remote) :warning))
+                            (display-warning 'ssh-deploy "Function 'ediff-same-file-contents' is missing. (synchronously)" :warning)))
                       (message "Remote file '%s' doesn't exist. (synchronously)" path-remote)))
                 (if (and async (fboundp 'async-start))
                     (async-start
@@ -668,7 +668,7 @@
                      (lambda(return)
                        (if (= (nth 0 return) 0)
                            (message (nth 1 return))
-                         (display-warning "ssh-deploy" (nth 1 return) :warning))))
+                         (display-warning 'ssh-deploy (nth 1 return) :warning))))
                   (if (file-exists-p path-remote)
                       (progn
                         (require 'ediff-util)
@@ -677,8 +677,8 @@
                                 (progn
                                   (copy-file path-local revision-path t t t t)
                                   (message "Remote file '%s' has not changed, created base revision. (synchronously)" path-remote))
-                              (display-warning "ssh-deploy" (format "Remote file '%s' has changed, please download or diff. (synchronously)" path-remote) :warning))
-                          (display-warning "ssh-deploy" "Function 'ediff-same-file-contents' is missing. (synchronously)" :warning)))
+                              (display-warning 'ssh-deploy (format "Remote file '%s' has changed, please download or diff. (synchronously)" path-remote) :warning))
+                          (display-warning 'ssh-deploy "Function 'ediff-same-file-contents' is missing. (synchronously)" :warning)))
                     (message "Remote file '%s' does not exist. (synchronously)" path-remote)))))))))
 
 (defun ssh-deploy-delete (path &optional async debug)
@@ -696,7 +696,7 @@
             (list ,path 1)))
        (lambda(response)
          (cond ((= 0 (nth 1 response)) (message "Completed deletion of '%s'. (asynchronously)" (nth 0 response)))
-               (t (display-warning "ssh-deploy" (format "Did not find '%s' for deletion. (asynchronously)" (nth 0 response)) :warning)))))
+               (t (display-warning 'ssh-deploy (format "Did not find '%s' for deletion. (asynchronously)" (nth 0 response)) :warning)))))
     (if (file-exists-p path)
         (let ((file-or-directory (not (file-directory-p path))))
           (progn
@@ -704,7 +704,7 @@
                 (delete-file path t)
               (delete-directory path t t))
             (message "Completed deletion of '%s'. (synchronously)" path)))
-      (display-warning "ssh-deploy" (format "Did not find '%s' for deletion. (synchronously)" path) :warning))))
+      (display-warning 'ssh-deploy (format "Did not find '%s' for deletion. (synchronously)" path) :warning))))
 
 ;;;### autoload
 (defun ssh-deploy-delete-both (path-local &optional root-local root-remote async debug exclude-list)
@@ -782,7 +782,7 @@
     (set (make-local-variable 'sql-user) old-ssh-deploy-remote-sql-user)
     (cond ((string= sql-type "mysql") (sql-mysql remote-path))
           ((string= sql-type "postgres") (sql-postgres remote-path))
-          (t (display-warning "ssh-deploy" (format "SQL type %s not supported" type) :warning)))))
+          (t (display-warning 'ssh-deploy (format "SQL type %s not supported" type) :warning)))))
 
 ;;;### autoload
 (defun ssh-deploy-browse-remote (path-local &optional root-local root-remote exclude-list)

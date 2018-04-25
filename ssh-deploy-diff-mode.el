@@ -186,7 +186,7 @@
               ((= section ssh-deploy-diff-mode--section-only-in-b)
                (ssh-deploy-download path-remote path-local async revision-folder))
               (t (message "Copy is not available in this section")))
-      (display-warning "ssh-deploy" "Function ssh-deploy-download or ssh-deploy-upload is missing" :warning))))
+      (display-warning 'ssh-deploy "Function ssh-deploy-download or ssh-deploy-upload is missing" :warning))))
 
 (defun ssh-deploy-diff-mode--copy-a (parts)
   "Perform a upload of local-path to remote-path based on PARTS from section A or section BOTH."
@@ -204,7 +204,7 @@
                    (= section ssh-deploy-diff-mode--section-in-both))
                (ssh-deploy-upload path-local path-remote t async revision-folder))
               (t "Copy A is not available in this section"))
-      (display-warning "ssh-deploy" "Function ssh-deploy-upload is missing" :warning))))
+      (display-warning 'ssh-deploy "Function ssh-deploy-upload is missing" :warning))))
 
 (defun ssh-deploy-diff-mode--copy-b (parts)
   "Perform an download of remote-path to local-path based on PARTS from section B or section BOTH."
@@ -222,7 +222,7 @@
                    (= section ssh-deploy-diff-mode--section-in-both))
                (ssh-deploy-download path-remote path-local async revision-folder))
               (t "Copy B is not available in this section"))
-      (display-warning "ssh-deploy" "Function ssh-deploy-download is missing" :warning))))
+      (display-warning 'ssh-deploy "Function ssh-deploy-download is missing" :warning))))
 
 (defun ssh-deploy-diff-mode--delete (parts)
   "Delete path in both, only in a or only in b based on PARTS from section A, B or BOTH."
@@ -247,7 +247,7 @@
               ((= section ssh-deploy-diff-mode--section-only-in-b) (ssh-deploy-delete path-remote async debug))
               ((= section ssh-deploy-diff-mode--section-in-both) (ssh-deploy-delete-both path-local root-local root-remote async debug exclude-list))
               (t (message "Delete is not available in this section")))
-      (display-warning "ssh-deploy" "Function ssh-deploy-delete or ssh-deploy-delete-both is missing" :warning))))
+      (display-warning 'ssh-deploy "Function ssh-deploy-delete or ssh-deploy-delete-both is missing" :warning))))
 
 (defun ssh-deploy-diff-mode--difference (parts)
   "If file exists in both start a difference session based on PARTS."
@@ -261,7 +261,7 @@
                    (path-local (file-truename (concat root-local file-name)))
                    (path-remote (concat root-remote file-name)))
               (ssh-deploy-diff-files path-local path-remote)))
-      (display-warning "ssh-deploy" "Function ssh-deploy-diff-files is missing" :warning))
+      (display-warning 'ssh-deploy "Function ssh-deploy-diff-files is missing" :warning))
     (message "File must exists in both roots to perform a difference action.")))
 
 (defun ssh-deploy-diff-mode--open (parts)
