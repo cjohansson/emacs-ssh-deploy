@@ -1098,6 +1098,24 @@
         (ssh-deploy-browse-remote root-local root-local ssh-deploy-root-remote ssh-deploy-exclude-list))))
 
 
+;;; Menu-bar logic
+
+;; Creating a new menu pane in the menu bar to the right of “Tools” menu
+(define-key-after
+  global-map
+  [menu-bar sshdeploy]
+  (cons "Deployment" (make-sparse-keymap "Menu for SSH Deploy"))
+  'tools)
+(define-key
+  global-map
+  [menu-bar sshdeploy nl]
+  '("Upload" . ssh-deploy-upload-handler))
+(define-key
+  global-map
+  [menu-bar sshdeploy pl]
+  '("Download" . ssh-deploy-download-handler))
+
+
 (provide 'ssh-deploy)
 ;;; ssh-deploy.el ends here
 
