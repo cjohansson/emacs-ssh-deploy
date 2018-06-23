@@ -3,8 +3,8 @@
 ;; Author: Christian Johansson <github.com/cjohansson>
 ;; Maintainer: Christian Johansson <github.com/cjohansson>
 ;; Created: 5 Jul 2016
-;; Modified: 20 Apr 2018
-;; Version: 1.87
+;; Modified: 23 Jun 2018
+;; Version: 1.88
 ;; Keywords: tools, convenience
 ;; URL: https://github.com/cjohansson/emacs-ssh-deploy
 
@@ -157,10 +157,10 @@
 ;;; Code:
 
 
-;; TODO Rename function does not work properly sometimes
-;; TODO Downloading/uploading file asynchronously from diff-mode sometimes outputs tramp in messages, investigate this, it should show any tramp output
+;; TODO Rename function does not work properly sometimes?
+;; TODO Downloading/uploading file asynchronously from diff-mode sometimes outputs tramp in messages, investigate this, it should show any tramp output?
 
-(require 'ssh-deploy-diff-mode)
+(require 'ssh-deploy-diff-mode) ;; FIXME flycheck complains, why?
 
 (defgroup ssh-deploy nil
   "Upload, download, difference, browse and terminal handler for files and directories on remote hosts via TRAMP."
