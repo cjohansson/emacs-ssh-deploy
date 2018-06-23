@@ -1108,12 +1108,56 @@
   'tools)
 (define-key
   global-map
-  [menu-bar sshdeploy nl]
+  [menu-bar sshdeploy ul]
   '("Upload" . ssh-deploy-upload-handler))
 (define-key
   global-map
-  [menu-bar sshdeploy pl]
+  [menu-bar sshdeploy dl]
   '("Download" . ssh-deploy-download-handler))
+(define-key
+  global-map
+  [menu-bar sshdeploy df]
+  '("Difference" . ssh-deploy-diff-handler))
+(define-key
+  global-map
+  [menu-bar sshdeploy rn]
+  '("Rename" . ssh-deploy-rename-handler))
+(define-key
+  global-map
+  [menu-bar sshdeploy rc]
+  '("Detect Remote Changes" . ssh-deploy-remote-changes-handler))
+(define-key
+  global-map
+  [menu-bar sshdeploy br]
+  '("Browse" . ssh-deploy-browse-remote-handler))
+(define-key
+  global-map
+  [menu-bar sshdeploy bb]
+  '("Browse Base" . ssh-deploy-browse-remote-base-handler))
+(define-key
+  global-map
+  [menu-bar sshdeploy es]
+  '("Eshell" . ssh-deploy-remote-terminal-eshell-handler))
+(define-key
+  global-map
+  [menu-bar sshdeploy eb]
+  '("Eshell Base" . ssh-deploy-remote-terminal-eshell-base-handler))
+(define-key
+  global-map
+  [menu-bar sshdeploy ss]
+  '("Shell" . ssh-deploy-remote-terminal-shell-handler))
+(define-key
+  global-map
+  [menu-bar sshdeploy sb]
+  '("Shell Base" . ssh-deploy-remote-terminal-shell-base-handler))
+(define-key
+  global-map
+  [menu-bar sshdeploy mq]
+  '("MySQL" . ssh-deploy-remote-sql-mysql-handler))
+(define-key
+  global-map
+  [menu-bar sshdeploy pq]
+  '("PostgreSQL" . ssh-deploy-remote-sql-postgres-handler))
 
 
 (provide 'ssh-deploy)
