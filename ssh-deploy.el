@@ -1158,6 +1158,10 @@
   global-map
   [menu-bar sshdeploy pq]
   '("PostgreSQL" . ssh-deploy-remote-sql-postgres-handler))
+(define-key
+  global-map
+  [menu-bar sshdeploy op]
+  '("Open" . ssh-deploy-open-remote-file-handler))
 
 
 (provide 'ssh-deploy)
