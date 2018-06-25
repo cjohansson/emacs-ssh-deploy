@@ -3,8 +3,8 @@
 ;; Author: Christian Johansson <github.com/cjohansson>
 ;; Maintainer: Christian Johansson <github.com/cjohansson>
 ;; Created: 5 Jul 2016
-;; Modified: 23 Jun 2018
-;; Version: 1.88
+;; Modified: 25 Jun 2018
+;; Version: 1.89
 ;; Keywords: tools, convenience
 ;; URL: https://github.com/cjohansson/emacs-ssh-deploy
 
@@ -1172,6 +1172,10 @@
   [menu-bar sshdeploy sep5]
   '("--"))
 
+(define-key
+  global-map
+  [menu-bar sshdeploy de]
+  '("Delete" . ssh-deploy-delete-handler))
 (define-key
   global-map
   [menu-bar sshdeploy rn]
