@@ -47,7 +47,7 @@ Here is a list of other variables you can set globally or per directory:
 
 You really need to do a bit of research about how to connect via different protocols using TRAMP on your operating system, I think Windows users should use `plink` for most protocols. Linux should work out of the box and macOS requires a bit of tweaking to get FTP support.
 
-### SSH/SFTP with SQL
+### SSH, automatic uploads, SQL
 
 ``` emacs-lisp
 ((nil . (
@@ -60,6 +60,8 @@ You really need to do a bit of research about how to connect via different proto
 )))
 ```
 
+### SFTP, automatic uploads
+
 ``` emacs-lisp
 ((nil . (
   (ssh-deploy-root-local . "/Users/username/Web/MySite/")
@@ -68,7 +70,20 @@ You really need to do a bit of research about how to connect via different proto
 )))
 ```
 
+### SSH, custom port, not asynchronous, without automatic uploads
+
+``` emacs-lisp
+((nil . (
+  (ssh-deploy-root-local . "/Users/username/Web/MySite/")
+  (ssh-deploy-root-remote . "/ssh:myuser@myserver.com#2120:/var/www/MySite/")
+  (ssh-deploy-on-explicit-save . nil)
+  (ssh-deploy-async . nil)
+)))
+```
+
 You can pipe remote connections as well like this:
+
+### SSH, not asynchronous, automatic uploads, piped to other user on remote server
 
 ``` emacs-lisp
 ((nil . (
@@ -81,7 +96,7 @@ You can pipe remote connections as well like this:
 
 If you have a password-less sudo on your remote host you should be to do this asynchronously.
 
-### FTP
+### FTP, with automatic uploads
 
 ``` emacs-lisp
 ((nil . (
