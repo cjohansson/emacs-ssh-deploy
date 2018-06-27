@@ -3,8 +3,8 @@
 ;; Author: Christian Johansson <github.com/cjohansson>
 ;; Maintainer: Christian Johansson <github.com/cjohansson>
 ;; Created: 5 Jul 2016
-;; Modified: 25 Jun 2018
-;; Version: 1.89
+;; Modified: 27 Jun 2018
+;; Version: 1.9
 ;; Keywords: tools, convenience
 ;; URL: https://github.com/cjohansson/emacs-ssh-deploy
 
@@ -1189,6 +1189,10 @@
   [menu-bar sshdeploy sep6]
   '("--"))
 
+(define-key
+  global-map
+  [menu-bar sshdeploy ulf]
+  '("Forced Upload" . ssh-deploy-upload-handler-forced))
 (define-key
   global-map
   [menu-bar sshdeploy ul]
