@@ -3,7 +3,7 @@
 ;; Author: Christian Johansson <github.com/cjohansson>
 ;; Maintainer: Christian Johansson <github.com/cjohansson>
 ;; Created: 5 Jul 2016
-;; Modified: 27 Jun 2018
+;; Modified: 28 Jun 2018
 ;; Version: 1.9
 ;; Keywords: tools, convenience
 ;; URL: https://github.com/cjohansson/emacs-ssh-deploy
@@ -1098,9 +1098,11 @@
         (ssh-deploy-browse-remote root-local root-local ssh-deploy-root-remote ssh-deploy-exclude-list))))
 
 
-;;; Menu-bar logic
+;;; Menu-bar
 
-;; Creating a new menu pane in the menu bar to the right of “Tools” menu
+;; Creating a new menu pane named Deployment  in the menu-bar to the right of “Tools” menu
+;; This is particularly useful when key-bindings are not working because of some mode
+;; overriding them.
 (define-key-after
   global-map
   [menu-bar sshdeploy]
