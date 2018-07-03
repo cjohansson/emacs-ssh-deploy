@@ -3,8 +3,8 @@
 ;; Author: Christian Johansson <github.com/cjohansson>
 ;; Maintainer: Christian Johansson <github.com/cjohansson>
 ;; Created: 5 Jul 2016
-;; Modified: 25 Jun 2018
-;; Version: 1.89
+;; Modified: 3 July 2018
+;; Version: 1.91
 ;; Keywords: tools, convenience
 ;; URL: https://github.com/cjohansson/emacs-ssh-deploy
 
@@ -151,16 +151,14 @@
 ;; * `ssh-deploy-remote-sql-port' - Default port when connecting to remote SQL database *(integer)*
 ;; * `ssh-deploy-remote-sql-server' - Default server when connecting to remote SQL database *(string)*
 ;; * `ssh-deploy-remote-sql-user' - Default user when connecting to remote SQL database *(string)*
+;; * `ssh-deploy-remote-shell-executable' - Default shell executable when launching shell on remote host
 ;;
 ;; Please see README.md from the same repository for extended documentation.
 
 ;;; Code:
 
 
-;; TODO Rename function does not work properly sometimes?
-;; TODO Downloading/uploading file asynchronously from diff-mode sometimes outputs tramp in messages, investigate this, it should show any tramp output?
-
-(require 'ssh-deploy-diff-mode) ;; FIXME flycheck complains, why?
+(require 'ssh-deploy-diff-mode) ;; FIXME flycheck complains.. but why?
 
 (defgroup ssh-deploy nil
   "Upload, download, difference, browse and terminal handler for files and directories on remote hosts via TRAMP."
@@ -257,6 +255,13 @@
   :group 'ssh-deploy)
 (put 'ssh-deploy-remote-sql-user 'permanent-local t)
 (put 'ssh-deploy-remote-sql-user 'safe-local-variable 'stringp)
+
+(defcustom ssh-deploy-remote-shell-executable nil
+  "String variable of remote shell executable server, nil by default."
+  :type 'string
+  :group 'ssh-deploy)
+(put 'ssh-deploy-remote-shell-executable 'permanent-local t)
+(put 'ssh-deploy-remote-shell-executable 'safe-local-variable 'stringp)
 
 
 ;; PRIVATE FUNCTIONS
@@ -825,7 +830,8 @@
           (let ((old-directory default-directory))
             (require 'shell)
             (message "Opening eshell on '%s'.." path-remote)
-            (let ((default-directory path-remote))
+            (let ((default-directory path-remote)
+                  (explicit-shell-file-name ssh-deploy-remote-shell-executable))
               (shell path-remote)))))))
 
 ;;;### autoload
@@ -1098,9 +1104,11 @@
         (ssh-deploy-browse-remote root-local root-local ssh-deploy-root-remote ssh-deploy-exclude-list))))
 
 
-;;; Menu-bar logic
+;;; Menu-bar
 
-;; Creating a new menu pane in the menu bar to the right of “Tools” menu
+;; Creating a new menu pane named Deployment  in the menu-bar to the right of “Tools” menu
+;; This is particularly useful when key-bindings are not working because of some mode
+;; overriding them.
 (define-key-after
   global-map
   [menu-bar sshdeploy]
@@ -1189,6 +1197,10 @@
   [menu-bar sshdeploy sep6]
   '("--"))
 
+(define-key
+  global-map
+  [menu-bar sshdeploy ulf]
+  '("Forced Upload" . ssh-deploy-upload-handler-forced))
 (define-key
   global-map
   [menu-bar sshdeploy ul]
