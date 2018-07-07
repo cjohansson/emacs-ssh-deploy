@@ -791,39 +791,41 @@
 (defun ssh-deploy-delete (path &optional async debug buffer)
   "Delete PATH and use flags ASYNC and DEBUG, set status in BUFFER."
   (if (and async (fboundp 'async-start))
-      (async-start
-       `(lambda()
-          (if (file-exists-p ,path)
-              (when (and (boundp 'buffer)
-                         buffer)
-                (ssh-deploy--mode-line-set-status-and-update ssh-deploy--status-deleting buffer))
-            (let ((file-or-directory (not (file-directory-p ,path))))
-              (progn
-                (if file-or-directory
-                    (delete-file ,path t)
-                  (delete-directory ,path t t))
-                (list ,path 0 buffer)))
-            (list ,path 1 buffer)))
-       (lambda(response)
-         (when (nth 2 response)
-           (ssh-deploy--mode-line-set-status-and-update ssh-deploy--status-idle (nth 2 response))
-           (kill-buffer (find-buffer-visiting (nth 2 response))))
-         (cond ((= 0 (nth 1 response)) (message "Completed deletion of '%s'. (asynchronously)" (nth 0 response)))
-               (t (display-warning 'ssh-deploy (format "Did not find '%s' for deletion. (asynchronously)" (nth 0 response)) :warning)))))
+      (progn
+        (when (and (boundp 'buffer)
+                   buffer)
+          (ssh-deploy--mode-line-set-status-and-update ssh-deploy--status-deleting buffer))
+        (async-start
+         `(lambda()
+            (if (file-exists-p ,path)
+                (let ((file-or-directory (not (file-directory-p ,path))))
+                  (progn
+                    (if file-or-directory
+                        (delete-file ,path t)
+                      (delete-directory ,path t t))
+                    (list ,path 0 ,buffer)))
+              (list ,path 1 ,buffer)))
+         (lambda(response)
+           (when (nth 2 response)
+             (ssh-deploy--mode-line-set-status-and-update ssh-deploy--status-idle (nth 2 response))
+             (kill-buffer (find-buffer-visiting (nth 2 response))))
+           (cond ((= 0 (nth 1 response)) (message "Completed deletion of '%s'. (asynchronously)" (nth 0 response)))
+                 (t (display-warning 'ssh-deploy (format "Did not find '%s' for deletion. (asynchronously)" (nth 0 response)) :warning))))))
     (if (file-exists-p path)
-        (let ((file-or-directory (not (file-directory-p path))))
+        (ssh-deploy--mode-line-set-status-and-update ssh-deploy--status-deleting buffer)
+      (let ((file-or-directory (not (file-directory-p path))))
+        (when (and (boundp 'buffer)
+                   buffer)
+          (ssh-deploy--mode-line-set-status-and-update ssh-deploy--status-deleting buffer))
+        (progn
+          (if file-or-directory
+              (delete-file path t)
+            (delete-directory path t t))
           (when (and (boundp 'buffer)
                      buffer)
-            (ssh-deploy--mode-line-set-status-and-update ssh-deploy--status-deleting buffer))
-          (progn
-            (if file-or-directory
-                (delete-file path t)
-              (delete-directory path t t))
-            (when (and (boundp 'buffer)
-                       buffer)
-              (ssh-deploy--mode-line-set-status-and-update ssh-deploy--status-idle)
-              (kill-buffer (find-buffer-visiting buffer)))
-            (message "Completed deletion of '%s'. (synchronously)" path)))
+            (ssh-deploy--mode-line-set-status-and-update ssh-deploy--status-idle buffer)
+            (kill-buffer (find-buffer-visiting buffer)))
+          (message "Completed deletion of '%s'. (synchronously)" path)))
       (display-warning 'ssh-deploy (format "Did not find '%s' for deletion. (synchronously)" path) :warning))))
 
 ;;;### autoload
