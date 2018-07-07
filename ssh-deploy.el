@@ -302,11 +302,11 @@
         (let ((buffer (find-buffer-visiting filename)))
           (switch-to-buffer buffer)
           (setq ssh-deploy--mode-line-status status)
-          (message "SSH Deploy - Updated status to %s" ssh-deploy--mode-line-status)
+          ;; (message "SSH Deploy - Updated status to %s" ssh-deploy--mode-line-status)
           (ssh-deploy--mode-line-status-refresh)))
     (progn
       (setq ssh-deploy--mode-line-status status)
-      (message "SSH Deploy - Updated status to %s" ssh-deploy--mode-line-status)
+      ;; (message "SSH Deploy - Updated status to %s" ssh-deploy--mode-line-status)
       (ssh-deploy--mode-line-status-refresh))))
 
 
