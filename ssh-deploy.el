@@ -3,8 +3,8 @@
 ;; Author: Christian Johansson <github.com/cjohansson>
 ;; Maintainer: Christian Johansson <github.com/cjohansson>
 ;; Created: 5 Jul 2016
-;; Modified: 3 July 2018
-;; Version: 1.91
+;; Modified: 7 July 2018
+;; Version: 1.92
 ;; Keywords: tools, convenience
 ;; URL: https://github.com/cjohansson/emacs-ssh-deploy
 
@@ -467,7 +467,9 @@
               ,path-local))
          (lambda(return-path)
            (ssh-deploy--mode-line-set-status-and-update ssh-deploy--status-idle return-path)
-           (message "Completed download of '%s'. (asynchronously)" return-path))))
+           (message "Completed download of '%s'. (asynchronously)" return-path)
+           (with-current-buffer (find-buffer-visiting return-path)
+             (revert-buffer t t t)))))
     (display-warning 'ssh-deploy "async.el is not installed" :warning)))
 
 (defun ssh-deploy--download-via-tramp (path-remote path-local revision-folder)
@@ -803,7 +805,7 @@
                 (list ,path 0 buffer)))
             (list ,path 1 buffer)))
        (lambda(response)
-         (when (boundp (nth 2 response))
+         (when (nth 2 response)
            (ssh-deploy--mode-line-set-status-and-update ssh-deploy--status-idle (nth 2 response))
            (kill-buffer (find-buffer-visiting (nth 2 response))))
          (cond ((= 0 (nth 1 response)) (message "Completed deletion of '%s'. (asynchronously)" (nth 0 response)))
