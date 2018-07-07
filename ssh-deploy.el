@@ -298,9 +298,8 @@
   "Set the mode line STATUS in optionally in buffer visiting FILENAME."
   (if (and (boundp 'filename)
            filename)
-      (save-excursion
-        (let ((buffer (find-buffer-visiting filename)))
-          (switch-to-buffer buffer)
+      (let ((buffer (find-buffer-visiting filename)))
+        (with-current-buffer buffer
           (setq ssh-deploy--mode-line-status status)
           ;; (message "SSH Deploy - Updated status to %s" ssh-deploy--mode-line-status)
           (ssh-deploy--mode-line-status-refresh)))
@@ -342,7 +341,8 @@
      )
     (make-local-variable 'ssh-deploy--mode-line-status-text)
     (setq ssh-deploy--mode-line-status-text (ssh-deploy--mode-line-status-text-format status-text))
-    (message "SSH Deploy - Updated status text to %s" ssh-deploy--mode-line-status-text)))
+    ;; (message "SSH Deploy - Updated status text to %s" ssh-deploy--mode-line-status-text)
+    ))
 
 (defun ssh-deploy--mode-line-status-text-format (text)
   "Return a formatted string based on TEXT."
