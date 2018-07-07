@@ -872,8 +872,8 @@
           (if (not (file-directory-p new-path-local))
               (progn
                 (rename-buffer new-path-local)
-                (set-buffer-modified-p nil)
-                (set-visited-file-name new-path-local))
+                (set-visited-file-name new-path-local)
+                (set-buffer-modified-p nil))
             (dired new-path-local))
           (message "Renamed '%s' to '%s'." old-path-local new-path-local)
           (if (and async (fboundp 'async-start))
