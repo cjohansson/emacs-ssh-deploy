@@ -38,6 +38,7 @@ Here is a list of other variables you can set globally or per directory:
 * `ssh-deploy-remote-sql-port` - Default port when connecting to remote SQL database *(integer)*
 * `ssh-deploy-remote-sql-server` Default server when connecting to remote SQL database *(string)*
 * `ssh-deploy-remote-sql-user` Default user when connecting to remote SQL database *(string)*
+* `ssh-deploy-remote-shell-executable` Default remote shell executable when launching shell on remote host *(string)*
 
 
 ## Deployment configuration examples
