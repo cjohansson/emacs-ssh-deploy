@@ -299,10 +299,11 @@
   (if (and (boundp 'filename)
            filename)
       (let ((buffer (find-buffer-visiting filename)))
-        (with-current-buffer buffer
-          (setq ssh-deploy--mode-line-status status)
-          ;; (message "SSH Deploy - Updated status to %s" ssh-deploy--mode-line-status)
-          (ssh-deploy--mode-line-status-refresh)))
+        (when buffer
+          (with-current-buffer buffer
+            (setq ssh-deploy--mode-line-status status)
+            ;; (message "SSH Deploy - Updated status to %s" ssh-deploy--mode-line-status)
+            (ssh-deploy--mode-line-status-refresh))))
     (progn
       (setq ssh-deploy--mode-line-status status)
       ;; (message "SSH Deploy - Updated status to %s" ssh-deploy--mode-line-status)
@@ -468,8 +469,10 @@
          (lambda(return-path)
            (ssh-deploy--mode-line-set-status-and-update ssh-deploy--status-idle return-path)
            (message "Completed download of '%s'. (asynchronously)" return-path)
-           (with-current-buffer (find-buffer-visiting return-path)
-             (revert-buffer t t t)))))
+           (let ((local-buffer (find-buffer-visiting return-path)))
+             (when local-buffer
+               (with-current-buffer local-buffer)
+               (revert-buffer t t t))))))
     (display-warning 'ssh-deploy "async.el is not installed" :warning)))
 
 (defun ssh-deploy--download-via-tramp (path-remote path-local revision-folder)
@@ -808,7 +811,9 @@
          (lambda(response)
            (when (nth 2 response)
              (ssh-deploy--mode-line-set-status-and-update ssh-deploy--status-idle (nth 2 response))
-             (kill-buffer (find-buffer-visiting (nth 2 response))))
+             (let ((local-buffer (find-buffer-visiting (nth 2 response))))
+               (when local-buffer
+                 (kill-buffer local-buffer))))
            (cond ((= 0 (nth 1 response)) (message "Completed deletion of '%s'. (asynchronously)" (nth 0 response)))
                  (t (display-warning 'ssh-deploy (format "Did not find '%s' for deletion. (asynchronously)" (nth 0 response)) :warning))))))
     (if (file-exists-p path)
@@ -824,7 +829,9 @@
           (when (and (boundp 'buffer)
                      buffer)
             (ssh-deploy--mode-line-set-status-and-update ssh-deploy--status-idle buffer)
-            (kill-buffer (find-buffer-visiting buffer)))
+            (let ((local-buffer (find-buffer-visiting buffer)))
+              (when local-buffer
+                (kill-buffer local-buffer))))
           (message "Completed deletion of '%s'. (synchronously)" path)))
       (display-warning 'ssh-deploy (format "Did not find '%s' for deletion. (synchronously)" path) :warning))))
 
