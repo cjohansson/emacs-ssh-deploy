@@ -347,8 +347,8 @@
 (defun ssh-deploy--mode-line-status-text-format (text)
   "Return a formatted string based on TEXT."
   (if (string= text "")
-      (format " SH ")
-    (format " SH:%s " text)))
+      (format " DPL ")
+    (format " DPL: %s " text)))
 
 (defun ssh-deploy--insert-keyword (text)
   "Insert TEXT as bold text."
