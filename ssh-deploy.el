@@ -471,8 +471,8 @@
            (message "Completed download of '%s'. (asynchronously)" return-path)
            (let ((local-buffer (find-buffer-visiting return-path)))
              (when local-buffer
-               (with-current-buffer local-buffer)
-               (revert-buffer t t t))))))
+               (with-current-buffer local-buffer
+                 (revert-buffer t t t)))))))
     (display-warning 'ssh-deploy "async.el is not installed" :warning)))
 
 (defun ssh-deploy--download-via-tramp (path-remote path-local revision-folder)
