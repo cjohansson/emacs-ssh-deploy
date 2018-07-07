@@ -1340,13 +1340,16 @@
 ;;; Mode Line
 
 
-;;;###autoload
+
 (define-minor-mode ssh-deploy-line-mode
   "Show SSH Deploy status in mode line"
   :global t
   :group 'ssh-deploy
   (add-to-list 'global-mode-string 'ssh-deploy--mode-line-status-text t))
 (ssh-deploy--mode-line-status-refresh)
+
+;; Start mode line by default
+(ssh-deploy-line-mode)
 
 
 (provide 'ssh-deploy)
