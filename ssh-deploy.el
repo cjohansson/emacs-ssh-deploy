@@ -3,8 +3,8 @@
 ;; Author: Christian Johansson <github.com/cjohansson>
 ;; Maintainer: Christian Johansson <github.com/cjohansson>
 ;; Created: 5 Jul 2016
-;; Modified: 7 July 2018
-;; Version: 1.92
+;; Modified: 8 July 2018
+;; Version: 1.93
 ;; Keywords: tools, convenience
 ;; URL: https://github.com/cjohansson/emacs-ssh-deploy
 
@@ -348,7 +348,7 @@
 (defun ssh-deploy--mode-line-status-text-format (text)
   "Return a formatted string based on TEXT."
   (if (string= text "")
-      (format " [DPL] ")
+      ""
     (format " [DPL:%s] " text)))
 
 (defun ssh-deploy--insert-keyword (text)
@@ -388,7 +388,7 @@
   "Upload PATH-LOCAL to PATH-REMOTE via TRAMP asynchronously and FORCE upload despite remote change, check for revisions in REVISION-FOLDER."
   (if (fboundp 'async-start)
       (let ((file-or-directory (not (file-directory-p path-local))))
-        (ssh-deploy--mode-line-set-status-and-update ssh-deploy--status-uploading)
+        (ssh-deploy--mode-line-set-status-and-update ssh-deploy--status-uploading path-local)
         (if file-or-directory
             (let ((revision-path (ssh-deploy--get-revision-path path-local revision-folder)))
               (message "Uploading file '%s' to '%s'.. (asynchronously)" path-local path-remote)
@@ -453,7 +453,7 @@
   "Download PATH-REMOTE to PATH-LOCAL via TRAMP asynchronously and make a copy in REVISION-FOLDER."
   (if (fboundp 'async-start)
       (let ((revision-path (ssh-deploy--get-revision-path path-local revision-folder)))
-        (ssh-deploy--mode-line-set-status-and-update ssh-deploy--status-downloading)
+        (ssh-deploy--mode-line-set-status-and-update ssh-deploy--status-downloading path-local)
         (message "Downloading '%s' to '%s'.. (asynchronously)" path-remote path-local)
         (async-start
          `(lambda()
