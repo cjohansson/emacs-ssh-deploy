@@ -727,38 +727,63 @@
   "Check if a local revision for PATH-LOCAL on ROOT-LOCAL and if remote file has changed on ROOT-REMOTE, do it optionally asynchronously if ASYNC is true, check for copies in REVISION-FOLDER and skip if path is in EXCLUDE-LIST."
   (let ((root-local (or root-local ssh-deploy-root-local))
         (root-remote (or root-remote ssh-deploy-root-remote)))
+
+    ;; Is the file inside the local-root and should it not be excluded?
     (if (and (ssh-deploy--file-is-in-path path-local root-local)
              (ssh-deploy--file-is-included path-local exclude-list))
         (let* ((revision-folder (or revision-folder ssh-deploy-revision-folder))
                (exclude-list (or exclude-list ssh-deploy-exclude-list))
                (revision-path (ssh-deploy--get-revision-path path-local revision-folder))
                (path-remote (concat root-remote (ssh-deploy--get-relative-path root-local path-local))))
+
+          ;; Is the file a regular file?
           (if (not (file-directory-p path-local))
               (progn
-                (ssh-deploy--mode-line-set-status-and-update ssh-deploy--status-detecting-remote-changes)
+
+                ;; Does a local revision of the file exist?
                 (if (file-exists-p revision-path)
+
+                    ;; Local revision exist. Is async.el installed?
                     (if (and async (fboundp 'async-start))
-                        (async-start
-                         `(lambda()
-                            (if (file-exists-p ,path-remote)
-                                (progn
-                                  (require 'ediff-util)
-                                  (if (fboundp 'ediff-same-file-contents)
-                                      (if (ediff-same-file-contents ,revision-path ,path-remote)
-                                          (list 0 (format "Remote file '%s' has not changed. (asynchronously)" ,path-remote) ,path-local)
-                                        (if (ediff-same-file-contents ,path-local ,path-remote)
-                                            (progn
-                                              (copy-file ,path-local ,revision-path t t t t)
-                                              (list 0 (format "Remote file '%s' is identical to local file '%s' but different to local revision. Updated local revision. (asynchronously)" ,path-remote ,path-local) ,path-local))
-                                          (list 1 (format "Remote file '%s' has changed, please download or diff. (asynchronously)" ,path-remote) ,path-local)))
-                                    (list 1 "Function 'ediff-same-file-contents' is missing. (asynchronously)" ,path-local)))
-                              (list 0 (format "Remote file '%s' doesn't exist. (asynchronously)" ,path-remote) ,path-local)))
-                         (lambda(return)
-                           (ssh-deploy--mode-line-set-status-and-update ssh-deploy--status-idle (nth 2 return))
-                           (if (= (nth 0 return) 0)
-                               (message (nth 1 return))
-                             (display-warning 'ssh-deploy (nth 1 return) :warning))))
+
+                        ;; Async.el is installed
+                        (progn
+
+                          ;; Update buffer status
+                          (ssh-deploy--mode-line-set-status-and-update ssh-deploy--status-detecting-remote-changes)
+
+                          ;; Asynchronous logic here
+                          (async-start
+                           `(lambda()
+                              (if (file-exists-p ,path-remote)
+                                  (progn
+                                    (require 'ediff-util)
+                                    (if (fboundp 'ediff-same-file-contents)
+                                        (if (ediff-same-file-contents ,revision-path ,path-remote)
+                                            (list 0 (format "Remote file '%s' has not changed. (asynchronously)" ,path-remote) ,path-local)
+                                          (if (ediff-same-file-contents ,path-local ,path-remote)
+                                              (progn
+                                                (copy-file ,path-local ,revision-path t t t t)
+                                                (list 0 (format "Remote file '%s' is identical to local file '%s' but different to local revision. Updated local revision. (asynchronously)" ,path-remote ,path-local) ,path-local))
+                                            (list 1 (format "Remote file '%s' has changed, please download or diff. (asynchronously)" ,path-remote) ,path-local)))
+                                      (list 1 "Function 'ediff-same-file-contents' is missing. (asynchronously)" ,path-local)))
+                                (list 0 (format "Remote file '%s' doesn't exist. (asynchronously)" ,path-remote) ,path-local)))
+                           (lambda(return)
+
+                             ;; Update buffer status to idle
+                             (ssh-deploy--mode-line-set-status-and-update ssh-deploy--status-idle (nth 2 return))
+
+                             (if (= (nth 0 return) 0)
+                                 (message (nth 1 return))
+                               (display-warning 'ssh-deploy (nth 1 return) :warning)))))
+
+                      ;; Async.el is not installed - synchronous logic here
                       (progn
+
+                        ;; Update buffer status
+                        (ssh-deploy--mode-line-set-status-and-update ssh-deploy--status-detecting-remote-changes)
+
+                        ;; Does remote file exist?
                         (if (file-exists-p path-remote)
                             (progn
                               (require 'ediff-util)
@@ -768,40 +793,73 @@
                                     (display-warning 'ssh-deploy (format "Remote file '%s' has changed, please download or diff. (synchronously)" path-remote) :warning))
                                 (display-warning 'ssh-deploy "Function 'ediff-same-file-contents' is missing. (synchronously)" :warning)))
                           (message "Remote file '%s' doesn't exist. (synchronously)" path-remote))
-                        (ssh-deploy--mode-line-set-status-and-update ssh-deploy--status-idle))
-                      (if (and async (fboundp 'async-start))
-                          (async-start
-                           `(lambda()
-                              (if (file-exists-p ,path-remote)
-                                  (progn
-                                    (require 'ediff-util)
-                                    (if (fboundp 'ediff-same-file-contents)
-                                        (if (ediff-same-file-contents ,path-local ,path-remote)
-                                            (progn
-                                              (copy-file ,path-local ,revision-path t t t t)
-                                              (list 0 (format "Remote file '%s' has not changed, created base revision. (asynchronously)" ,path-remote) ,path-local))
-                                          (list 1 (format "Remote file '%s' has changed, please download or diff. (asynchronously)" ,path-remote) ,path-local))
-                                      (list 1 "Function ediff-file-same-contents is missing. (asynchronously)" ,path-local)))
-                                (list 0 (format "Remote file '%s' doesn't exist. (asynchronously)" ,path-remote) ,path-local)))
-                           (lambda(return)
-                             (ssh-deploy--mode-line-set-status-and-update ssh-deploy--status-idle (nth 2 return))
-                             (if (= (nth 0 return) 0)
-                                 (message (nth 1 return))
-                               (display-warning 'ssh-deploy (nth 1 return) :warning))))
-                        (progn
-                          (if (file-exists-p path-remote)
-                              (progn
-                                (require 'ediff-util)
-                                (if (fboundp 'ediff-same-file-contents)
-                                    (if (ediff-same-file-contents path-local path-remote)
-                                        (progn
-                                          (copy-file path-local revision-path t t t t)
-                                          (message "Remote file '%s' has not changed, created base revision. (synchronously)" path-remote))
-                                      (display-warning 'ssh-deploy (format "Remote file '%s' has changed, please download or diff. (synchronously)" path-remote) :warning))
-                                  (display-warning 'ssh-deploy "Function 'ediff-same-file-contents' is missing. (synchronously)" :warning)))
-                            (message "Remote file '%s' does not exist. (synchronously)" path-remote))
-                          (ssh-deploy--mode-line-set-status-and-update ssh-deploy--status-idle))))
-                  (ssh-deploy--mode-line-set-status-and-update ssh-deploy--status-idle))))))))
+
+                        ;; Update buffer status to idle
+                        (ssh-deploy--mode-line-set-status-and-update ssh-deploy--status-idle)))
+
+                  ;; Does not have local revision. Is async.el installed?
+                  (if (and async (fboundp 'async-start))
+
+                      ;; Async.el is installed
+                      (progn
+
+                        ;; Update buffer status
+                        (ssh-deploy--mode-line-set-status-and-update ssh-deploy--status-detecting-remote-changes)
+
+                        ;; Asynchronous logic here
+                        (async-start
+                         `(lambda()
+
+                            ;; Does remote file exist?
+                            (if (file-exists-p ,path-remote)
+                                (progn
+                                  (require 'ediff-util)
+                                  (if (fboundp 'ediff-same-file-contents)
+                                      (if (ediff-same-file-contents ,path-local ,path-remote)
+                                          (progn
+                                            (copy-file ,path-local ,revision-path t t t t)
+                                            (list 0 (format "Remote file '%s' has not changed, created base revision. (asynchronously)" ,path-remote) ,path-local))
+                                        (list 1 (format "Remote file '%s' has changed, please download or diff. (asynchronously)" ,path-remote) ,path-local))
+                                    (list 1 "Function ediff-file-same-contents is missing. (asynchronously)" ,path-local)))
+                              (list 0 (format "Remote file '%s' doesn't exist. (asynchronously)" ,path-remote) ,path-local)))
+                         (lambda(return)
+
+                           ;; Update buffer status to idle
+                           (ssh-deploy--mode-line-set-status-and-update ssh-deploy--status-idle (nth 2 return))
+
+                           (if (= (nth 0 return) 0)
+                               (message (nth 1 return))
+                             (display-warning 'ssh-deploy (nth 1 return) :warning)))))
+
+                    ;; Async.el is not installed - synchronous logic here
+                    (progn
+
+                      ;; Update buffer status
+                      (ssh-deploy--mode-line-set-status-and-update ssh-deploy--status-detecting-remote-changes)
+
+                      ;; Does remote file exist?
+                      (if (file-exists-p path-remote)
+                          (progn
+                            (require 'ediff-util)
+                            (if (fboundp 'ediff-same-file-contents)
+                                (if (ediff-same-file-contents path-local path-remote)
+                                    (progn
+                                      (copy-file path-local revision-path t t t t)
+                                      (message "Remote file '%s' has not changed, created base revision. (synchronously)" path-remote))
+                                  (display-warning 'ssh-deploy (format "Remote file '%s' has changed, please download or diff. (synchronously)" path-remote) :warning))
+                              (display-warning 'ssh-deploy "Function 'ediff-same-file-contents' is missing. (synchronously)" :warning)))
+                        (message "Remote file '%s' does not exist. (synchronously)" path-remote))
+
+                      ;; Update buffer status to idle
+                      (ssh-deploy--mode-line-set-status-and-update ssh-deploy--status-idle)))))
+
+            ;; File is a directory
+            (when ssh-deploy-debug
+              (message "File %s is a directory, ignoring remote changes check." path-local))))
+
+      ;; File is not inside root or is excluded from it
+      (when ssh-deploy-debug
+        (message "File %s is not in root or is excluded from it." path-local)))))
 
 (defun ssh-deploy-delete (path &optional async debug buffer)
   "Delete PATH and use flags ASYNC and DEBUG, set status in BUFFER."
@@ -1066,7 +1124,12 @@
   (if (and (ssh-deploy--is-not-empty-string ssh-deploy-root-local)
            (ssh-deploy--is-not-empty-string ssh-deploy-root-remote)
            (ssh-deploy--is-not-empty-string buffer-file-name))
-      (ssh-deploy-remote-changes (file-truename buffer-file-name) (file-truename ssh-deploy-root-local) ssh-deploy-root-remote ssh-deploy-async ssh-deploy-revision-folder ssh-deploy-exclude-list)))
+      (progn
+        (when ssh-deploy-debug
+          (message "Detecting remote-changes.."))
+        (ssh-deploy-remote-changes (file-truename buffer-file-name) (file-truename ssh-deploy-root-local) ssh-deploy-root-remote ssh-deploy-async ssh-deploy-revision-folder ssh-deploy-exclude-list))
+    (when ssh-deploy-debug
+      (message "Ignoring remote-changes check since a root is empty or the current buffer lacks a file-name."))))
 
 ;;;### autoload
 (defun ssh-deploy-remote-sql-mysql-handler()
