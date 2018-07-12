@@ -281,7 +281,7 @@
 (defconst ssh-deploy--status-detecting-remote-changes 5
   "The mode-line status for detecting remote changes.")
 
-(defvar ssh-deploy--mode-line-status 0
+(defvar ssh-deploy--mode-line-status '()
   "The mode-line status displayed in mode-line.")
 
 (defvar ssh-deploy--mode-line-status-text ""
@@ -301,21 +301,23 @@
       (let ((buffer (find-buffer-visiting filename)))
         (when buffer
           (with-current-buffer buffer
-            (setq ssh-deploy--mode-line-status status)
+            (push status ssh-deploy--mode-line-status)
             ;; (message "SSH Deploy - Updated status to %s" ssh-deploy--mode-line-status)
             (ssh-deploy--mode-line-status-refresh))))
     (progn
-      (setq ssh-deploy--mode-line-status status)
+      (push status ssh-deploy--mode-line-status)
       ;; (message "SSH Deploy - Updated status to %s" ssh-deploy--mode-line-status)
       (ssh-deploy--mode-line-status-refresh))))
 
-
 (defun ssh-deploy--mode-line-status-refresh ()
   "Refresh the status text based on the status variable."
-  (ssh-deploy--mode-line-status-update ssh-deploy--mode-line-status))
+  (ssh-deploy--mode-line-status-update (pop ssh-deploy--mode-line-status)))
 
 (defun ssh-deploy--mode-line-status-update (status)
   "Update the local status text variable to a text representation based on STATUS."
+  (when (or (not (boundp 'status))
+            (null status))
+    (setq status 10))
   (let ((status-text ""))
     (cond
 
@@ -337,7 +339,7 @@
      ((= status ssh-deploy--status-detecting-remote-changes)
       (setq status-text "diff.."))
 
-     (t (setq status-text "?"))
+     (t (setq status-text ""))
 
      )
     (make-local-variable 'ssh-deploy--mode-line-status-text)
