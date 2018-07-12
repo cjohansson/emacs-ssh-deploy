@@ -281,6 +281,9 @@
 (defconst ssh-deploy--status-detecting-remote-changes 5
   "The mode-line status for detecting remote changes.")
 
+(defconst ssh-deploy--status-undefined 10
+  "The mode-line undefined status.")
+
 (defvar ssh-deploy--mode-line-status '()
   "The mode-line status displayed in mode-line.")
 
@@ -301,23 +304,30 @@
       (let ((buffer (find-buffer-visiting filename)))
         (when buffer
           (with-current-buffer buffer
+            (when (not (listp 'ssh-deploy--mode-line-status))
+              (setq ssh-deploy--mode-line-status '()))
             (push status ssh-deploy--mode-line-status)
-            ;; (message "SSH Deploy - Updated status to %s" ssh-deploy--mode-line-status)
+            ;; (message "SSH Deploy - Updated status to: %s" ssh-deploy--mode-line-status)
             (ssh-deploy--mode-line-status-refresh))))
     (progn
+      (when (not (listp 'ssh-deploy--mode-line-status))
+        (setq ssh-deploy--mode-line-status '()))
       (push status ssh-deploy--mode-line-status)
-      ;; (message "SSH Deploy - Updated status to %s" ssh-deploy--mode-line-status)
+      ;; (message "SSH Deploy - Updated status to: %s" ssh-deploy--mode-line-status)
       (ssh-deploy--mode-line-status-refresh))))
 
 (defun ssh-deploy--mode-line-status-refresh ()
   "Refresh the status text based on the status variable."
-  (ssh-deploy--mode-line-status-update (pop ssh-deploy--mode-line-status)))
+  (let ((status (pop ssh-deploy--mode-line-status)))
+    ;; (message "SSH Deploy - Refreshing status based on: %s" status)
+    (ssh-deploy--mode-line-status-update status)))
 
-(defun ssh-deploy--mode-line-status-update (status)
+(defun ssh-deploy--mode-line-status-update (&optional status)
   "Update the local status text variable to a text representation based on STATUS."
   (when (or (not (boundp 'status))
-            (null status))
-    (setq status 10))
+            (not status))
+    ;; (message "SSH Deploy -Resetting status: %s" status)
+    (setq status ssh-deploy--status-undefined))
   (let ((status-text ""))
     (cond
 
@@ -344,7 +354,7 @@
      )
     (make-local-variable 'ssh-deploy--mode-line-status-text)
     (setq ssh-deploy--mode-line-status-text (ssh-deploy--mode-line-status-text-format status-text))
-    ;; (message "SSH Deploy - Updated status text to %s" ssh-deploy--mode-line-status-text)
+    ;; (message "SSH Deploy - Updated status text to: '%s' from: %d" ssh-deploy--mode-line-status-text status)
     ))
 
 (defun ssh-deploy--mode-line-status-text-format (text)
