@@ -319,7 +319,7 @@
 (defun ssh-deploy--mode-line-status-refresh ()
   "Refresh the status text based on the status variable."
   (unless (listp ssh-deploy--mode-line-status)
-    ;; (message "Resetting status %s" ssh-deploy--mode-line-status)
+    ;; (message "Resetting status: %s" ssh-deploy--mode-line-status)
     (setq ssh-deploy--mode-line-status '()))
   (let ((status (pop ssh-deploy--mode-line-status)))
     ;; (message "SSH Deploy - Refreshing status based on: %s" status)
@@ -327,8 +327,8 @@
 
 (defun ssh-deploy--mode-line-status-update (&optional status)
   "Update the local status text variable to a text representation based on STATUS."
-  (unless (or (boundp 'status)
-              (not status))
+  (unless (and (boundp 'status)
+               status)
     ;; (message "SSH Deploy -Resetting status: %s" status)
     (setq status ssh-deploy--status-undefined))
   (let ((status-text ""))
@@ -1416,7 +1416,6 @@
 
 
 ;;; Mode Line
-
 
 
 (define-minor-mode ssh-deploy-line-mode
