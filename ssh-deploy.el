@@ -334,9 +334,6 @@
   (let ((status-text ""))
     (cond
 
-     ((= status ssh-deploy--status-idle)
-      (setq status-text "idle"))
-
      ((= status ssh-deploy--status-downloading)
       (setq status-text "dl.."))
 
@@ -355,6 +352,7 @@
      (t (setq status-text ""))
 
      )
+
     (make-local-variable 'ssh-deploy--mode-line-status-text)
     (setq ssh-deploy--mode-line-status-text (ssh-deploy--mode-line-status-text-format status-text))
     ;; (message "SSH Deploy - Updated status text to: '%s' from: %d" ssh-deploy--mode-line-status-text status)
