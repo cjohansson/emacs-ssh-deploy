@@ -304,13 +304,13 @@
       (let ((buffer (find-buffer-visiting filename)))
         (when buffer
           (with-current-buffer buffer
-            (when (not (listp ssh-deploy--mode-line-status))
+            (unless (listp ssh-deploy--mode-line-status)
               (setq ssh-deploy--mode-line-status '()))
             (push status ssh-deploy--mode-line-status)
             ;; (message "SSH Deploy - Updated status to: %s" ssh-deploy--mode-line-status)
             (ssh-deploy--mode-line-status-refresh))))
     (progn
-      (when (not (listp ssh-deploy--mode-line-status))
+      (unless (listp ssh-deploy--mode-line-status)
         (setq ssh-deploy--mode-line-status '()))
       (push status ssh-deploy--mode-line-status)
       ;; (message "SSH Deploy - Updated status to: %s" ssh-deploy--mode-line-status)
@@ -318,7 +318,7 @@
 
 (defun ssh-deploy--mode-line-status-refresh ()
   "Refresh the status text based on the status variable."
-  (when (not (listp ssh-deploy--mode-line-status))
+  (unless (listp ssh-deploy--mode-line-status)
     ;; (message "Resetting status %s" ssh-deploy--mode-line-status)
     (setq ssh-deploy--mode-line-status '()))
   (let ((status (pop ssh-deploy--mode-line-status)))
