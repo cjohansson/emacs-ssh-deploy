@@ -327,8 +327,8 @@
 
 (defun ssh-deploy--mode-line-status-update (&optional status)
   "Update the local status text variable to a text representation based on STATUS."
-  (when (or (not (boundp 'status))
-            (not status))
+  (unless (or (boundp 'status)
+              (not status))
     ;; (message "SSH Deploy -Resetting status: %s" status)
     (setq status ssh-deploy--status-undefined))
   (let ((status-text ""))
