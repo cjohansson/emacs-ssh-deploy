@@ -39,7 +39,7 @@ Here is a list of other variables you can set globally or per directory:
 * `ssh-deploy-remote-sql-server` Default server when connecting to remote SQL database *(string)*
 * `ssh-deploy-remote-sql-user` Default user when connecting to remote SQL database *(string)*
 * `ssh-deploy-remote-shell-executable` Default remote shell executable when launching shell on remote host *(string)*
-
+* `ssh-deploy-verbose` Show messages in message buffer when starting and ending actions, default t *(boolean)*
 
 ## Deployment configuration examples
 
