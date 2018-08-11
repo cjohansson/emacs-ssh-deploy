@@ -33,7 +33,8 @@
 
 ;; ssh-deploy enables automatic deploys on explicit-save actions, manual uploads, renaming,
 ;; deleting, downloads, file and directory differences, launching remote terminals (eshell, shell),
-;; detection of remote changes, remote directory browsing, remote SQL database sessions via TRAMP.
+;; detection of remote changes, remote directory browsing, remote SQL database sessions and
+;; running custom deployment scripts via TRAMP.
 ;;
 ;; For asynchrous operations it uses package async.el.
 ;;
@@ -72,6 +73,7 @@
 ;;     (global-set-key (kbd "C-c C-z B") (lambda() (interactive)(ssh-deploy-browse-remote-handler) ))
 ;;     (global-set-key (kbd "C-c C-z o") (lambda() (interactive)(ssh-deploy-open-remote-file-handler) ))
 ;;     (global-set-key (kbd "C-c C-z m") (lambda() (interactive)(ssh-deploy-remote-sql-mysql-handler) ))
+;;     (global-set-key (kbd "C-c C-z s") (lambda() (interactive)(ssh-deploy-run-deploy-script-handler) ))
 ;;
 ;; - To install and set-up using use-package and hydra do this:
 ;;   (use-package ssh-deploy
@@ -93,6 +95,7 @@
 ;; _R_: Rename
 ;; _b_: Browse Base                         _B_: Browse Relative
 ;; _o_: Open current file on remote         _m_: Open sql-mysql on remote
+;; _s_: Run deploy script
 ;; "
 ;;       ("f" ssh-deploy-upload-handler-forced)
 ;;       ("u" ssh-deploy-upload-handler)
@@ -108,7 +111,8 @@
 ;;       ("b" ssh-deploy-browse-remote-base-handler)
 ;;       ("B" ssh-deploy-browse-remote-handler)
 ;;       ("o" ssh-deploy-open-remote-file-handler)
-;;       ("m" ssh-deploy-remote-sql-mysql-handler)))
+;;       ("m" ssh-deploy-remote-sql-mysql-handler)
+;;       ("s" ssh-deploy-run-deploy-script-handler)))
 ;;
 ;;
 ;; Here is an example for SSH deployment, /Users/Chris/Web/Site1/.dir-locals.el:
@@ -125,6 +129,7 @@
 ;;   (ssh-deploy-root-remote . "/sftp:myuser@myserver.com:/var/www/site2/")
 ;;   (ssh-deploy-on-explicit-save . nil)
 ;;   (ssh-deploy-async . nil)
+;;   (ssh-deploy-script . (lambda() (let ((default-directory ssh-deploy-root-remote))(shell-command "bash compile.sh"))))
 ;; )))
 ;;
 ;; Here is an example for FTP deployment, /Users/Chris/Web/Site3/.dir-locals.el:
@@ -153,6 +158,7 @@
 ;; * `ssh-deploy-remote-sql-user' - Default user when connecting to remote SQL database *(string)*
 ;; * `ssh-deploy-remote-shell-executable' - Default shell executable when launching shell on remote host
 ;; * `ssh-deploy-verbose' - Show messages in message buffer when starting and ending actions, default t *(boolean)*
+;; * `ssh-deploy-script' - Our custom lambda function that will be called using (funcall) when running deploy script
 ;;
 ;; Please see README.md from the same repository for extended documentation.
 
@@ -194,7 +200,7 @@
 (put 'ssh-deploy-debug 'permanent-local t)
 (put 'ssh-deploy-debug 'safe-local-variable 'booleanp)
 
-;; TODO This flag needs to work better
+;; TODO This flag needs to work better, you should not miss any useful notifications when this is on
 (defcustom ssh-deploy-verbose t
   "Boolean variable if debug messages should be shown, t by default."
   :type 'boolean
