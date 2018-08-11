@@ -1419,13 +1419,13 @@
 (define-key
   global-map
   [menu-bar sshdeploy sc]
-  '("Run deploy script" . ssh-deploy-run-deploy-script-handler))
+  '("Run script" . ssh-deploy-run-deploy-script-handler))
 (define-key
   global-map
   [menu-bar sshdeploy sep7]
   '("--"))
 
-(Define-key
+(define-key
   global-map
   [menu-bar sshdeploy ulf]
   '("Forced Upload" . ssh-deploy-upload-handler-forced))
