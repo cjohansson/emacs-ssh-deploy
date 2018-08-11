@@ -3,8 +3,8 @@
 ;; Author: Christian Johansson <github.com/cjohansson>
 ;; Maintainer: Christian Johansson <github.com/cjohansson>
 ;; Created: 5 Jul 2016
-;; Modified: 31 July 2018
-;; Version: 1.95
+;; Modified: 11 Aug 2018
+;; Version: 1.96
 ;; Keywords: tools, convenience
 ;; URL: https://github.com/cjohansson/emacs-ssh-deploy
 
@@ -194,6 +194,7 @@
 (put 'ssh-deploy-debug 'permanent-local t)
 (put 'ssh-deploy-debug 'safe-local-variable 'booleanp)
 
+;; TODO This flag needs to work better
 (defcustom ssh-deploy-verbose t
   "Boolean variable if debug messages should be shown, t by default."
   :type 'boolean
@@ -270,6 +271,13 @@
   :group 'ssh-deploy)
 (put 'ssh-deploy-remote-shell-executable 'permanent-local t)
 (put 'ssh-deploy-remote-shell-executable 'safe-local-variable 'stringp)
+
+(defcustom ssh-deploy-script nil
+  "Lambda function to run with `funcall' when `ssh-deploy-run-deploy-script-handler' is executed."
+  :type 'lambda
+  :group 'ssh-deploy)
+(put 'ssh-deploy-script 'permanent-local t)
+(put 'ssh-deploy-script 'safe-local-variable 'funcp)
 
 (defconst ssh-deploy--status-idle 0
   "The idle mode-line status.")
@@ -1305,12 +1313,21 @@
       (let ((root-local (file-truename ssh-deploy-root-local)))
         (ssh-deploy-browse-remote root-local root-local ssh-deploy-root-remote ssh-deploy-exclude-list))))
 
+;;;### autoload
+(defun ssh-deploy-run-deploy-script-handler ()
+  "Run `ssh-deploy-script' with `funcall'."
+  (interactive)
+  (if (boundp 'ssh-deploy-script)
+      (funcall ssh-deploy-script)
+    (display-warning 'ssh-deploy (format "ssh-deploy-script lacks definition!" type) :warning)))
+
 
 ;;; Menu-bar
 
 ;; Creating a new menu pane named Deployment  in the menu-bar to the right of “Tools” menu
 ;; This is particularly useful when key-bindings are not working because of some mode
 ;; overriding them.
+
 (define-key-after
   global-map
   [menu-bar sshdeploy]
@@ -1400,6 +1417,15 @@
   '("--"))
 
 (define-key
+  global-map
+  [menu-bar sshdeploy sc]
+  '("Run deploy script" . ssh-deploy-run-deploy-script-handler))
+(define-key
+  global-map
+  [menu-bar sshdeploy sep7]
+  '("--"))
+
+(Define-key
   global-map
   [menu-bar sshdeploy ulf]
   '("Forced Upload" . ssh-deploy-upload-handler-forced))
