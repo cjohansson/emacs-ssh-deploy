@@ -283,7 +283,7 @@
   :type 'lambda
   :group 'ssh-deploy)
 (put 'ssh-deploy-script 'permanent-local t)
-(put 'ssh-deploy-script 'safe-local-variable 'funcp)
+(put 'ssh-deploy-script 'safe-local-variable 'fboundp)
 
 (defconst ssh-deploy--status-idle 0
   "The idle mode-line status.")
