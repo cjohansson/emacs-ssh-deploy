@@ -15,6 +15,7 @@ The `ssh-deploy` plug-in for Emacs makes it possible to effortlessly deploy loca
 * Delete files and directories on local host and have it mirrored on the remote
 * Open corresponding file on the remote host
 * Open SQL database-session on remote hosts
+* Run custom deployment scripts
 * All operations support asynchronous mode if `async.el` is installed. (You need to setup an automatic authorization for this, i.e. `~/.netrc`, `~/.authinfo` or `~/.authinfo.gpg` and/or key-based password-less authorization)
 
 The idea for this plug-in was to mimic the behavior of **PhpStorm** deployment functionality.
@@ -40,6 +41,7 @@ Here is a list of other variables you can set globally or per directory:
 * `ssh-deploy-remote-sql-user` Default user when connecting to remote SQL database *(string)*
 * `ssh-deploy-remote-shell-executable` Default remote shell executable when launching shell on remote host *(string)*
 * `ssh-deploy-verbose` Show messages in message buffer when starting and ending actions, default t *(boolean)*
+* `ssh-deploy-script` - Your custom lambda function that will be called using (funcall) when running deploy script handler
 
 ## Deployment configuration examples
 
@@ -84,7 +86,7 @@ You really need to do a bit of research about how to connect via different proto
 
 You can pipe remote connections as well like this:
 
-### SSH, not asynchronous, automatic uploads, piped to other user on remote server
+### SSH, not asynchronous, automatic uploads, piped to other user on remote server and with custom deployment script.
 
 ``` emacs-lisp
 ((nil . (
@@ -92,6 +94,7 @@ You can pipe remote connections as well like this:
   (ssh-deploy-root-remote . "/ssh:myuser@myserver.com|sudo:web@myserver.com:/var/www/MySite/")
   (ssh-deploy-async . nil)
   (ssh-deploy-on-explicit-save . t)
+  (ssh-deploy-script . (lambda() (let ((default-directory ssh-deploy-root-remote))(shell-command "bash compile.sh"))))
 )))
 ```
 
@@ -162,6 +165,7 @@ By combining a `~/.netrc`, `~/.authinfo` or `~/.authinfo.gpg` setup and a `publi
 (global-set-key (kbd "C-c C-z b") (lambda() (interactive)(ssh-deploy-browse-remote-base-handler) ))
 (global-set-key (kbd "C-c C-z o") (lambda() (interactive)(ssh-deploy-open-remote-file-handler) ))
 (global-set-key (kbd "C-c C-z m") (lambda() (interactive)(ssh-deploy-remote-sql-mysql-handler) ))
+(global-set-key (kbd "C-c C-z s") (lambda() (interactive)(ssh-deploy-run-deploy-script-handler) ))
 ```
 
 * Or use the `use-package` and `hydra-script` I'm using:
@@ -186,6 +190,7 @@ By combining a `~/.netrc`, `~/.authinfo` or `~/.authinfo.gpg` setup and a `publi
     _R_: Rename
     _b_: Browse Base                         _B_: Browse Relative
     _o_: Open current file on remote         _m_: Open sql-mysql on remote
+    _s_: Run deploy script
     "
           ("f" ssh-deploy-upload-handler-forced)
           ("u" ssh-deploy-upload-handler)
@@ -201,7 +206,8 @@ By combining a `~/.netrc`, `~/.authinfo` or `~/.authinfo.gpg` setup and a `publi
           ("b" ssh-deploy-browse-remote-base-handler)
           ("B" ssh-deploy-browse-remote-handler)
           ("o" ssh-deploy-open-remote-file-handler)
-          ("m" ssh-deploy-remote-sql-mysql-handler)))
+          ("m" ssh-deploy-remote-sql-mysql-handler)
+          ("s" ssh-deploy-run-deploy-script-handler)))
 ```
 
 (1) You can remove the `(add-to-list)` and `(require)` lines if you installed via `MELPA` repository.
@@ -226,6 +232,7 @@ By combining a `~/.netrc`, `~/.authinfo` or `~/.authinfo.gpg` setup and a `publi
 * If you press `C-c C-z e` you will check for remote changes to the current file.
 * If you press `C-c C-z o` you will open remote file corresponding to local file.
 * If you press `C-c C-z m` you will open remote sql-mysql session on remote host.
+* If you press `C-c C-z s` you will run your custom deploy script.
 
 The local path and local root is evaluated based on their `truename` so if you use different symbolic local paths it shouldn't affect the deployment procedure.
 
