@@ -3,8 +3,8 @@
 ;; Author: Christian Johansson <github.com/cjohansson>
 ;; Maintainer: Christian Johansson <github.com/cjohansson>
 ;; Created: 5 Jul 2016
-;; Modified: 11 Aug 2018
-;; Version: 1.96
+;; Modified: 19 Aug 2018
+;; Version: 1.97
 ;; Keywords: tools, convenience
 ;; URL: https://github.com/cjohansson/emacs-ssh-deploy
 
@@ -36,7 +36,7 @@
 ;; detection of remote changes, remote directory browsing, remote SQL database sessions and
 ;; running custom deployment scripts via TRAMP.
 ;;
-;; For asynchrous operations it uses package async.el.
+;; For asynchronous operations it uses package `async.el'.
 ;;
 ;; By setting the variables (globally, per directory or per file):
 ;; ssh-deploy-root-local,ssh-deploy-root-remote, ssh-deploy-on-explicit-save
@@ -209,7 +209,7 @@
 (put 'ssh-deploy-verbose 'safe-local-variable 'booleanp)
 
 (defcustom ssh-deploy-async t
-  "Boolean variable if asynchrous method for transfers should be used, t by default."
+  "Boolean variable if asynchronous method for transfers should be used, t by default."
   :type 'boolean
   :group 'ssh-deploy)
 (put 'ssh-deploy-async 'permanent-local t)
@@ -283,7 +283,7 @@
   :type 'lambda
   :group 'ssh-deploy)
 (put 'ssh-deploy-script 'permanent-local t)
-(put 'ssh-deploy-script 'safe-local-variable 'funcp)
+(put 'ssh-deploy-script 'safe-local-variable 'functionp)
 
 (defconst ssh-deploy--status-idle 0
   "The idle mode-line status.")
@@ -1323,8 +1323,23 @@
 (defun ssh-deploy-run-deploy-script-handler ()
   "Run `ssh-deploy-script' with `funcall'."
   (interactive)
-  (if (boundp 'ssh-deploy-script)
-      (funcall ssh-deploy-script)
+  (if (and (boundp 'ssh-deploy-script)
+           ssh-deploy-script)
+      (if ssh-deploy-async
+          (if (fboundp 'async-start)
+              (progn
+                (message "Executing of deployment-script starting... (asynchronously)")
+                (async-start
+                 `(lambda()
+                    (let ((ssh-deploy-root-local ,ssh-deploy-root-local)
+                          (ssh-deploy-root-remote ,ssh-deploy-root-remote))
+                      (funcall ,ssh-deploy-script)))
+                 (lambda(result) (message "Completed execution of deployment-script. '%s'(asynchronously)" result))))
+            (display-warning 'ssh-deploy "async.el is not installed" :warning))
+        (progn
+          (message "Executing of deployment-script starting... (synchronously)")
+          (funcall ssh-deploy-script)
+          (message "Completed execution of deployment-script. (synchronously)")))
     (display-warning 'ssh-deploy (format "ssh-deploy-script lacks definition!" type) :warning)))
 
 
