@@ -4,7 +4,7 @@
 ;; Maintainer: Christian Johansson <github.com/cjohansson>
 ;; Created: 5 Jul 2016
 ;; Modified: 19 Aug 2018
-;; Version: 1.98
+;; Version: 2.0
 ;; Keywords: tools, convenience
 ;; URL: https://github.com/cjohansson/emacs-ssh-deploy
 
@@ -36,7 +36,7 @@
 ;; detection of remote changes, remote directory browsing, remote SQL database sessions and
 ;; running custom deployment scripts via TRAMP.
 ;;
-;; For asynchronous operations it uses package `async.el'.
+;; For asynchronous operations it uses package '`make-thread' or if not available '`async.el'.
 ;;
 ;; By setting the variables (globally, per directory or per file):
 ;; ssh-deploy-root-local,ssh-deploy-root-remote, ssh-deploy-on-explicit-save
@@ -150,7 +150,7 @@
 ;; * `ssh-deploy-automatically-detect-remote-changes' - Enables automatic detection of remote changes *(boolean)*
 ;; * `ssh-deploy-on-explicit-save' - Enabled automatic uploads on save *(boolean)*
 ;; * `ssh-deploy-exclude-list' - A list defining what paths to exclude from deployment *(list)*
-;; * `ssh-deploy-async' - Enables asynchronous transfers (you need to have `async.el` installed as well) *(boolean)*
+;; * `ssh-deploy-async' - Enables asynchronous transfers (you need to have `(make-thread)` or `async.el` available as well) *(boolean)*
 ;; * `ssh-deploy-remote-sql-database' - Default database when connecting to remote SQL database *(string)*
 ;; * `ssh-deploy-remote-sql-password' - Default password when connecting to remote SQL database *(string)*
 ;; * `ssh-deploy-remote-sql-port' - Default port when connecting to remote SQL database *(integer)*
@@ -316,8 +316,27 @@
 ;; PRIVATE FUNCTIONS
 ;;
 ;; these functions are only used internally and should be of no value to outside public and handler functions.
-;; these functions MUST not use module variables.
+;; these functions MUST not use module variables in any way.
 
+
+(defun ssh-deploy--async-process (start &optional finish)
+  "Asynchronously do START and then optionally do FINISH."
+  (if (fboundp 'make-thread)
+      (make-thread `(lambda()
+                      (let ((start ,start)
+                            (finish ,finish))
+                        (if (boundp 'start)
+                            (progn
+                              (let ((result (funcall start)))
+                                (if (boundp 'finish)
+                                    (progn
+                                      (funcall finish result)))))))))
+    (if (fboundp 'async-start)
+        (if (boundp 'start)
+            (if (boundp 'finish)
+                (async-start start finish)
+              (async-start start)))
+      (display-warning 'ssh-deploy "Neither make-thread nor async-start functions are available!"))))
 
 (defun ssh-deploy--mode-line-set-status-and-update (status &optional filename)
   "Set the mode line STATUS in optionally in buffer visiting FILENAME."
@@ -421,40 +440,38 @@
 
 (defun ssh-deploy--upload-via-tramp-async (path-local path-remote force revision-folder)
   "Upload PATH-LOCAL to PATH-REMOTE via TRAMP asynchronously and FORCE upload despite remote change, check for revisions in REVISION-FOLDER."
-  (if (fboundp 'async-start)
-      (let ((file-or-directory (not (file-directory-p path-local))))
-        (ssh-deploy--mode-line-set-status-and-update ssh-deploy--status-uploading path-local)
-        (if file-or-directory
-            (let ((revision-path (ssh-deploy--get-revision-path path-local revision-folder)))
-              (when ssh-deploy-verbose (message "Uploading file '%s' to '%s'.. (asynchronously)" path-local path-remote))
-              (async-start
-               `(lambda()
-                  (require 'ediff-util)
-                  (if (fboundp 'ediff-same-file-contents)
-                      (if (or (eq t ,force) (not (file-exists-p ,path-remote)) (and (file-exists-p ,revision-path) (ediff-same-file-contents ,revision-path ,path-remote)))
-                          (progn
-                            (if (not (file-directory-p (file-name-directory ,path-remote)))
-                                (make-directory (file-name-directory ,path-remote) t))
-                            (copy-file ,path-local ,path-remote t t t t)
-                            (copy-file ,path-local ,revision-path t t t t)
-                            (list 0 (format "Completed upload of file '%s'. (asynchronously)" ,path-remote) ,path-local))
-                        (list 1 (format "Remote file '%s' has changed, please download or diff. (asynchronously)" ,path-remote) ,path-local))
-                    (list 1 "Function 'ediff-same-file-contents' is missing. (asynchronously)" ,path-local)))
-               (lambda(return)
-                 (ssh-deploy--mode-line-set-status-and-update ssh-deploy--status-idle (nth 2 return))
-                 (if (= (nth 0 return) 0)
-                     (when ssh-deploy-verbose (message (nth 1 return)))
-                   (display-warning 'ssh-deploy (nth 1 return) :warning)))))
-          (progn
-            (when ssh-deploy-verbose (message "Uploading directory '%s' to '%s'.. (asynchronously)" path-local path-remote))
-            (async-start
-             `(lambda()
-                (copy-directory ,path-local ,path-remote t t t)
-                ,path-local)
-             (lambda(return-path)
-               (ssh-deploy--mode-line-set-status-and-update ssh-deploy--status-idle return-path)
-               (when ssh-deploy-verbose (message "Completed upload of directory '%s'. (asynchronously)" return-path)))))))
-    (display-warning 'ssh-deploy "async.el is not installed" :warning)))
+  (let ((file-or-directory (not (file-directory-p path-local))))
+    (ssh-deploy--mode-line-set-status-and-update ssh-deploy--status-uploading path-local)
+    (if file-or-directory
+        (let ((revision-path (ssh-deploy--get-revision-path path-local revision-folder)))
+          (when ssh-deploy-verbose (message "Uploading file '%s' to '%s'.. (asynchronously)" path-local path-remote))
+          (ssh-deploy--async-process
+           `(lambda()
+              (require 'ediff-util)
+              (if (fboundp 'ediff-same-file-contents)
+                  (if (or (eq t ,force) (not (file-exists-p ,path-remote)) (and (file-exists-p ,revision-path) (ediff-same-file-contents ,revision-path ,path-remote)))
+                      (progn
+                        (if (not (file-directory-p (file-name-directory ,path-remote)))
+                            (make-directory (file-name-directory ,path-remote) t))
+                        (copy-file ,path-local ,path-remote t t t t)
+                        (copy-file ,path-local ,revision-path t t t t)
+                        (list 0 (format "Completed upload of file '%s'. (asynchronously)" ,path-remote) ,path-local))
+                    (list 1 (format "Remote file '%s' has changed, please download or diff. (asynchronously)" ,path-remote) ,path-local))
+                (list 1 "Function 'ediff-same-file-contents' is missing. (asynchronously)" ,path-local)))
+           (lambda(return)
+             (ssh-deploy--mode-line-set-status-and-update ssh-deploy--status-idle (nth 2 return))
+             (if (= (nth 0 return) 0)
+                 (when ssh-deploy-verbose (message (nth 1 return)))
+               (display-warning 'ssh-deploy (nth 1 return) :warning)))))
+      (progn
+        (when ssh-deploy-verbose (message "Uploading directory '%s' to '%s'.. (asynchronously)" path-local path-remote))
+        (ssh-deploy--async-process
+         `(lambda()
+            (copy-directory ,path-local ,path-remote t t t)
+            ,path-local)
+         (lambda(return-path)
+           (ssh-deploy--mode-line-set-status-and-update ssh-deploy--status-idle return-path)
+           (when ssh-deploy-verbose (message "Completed upload of directory '%s'. (asynchronously)" return-path))))))))
 
 (defun ssh-deploy--upload-via-tramp (path-local path-remote force revision-folder)
   "Upload PATH-LOCAL to PATH-REMOTE via TRAMP synchronously and FORCE despite remote change compared with copy in REVISION-FOLDER."
@@ -486,29 +503,27 @@
 
 (defun ssh-deploy--download-via-tramp-async (path-remote path-local revision-folder)
   "Download PATH-REMOTE to PATH-LOCAL via TRAMP asynchronously and make a copy in REVISION-FOLDER."
-  (if (fboundp 'async-start)
-      (let ((revision-path (ssh-deploy--get-revision-path path-local revision-folder)))
-        (ssh-deploy--mode-line-set-status-and-update ssh-deploy--status-downloading path-local)
-        (when ssh-deploy-verbose (message "Downloading '%s' to '%s'.. (asynchronously)" path-remote path-local))
-        (async-start
-         `(lambda()
-            (let ((file-or-directory (not (file-directory-p ,path-remote))))
-              (if file-or-directory
-                  (progn
-                    (if (not (file-directory-p (file-name-directory ,path-local)))
-                        (make-directory (file-name-directory ,path-local) t))
-                    (copy-file ,path-remote ,path-local t t t t)
-                    (copy-file ,path-local ,revision-path t t t t))
-                (copy-directory ,path-remote ,path-local t t t))
-              ,path-local))
-         (lambda(return-path)
-           (ssh-deploy--mode-line-set-status-and-update ssh-deploy--status-idle return-path)
-           (when ssh-deploy-verbose (message "Completed download of '%s'. (asynchronously)" return-path))
-           (let ((local-buffer (find-buffer-visiting return-path)))
-             (when local-buffer
-               (with-current-buffer local-buffer
-                 (revert-buffer t t t)))))))
-    (display-warning 'ssh-deploy "async.el is not installed" :warning)))
+  (let ((revision-path (ssh-deploy--get-revision-path path-local revision-folder)))
+    (ssh-deploy--mode-line-set-status-and-update ssh-deploy--status-downloading path-local)
+    (when ssh-deploy-verbose (message "Downloading '%s' to '%s'.. (asynchronously)" path-remote path-local))
+    (ssh-deploy--async-process
+     `(lambda()
+        (let ((file-or-directory (not (file-directory-p ,path-remote))))
+          (if file-or-directory
+              (progn
+                (if (not (file-directory-p (file-name-directory ,path-local)))
+                    (make-directory (file-name-directory ,path-local) t))
+                (copy-file ,path-remote ,path-local t t t t)
+                (copy-file ,path-local ,revision-path t t t t))
+            (copy-directory ,path-remote ,path-local t t t))
+          ,path-local))
+     (lambda(return-path)
+       (ssh-deploy--mode-line-set-status-and-update ssh-deploy--status-idle return-path)
+       (when ssh-deploy-verbose (message "Completed download of '%s'. (asynchronously)" return-path))
+       (let ((local-buffer (find-buffer-visiting return-path)))
+         (when local-buffer
+           (with-current-buffer local-buffer
+             (revert-buffer t t t))))))))
 
 (defun ssh-deploy--download-via-tramp (path-remote path-local revision-folder)
   "Download PATH-REMOTE to PATH-LOCAL via TRAMP synchronously and store a copy in REVISION-FOLDER."
@@ -726,10 +741,10 @@
       (setq async ssh-deploy-async))
   (if (not (boundp 'exclude-list))
       (setq exclude-list ssh-deploy-exclude-list))
-  (if (and async (fboundp 'async-start))
+  (if async
       (let ((script-filename (file-name-directory (symbol-file 'ssh-deploy-diff-directories))))
         (message "Calculating differences between directory '%s' and '%s'.. (asynchronously)" directory-a directory-b)
-        (async-start
+        (ssh-deploy--async-process
          `(lambda()
             (add-to-list 'load-path ,script-filename)
             (require 'ssh-deploy)
@@ -766,17 +781,15 @@
                 ;; Does a local revision of the file exist?
                 (if (file-exists-p revision-path)
 
-                    ;; Local revision exist. Is async.el installed?
-                    (if (and async (fboundp 'async-start))
-
-                        ;; Async.el is installed
+                    ;; Local revision exist. Is async enabled?
+                    (if async
                         (progn
 
                           ;; Update buffer status
                           (ssh-deploy--mode-line-set-status-and-update ssh-deploy--status-detecting-remote-changes)
 
                           ;; Asynchronous logic here
-                          (async-start
+                          (ssh-deploy--async-process
                            `(lambda()
                               (if (file-exists-p ,path-remote)
                                   (progn
@@ -800,7 +813,7 @@
                                  (when ssh-deploy-verbose (message (nth 1 return)))
                                (display-warning 'ssh-deploy (nth 1 return) :warning)))))
 
-                      ;; Async.el is not installed - synchronous logic here
+                      ;; Async is not enabled - synchronous logic here
                       (progn
 
                         ;; Update buffer status
@@ -820,17 +833,15 @@
                         ;; Update buffer status to idle
                         (ssh-deploy--mode-line-set-status-and-update ssh-deploy--status-idle)))
 
-                  ;; Does not have local revision. Is async.el installed?
-                  (if (and async (fboundp 'async-start))
-
-                      ;; Async.el is installed
+                  ;; Does not have local revision. Is async enabled?
+                  (if async
                       (progn
 
                         ;; Update buffer status
                         (ssh-deploy--mode-line-set-status-and-update ssh-deploy--status-detecting-remote-changes)
 
                         ;; Asynchronous logic here
-                        (async-start
+                        (ssh-deploy--async-process
                          `(lambda()
 
                             ;; Does remote file exist?
@@ -854,7 +865,7 @@
                                (when ssh-deploy-verbose (message (nth 1 return)))
                              (display-warning 'ssh-deploy (nth 1 return) :warning)))))
 
-                    ;; Async.el is not installed - synchronous logic here
+                    ;; Async is not enabled - synchronous logic here
                     (progn
 
                       ;; Update buffer status
@@ -884,12 +895,12 @@
 
 (defun ssh-deploy-delete (path &optional async debug buffer)
   "Delete PATH and use flags ASYNC and DEBUG, set status in BUFFER."
-  (if (and async (fboundp 'async-start))
+  (if async
       (progn
         (when (and (boundp 'buffer)
                    buffer)
           (ssh-deploy--mode-line-set-status-and-update ssh-deploy--status-deleting buffer))
-        (async-start
+        (ssh-deploy--async-process
          `(lambda()
             (if (file-exists-p ,path)
                 (let ((file-or-directory (not (file-directory-p ,path))))
@@ -966,8 +977,8 @@
                 (set-buffer-modified-p nil))
             (dired new-path-local))
           (message "Renamed '%s' to '%s'." old-path-local new-path-local)
-          (if (and async (fboundp 'async-start))
-              (async-start
+          (if async
+              (ssh-deploy--async-process
                `(lambda()
                   (rename-file ,old-path-remote ,new-path-remote t)
                   (list ,old-path-remote ,new-path-remote ,new-path-local))
@@ -1085,7 +1096,7 @@
   (if (not (boundp 'force))
       (setq force nil))
   (let ((revision-folder (or revision-folder ssh-deploy-revision-folder)))
-    (if (and async (fboundp 'async-start))
+    (if async
         (ssh-deploy--upload-via-tramp-async path-local path-remote force revision-folder)
       (ssh-deploy--upload-via-tramp path-local path-remote force revision-folder))))
 
@@ -1095,7 +1106,7 @@
   (if (not (boundp 'async))
       (setq async ssh-deploy-async))
   (let ((revision-folder (or revision-folder ssh-deploy-revision-folder)))
-    (if (and async (fboundp 'async-start))
+    (if async
         (ssh-deploy--download-via-tramp-async path-remote path-local revision-folder)
       (ssh-deploy--download-via-tramp path-remote path-local revision-folder))))
 
@@ -1326,16 +1337,14 @@
   (if (and (boundp 'ssh-deploy-script)
            ssh-deploy-script)
       (if ssh-deploy-async
-          (if (fboundp 'async-start)
-              (progn
-                (message "Executing of deployment-script starting... (asynchronously)")
-                (async-start
-                 `(lambda()
-                    (let ((ssh-deploy-root-local ,ssh-deploy-root-local)
-                          (ssh-deploy-root-remote ,ssh-deploy-root-remote))
-                      (funcall ,ssh-deploy-script)))
-                 (lambda(result) (message "Completed execution of deployment-script. '%s'(asynchronously)" result))))
-            (display-warning 'ssh-deploy "async.el is not installed" :warning))
+          (progn
+            (message "Executing of deployment-script starting... (asynchronously)")
+            (ssh-deploy--async-process
+             `(lambda()
+                (let ((ssh-deploy-root-local ,ssh-deploy-root-local)
+                      (ssh-deploy-root-remote ,ssh-deploy-root-remote))
+                  (funcall ,ssh-deploy-script)))
+             (lambda(result) (message "Completed execution of deployment-script. '%s'(asynchronously)" result))))
         (progn
           (message "Executing of deployment-script starting... (synchronously)")
           (funcall ssh-deploy-script)

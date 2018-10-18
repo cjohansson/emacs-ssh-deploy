@@ -16,7 +16,7 @@ The `ssh-deploy` plug-in for Emacs makes it possible to effortlessly deploy loca
 * Open corresponding file on the remote host
 * Open SQL database-session on remote hosts
 * Run custom deployment scripts
-* All operations support asynchronous mode if `async.el` is installed. (You need to setup an automatic authorization for this, i.e. `~/.netrc`, `~/.authinfo` or `~/.authinfo.gpg` and/or key-based password-less authorization)
+* All operations support asynchronous mode if `(make-thread`) or `async.el` is installed. (You need to setup an automatic authorization for this, i.e. `~/.netrc`, `~/.authinfo` or `~/.authinfo.gpg` and/or key-based password-less authorization)
 
 The idea for this plug-in was to mimic the behavior of **PhpStorm** deployment functionality.
 
@@ -33,7 +33,7 @@ Here is a list of other variables you can set globally or per directory:
 * `ssh-deploy-automatically-detect-remote-changes` Enables automatic detection of remote changes *(boolean)*
 * `ssh-deploy-on-explicit-save` Enabled automatic uploads on save *(boolean)*
 * `ssh-deploy-exclude-list` A list defining what paths to exclude from deployment *(list)*
-* `ssh-deploy-async` Enables asynchronous transfers (you need to have `async.el` installed as well) *(boolean)*
+* `ssh-deploy-async` Enables asynchronous transfers (you need to have `(make-thread)` or `async.el` installed as well) *(boolean)*
 * `ssh-deploy-remote-sql-database` Default database when connecting to remote SQL database *(string)*
 * `ssh-deploy-remote-sql-password` Default password when connecting to remote SQL database *(string)*
 * `ssh-deploy-remote-sql-port` - Default port when connecting to remote SQL database *(integer)*
