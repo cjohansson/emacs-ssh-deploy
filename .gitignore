@@ -1,0 +1,3 @@
+*.elc
+ssh-deploy-autoloads.el
+ssh-deploy-pkg.el
