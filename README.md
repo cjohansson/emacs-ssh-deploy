@@ -1,5 +1,5 @@
 # `emacs-ssh-deploy`
-[![License GPL 3](https://img.shields.io/badge/license-GPL_3-green.svg)](http://www.gnu.org/licenses/gpl-3.0.txt) [![MELPA](http://melpa.org/packages/ssh-deploy-badge.svg)](http://melpa.org/#/ssh-deploy) [![MELPA Stable](http://stable.melpa.org/packages/ssh-deploy-badge.svg)](http://stable.melpa.org/#/ssh-deploy)
+[![License GPL 3](https://img.shields.io/badge/license-GPL_3-green.svg)](https://www.gnu.org/licenses/gpl-3.0.txt) [![MELPA](https://melpa.org/packages/ssh-deploy-badge.svg)](https://melpa.org/#/ssh-deploy) [![MELPA Stable](https://stable.melpa.org/packages/ssh-deploy-badge.svg)](https://stable.melpa.org/#/ssh-deploy)
 
 The `ssh-deploy` plug-in for Emacs makes it possible to effortlessly deploy local files and directories to remote hosts via TRAMP (including but not limited to SSH, SFTP, FTP). It tries to provide functions that can be easily used by custom scripts.
 
@@ -46,7 +46,7 @@ Here is a list of other variables you can set globally or per directory:
 
 ## Deployment configuration examples
 
-* Download ssh-deploy and place it at `~/.emacs.d/ssh-deploy/` or install via `package.el` (`M-x list-packages` or `M-x package-install` + `ssh-deploy`) from the `MELPA` repository.
+* Download ssh-deploy and place it at `~/.emacs.d/ssh-deploy/` or install via `package.el` (`M-x list-packages` or `M-x package-install` + `ssh-deploy`) from the `ELPA` or `MELPA` repository.
 * So if you want to deploy `/Users/username/Web/MySite/` to create this `DirectoryVariables` file in your project root at `/Users/username/Web/MySite/.dir-locals.el`.
 
 You really need to do a bit of research about how to connect via different protocols using TRAMP on your operating system, I think Windows users should use `plink` for most protocols. Linux should work out of the box and macOS requires a bit of tweaking to get FTP support.
@@ -211,7 +211,7 @@ By combining a `~/.netrc`, `~/.authinfo` or `~/.authinfo.gpg` setup and a `publi
           ("s" ssh-deploy-run-deploy-script-handler)))
 ```
 
-(1) You can remove the `(add-to-list)` and `(require)` lines if you installed via `MELPA` repository.
+(1) You can remove the `(add-to-list)` and `(require)` lines if you installed via `ELPA` or `MELPA` repository.
 
 * Restart Emacs or re-evaluate your *emacs-init-script*
 
@@ -250,8 +250,9 @@ macOS 10.13 removed the Darwin port of BSD `ftp` which is needed for `ange-ftp`,
 5. Type `mv ./src/ftp /usr/local/bin/ftp`
 
 ## Read more
-* <http://www.gnu.org/software/tramp/>
-* <http://melpa.org/>
+* <https://www.gnu.org/software/tramp/>
+* <https://elpa.gnu.org/>
+* <https://melpa.org/>
 * <https://www.emacswiki.org/emacs/DirectoryVariables>
 * <https://www.emacswiki.org/emacs/EdiffMode>
 * <https://github.com/jwiegley/emacs-async>
