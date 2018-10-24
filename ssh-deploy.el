@@ -207,6 +207,12 @@
 (put 'ssh-deploy-async 'permanent-local t)
 (put 'ssh-deploy-async 'safe-local-variable 'booleanp)
 
+(defcustom ssh-deploy-async-with-threads nil
+  "Boolean variable if asynchronous method should use threads if available, nil by default."
+  :type 'boolean)
+(put 'ssh-deploy-async-with-threads 'permanent-local t)
+(put 'ssh-deploy-async-with-threads 'safe-local-variable 'booleanp)
+
 (defcustom ssh-deploy-revision-folder "~/.ssh-deploy-revisions/"
   "String variable with file name to revisions with trailing slash."
   :type 'string)
@@ -302,9 +308,11 @@
 ;; these functions MUST not use module variables in any way.
 
 
+;; TODO This should not rely on global variable
 (defun ssh-deploy--async-process (start &optional finish)
   "Asynchronously do START and then optionally do FINISH."
-  (if (fboundp 'make-thread)
+  (if (and (fboundp 'make-thread)
+           ssh-deploy-async-with-threads)
       (make-thread (lambda()
                      (if start
                          (let ((result (funcall start)))
