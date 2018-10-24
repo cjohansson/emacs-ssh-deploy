@@ -167,6 +167,9 @@
 ;;; Code:
 
 
+;; TODO Need to replace &optional booleans with t, 0, nil values
+
+
 (autoload 'ssh-deploy-diff-mode "ssh-deploy-diff-mode")
 
 (defgroup ssh-deploy nil
@@ -1322,21 +1325,19 @@
 (defun ssh-deploy-run-deploy-script-handler ()
   "Run `ssh-deploy-script' with `funcall'."
   (interactive)
-  (if (and (boundp 'ssh-deploy-script)
-           ssh-deploy-script)
+  (if ssh-deploy-script
       (if ssh-deploy-async
           (progn
             (message "Executing of deployment-script starting... (asynchronously)")
             (ssh-deploy--async-process
-             (lambda()
-               (let ((ssh-deploy-root-local ssh-deploy-root-local)
-                     (ssh-deploy-root-remote ssh-deploy-root-remote))
-                 (funcall ssh-deploy-script)))
-             (lambda(result) (message "Completed execution of deployment-script. '%s'(asynchronously)" result))))
+             `(lambda() (let ((ssh-deploy-root-local ,ssh-deploy-root-local)
+                              (ssh-deploy-root-remote ,ssh-deploy-root-remote))
+                          (funcall ,ssh-deploy-script)))
+             (lambda(result) (message "Completed execution of deployment-script. Return: '%s' (asynchronously)" result))))
         (progn
           (message "Executing of deployment-script starting... (synchronously)")
-          (funcall ssh-deploy-script)
-          (message "Completed execution of deployment-script. (synchronously)")))
+          (let ((ret (funcall ssh-deploy-script)))
+            (message "Completed execution of deployment-script. Return: '%s' (synchronously)" ret))))
     (display-warning 'ssh-deploy "ssh-deploy-script lacks definition!" :warning)))
 
 
