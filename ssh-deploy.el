@@ -55,6 +55,9 @@
 ;; - To setup automatic storing of base revisions and detection of remote changes do this:
 ;;     (add-hook 'find-file-hook (lambda() (if (and (boundp 'ssh-deploy-automatically-detect-remote-changes) ssh-deploy-automatically-detect-remote-changes) (ssh-deploy-remote-changes-handler)) ))
 ;;
+;; - To enable mode line to this:
+;;    (ssh-deploy-line-mode)
+;;
 ;; - To set key-bindings do something like this:
 ;;     (global-set-key (kbd "C-c C-z f") 'ssh-deploy-upload-handler-forced)
 ;;     (global-set-key (kbd "C-c C-z u") 'ssh-deploy-upload-handler)
@@ -81,6 +84,7 @@
 ;;     :hook ((after-save . (lambda() (if (and (boundp 'ssh-deploy-on-explicit-save) ssh-deploy-on-explicit-save) (ssh-deploy-upload-handler)) ))
 ;;            (find-file . (lambda() (if (and (boundp 'ssh-deploy-automatically-detect-remote-changes) ssh-deploy-automatically-detect-remote-changes) (ssh-deploy-remote-changes-handler)) )))
 ;;     :config
+;;     (ssh-deploy-line-mode)
 ;;     (defhydra hydra-ssh-deploy (:color red :hint nil)
 ;;       "
 ;; _u_: Upload                              _f_: Force Upload
@@ -1344,129 +1348,46 @@
 ;; This is particularly useful when key-bindings are not working because of some mode
 ;; overriding them.
 
-(define-key-after
-  global-map
-  [menu-bar sshdeploy]
-  (cons "Deployment" (make-sparse-keymap "Menu for SSH Deploy"))
-  'tools)
 
-(define-key
-  global-map
-  [menu-bar sshdeploy pq]
-  '("PostgreSQL" . ssh-deploy-remote-sql-postgres-handler))
-(define-key
-  global-map
-  [menu-bar sshdeploy mq]
-  '("MySQL" . ssh-deploy-remote-sql-mysql-handler))
-(define-key
-  global-map
-  [menu-bar sshdeploy sep1]
-  '("--"))
-
-(define-key
-  global-map
-  [menu-bar sshdeploy sb]
-  '("Shell Base" . ssh-deploy-remote-terminal-shell-base-handler))
-(define-key
-  global-map
-  [menu-bar sshdeploy ss]
-  '("Shell" . ssh-deploy-remote-terminal-shell-handler))
-(define-key
-  global-map
-  [menu-bar sshdeploy sep2]
-  '("--"))
-
-(define-key
-  global-map
-  [menu-bar sshdeploy eb]
-  '("Eshell Base" . ssh-deploy-remote-terminal-eshell-base-handler))
-(define-key
-  global-map
-  [menu-bar sshdeploy es]
-  '("Eshell" . ssh-deploy-remote-terminal-eshell-handler))
-(define-key
-  global-map
-  [menu-bar sshdeploy sep3]
-  '("--"))
-
-(define-key
-  global-map
-  [menu-bar sshdeploy bb]
-  '("Browse Base" . ssh-deploy-browse-remote-base-handler))
-(define-key
-  global-map
-  [menu-bar sshdeploy br]
-  '("Browse" . ssh-deploy-browse-remote-handler))
-(define-key
-  global-map
-  [menu-bar sshdeploy sep4]
-  '("--"))
-
-(define-key
-  global-map
-  [menu-bar sshdeploy df]
-  '("Difference" . ssh-deploy-diff-handler))
-(define-key
-  global-map
-  [menu-bar sshdeploy rc]
-  '("Detect Remote Changes" . ssh-deploy-remote-changes-handler))
-(define-key
-  global-map
-  [menu-bar sshdeploy sep5]
-  '("--"))
-
-(define-key
-  global-map
-  [menu-bar sshdeploy de]
-  '("Delete" . ssh-deploy-delete-handler))
-(define-key
-  global-map
-  [menu-bar sshdeploy rn]
-  '("Rename" . ssh-deploy-rename-handler))
-(define-key
-  global-map
-  [menu-bar sshdeploy op]
-  '("Open" . ssh-deploy-open-remote-file-handler))
-(define-key
-  global-map
-  [menu-bar sshdeploy sep6]
-  '("--"))
-
-(define-key
-  global-map
-  [menu-bar sshdeploy sc]
-  '("Run script" . ssh-deploy-run-deploy-script-handler))
-(define-key
-  global-map
-  [menu-bar sshdeploy sep7]
-  '("--"))
-
-(define-key
-  global-map
-  [menu-bar sshdeploy ulf]
-  '("Forced Upload" . ssh-deploy-upload-handler-forced))
-(define-key
-  global-map
-  [menu-bar sshdeploy ul]
-  '("Upload" . ssh-deploy-upload-handler))
-(define-key
-  global-map
-  [menu-bar sshdeploy dl]
-  '("Download" . ssh-deploy-download-handler))
+(defvar ssh-deploy-menu-map
+  (let ((map (make-sparse-keymap "Menu for SSH Deploy")))
+    (define-key map [pq] '("PostgreSQL" . ssh-deploy-remote-sql-postgres-handler))
+    (define-key map [mq] '("MySQL" . ssh-deploy-remote-sql-mysql-handler))
+    (define-key map [sep1] '("--"))
+    (define-key map [sb] '("Shell Base" . ssh-deploy-remote-terminal-shell-base-handler))
+    (define-key map [ss] '("Shell" . ssh-deploy-remote-terminal-shell-handler))
+    (define-key map [sep2] '("--"))
+    (define-key map [eb] '("Eshell Base" . ssh-deploy-remote-terminal-eshell-base-handler))
+    (define-key map [es] '("Eshell" . ssh-deploy-remote-terminal-eshell-handler))
+    (define-key map [sep3] '("--"))
+    (define-key map [bb] '("Browse Base" . ssh-deploy-browse-remote-base-handler))
+    (define-key map [br] '("Browse" . ssh-deploy-browse-remote-handler))
+    (define-key map [sep4] '("--"))
+    (define-key map [df] '("Difference" . ssh-deploy-diff-handler))
+    (define-key map [rc] '("Detect Remote Changes" . ssh-deploy-remote-changes-handler))
+    (define-key map [sep5] '("--"))
+    (define-key map [de] '("Delete" . ssh-deploy-delete-handler))
+    (define-key map [rn] '("Rename" . ssh-deploy-rename-handler))
+    (define-key map [op] '("Open" . ssh-deploy-open-remote-file-handler))
+    (define-key map [sep6] '("--"))
+    (define-key map [sc] '("Run script" . ssh-deploy-run-deploy-script-handler))
+    (define-key map [sep7] '("--"))
+    (define-key map [ulf] '("Forced Upload" . ssh-deploy-upload-handler-forced))
+    (define-key map [ul] '("Upload" . ssh-deploy-upload-handler))
+    (define-key map [dl] '("Download" . ssh-deploy-download-handler))))
+(define-key-after global-map [menu-bar sshdeploy] (cons "Deployment" ssh-deploy-menu-map) 'tools)
 
 
 ;;; Mode Line
 
 
+;; TODO This has stopped working
 (define-minor-mode ssh-deploy-line-mode
   "Show SSH Deploy status in mode line"
   :global t
   :group 'ssh-deploy
   (add-to-list 'global-mode-string 'ssh-deploy--mode-line-status-text t))
 (ssh-deploy--mode-line-status-refresh)
-
-;; Start mode line by default
-(ssh-deploy-line-mode)
 
 
 (provide 'ssh-deploy)
