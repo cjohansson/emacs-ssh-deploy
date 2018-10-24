@@ -329,8 +329,7 @@
 
 (defun ssh-deploy--mode-line-set-status-and-update (status &optional filename)
   "Set the mode line STATUS in optionally in buffer visiting FILENAME."
-  (if (and (boundp 'filename)
-           filename)
+  (if filename
       (let ((buffer (find-buffer-visiting filename)))
         (when buffer
           (with-current-buffer buffer
@@ -357,8 +356,7 @@
 
 (defun ssh-deploy--mode-line-status-update (&optional status)
   "Update the local status text variable to a text representation based on STATUS."
-  (unless (and (boundp 'status)
-               status)
+  (unless status
     ;; (message "SSH Deploy -Resetting status: %s" status)
     (setq status ssh-deploy--status-undefined))
   (let ((status-text ""))
@@ -371,7 +369,7 @@
       (setq status-text "ul.."))
 
      ((= status ssh-deploy--status-deleting)
-      (setq status-text ".."))
+      (setq status-text "rm.."))
 
      ((= status ssh-deploy--status-renaming)
       (setq status-text "mv.."))
@@ -392,7 +390,7 @@
   "Return a formatted string based on TEXT."
   (if (string= text "")
       ""
-    (format " [DPL:%s] " text)))
+    (format " {DPLY:%s} " text)))
 
 (defun ssh-deploy--insert-keyword (text)
   "Insert TEXT as bold text."
@@ -1389,6 +1387,7 @@
   :global t
   :group 'ssh-deploy
   (add-to-list 'global-mode-string 'ssh-deploy--mode-line-status-text t))
+
 (ssh-deploy--mode-line-status-refresh)
 
 
