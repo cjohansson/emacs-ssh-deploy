@@ -43,6 +43,7 @@ Here is a list of other variables you can set globally or per directory:
 * `ssh-deploy-remote-shell-executable` Default remote shell executable when launching shell on remote host *(string)*
 * `ssh-deploy-verbose` Show messages in message buffer when starting and ending actions, default t *(boolean)*
 * `ssh-deploy-script` - Your custom lambda function that will be called using (funcall) when running deploy script handler
+* `ssh-deploy-async-with-threads` - Whether to use threads (make threads) instead of processes (async-start) for asynchronous operations, default nil *(boolean)*
 
 ## Deployment configuration examples
 
@@ -150,6 +151,7 @@ By combining a `~/.netrc`, `~/.authinfo` or `~/.authinfo.gpg` setup and a `publi
 ;; ssh-deploy - prefix = C-c C-z, f = forced upload, u = upload, d = download, x = diff, t = terminal, b = browse, h = shell
 (add-to-list 'load-path "~/.emacs.d/ssh-deploy/")
 (require 'ssh-deploy)
+(ssh-deploy-line-mode) ;; If you want mode-line feature
 (add-hook 'after-save-hook (lambda() (if (and (boundp 'ssh-deploy-on-explicit-save) ssh-deploy-on-explicit-save) (ssh-deploy-upload-handler)) ))
 (add-hook 'find-file-hook (lambda() (if (and (boundp 'ssh-deploy-automatically-detect-remote-changes) ssh-deploy-automatically-detect-remote-changes) (ssh-deploy-remote-changes-handler)) ))
 (global-set-key (kbd "C-c C-z f") (lambda() (interactive)(ssh-deploy-upload-handler-forced) ))
@@ -179,6 +181,7 @@ By combining a `~/.netrc`, `~/.authinfo` or `~/.authinfo.gpg` setup and a `publi
         :hook ((after-save . (lambda() (if (and (boundp 'ssh-deploy-on-explicit-save) ssh-deploy-on-explicit-save) (ssh-deploy-upload-handler)) ))
                (find-file . (lambda() (if (and (boundp 'ssh-deploy-automatically-detect-remote-changes) ssh-deploy-automatically-detect-remote-changes) (ssh-deploy-remote-changes-handler)) )))
         :config
+        (ssh-deploy-line-mode) ;; If you want mode-line feature
         (defhydra hydra-ssh-deploy (:color red :hint nil)
           "
     _u_: Upload                              _f_: Force Upload

@@ -84,7 +84,7 @@
 ;;     :hook ((after-save . (lambda() (if (and (boundp 'ssh-deploy-on-explicit-save) ssh-deploy-on-explicit-save) (ssh-deploy-upload-handler)) ))
 ;;            (find-file . (lambda() (if (and (boundp 'ssh-deploy-automatically-detect-remote-changes) ssh-deploy-automatically-detect-remote-changes) (ssh-deploy-remote-changes-handler)) )))
 ;;     :config
-;;     (ssh-deploy-line-mode)
+;;     (ssh-deploy-line-mode) ;; If you want mode-line feature
 ;;     (defhydra hydra-ssh-deploy (:color red :hint nil)
 ;;       "
 ;; _u_: Upload                              _f_: Force Upload
@@ -161,6 +161,7 @@
 ;; * `ssh-deploy-remote-shell-executable' - Default shell executable when launching shell on remote host
 ;; * `ssh-deploy-verbose' - Show messages in message buffer when starting and ending actions, default t *(boolean)*
 ;; * `ssh-deploy-script' - Our custom lambda function that will be called using (funcall) when running deploy script
+;; * `ssh-deploy-async-with-threads' - Whether to use threads (make threads) instead of processes (async-start) for asynchronous operations, default nil *(boolean)*
 ;;
 ;; Please see README.md from the same repository for extended documentation.
 
@@ -1382,7 +1383,6 @@
 ;;; Mode Line
 
 
-;; TODO This has stopped working
 (define-minor-mode ssh-deploy-line-mode
   "Show SSH Deploy status in mode line"
   :global t
