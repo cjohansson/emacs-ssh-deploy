@@ -1374,7 +1374,9 @@
     (define-key map [sep7] '("--"))
     (define-key map [ulf] '("Forced Upload" . ssh-deploy-upload-handler-forced))
     (define-key map [ul] '("Upload" . ssh-deploy-upload-handler))
-    (define-key map [dl] '("Download" . ssh-deploy-download-handler))))
+    (define-key map [dl] '("Download" . ssh-deploy-download-handler))
+    map))
+
 (define-key-after global-map [menu-bar sshdeploy] (cons "Deployment" ssh-deploy-menu-map) 'tools)
 
 
