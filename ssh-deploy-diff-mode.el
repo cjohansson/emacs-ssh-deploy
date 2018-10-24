@@ -1,4 +1,4 @@
-;;; ssh-deploy-diff-mode.el --- Mode for interactive directory differences
+;;; ssh-deploy-diff-mode.el --- Mode for interactive directory differences -*- lexical-binding: t -*-
 
 ;; Author: Christian Johansson <github.com/cjohansson>
 ;; Maintainer: Christian Johansson <github.com/cjohansson>
