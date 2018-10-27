@@ -61,6 +61,9 @@
 ;; - To enable mode line to this:
 ;;    (ssh-deploy-line-mode)
 ;;
+;; - To enable mode line to this:
+;;    (ssh-deploy-line-mode)
+;;
 ;; - To set key-bindings do something like this:
 ;;     (global-set-key (kbd "C-c C-z f") 'ssh-deploy-upload-handler-forced)
 ;;     (global-set-key (kbd "C-c C-z u") 'ssh-deploy-upload-handler)
@@ -222,6 +225,12 @@
   :type 'boolean)
 (put 'ssh-deploy-async-with-threads 'permanent-local t)
 (put 'ssh-deploy-async-with-threads 'safe-local-variable 'integerp)
+
+(defcustom ssh-deploy-async-with-threads nil
+  "Boolean variable if asynchronous method should use threads if available, nil by default."
+  :type 'boolean)
+(put 'ssh-deploy-async-with-threads 'permanent-local t)
+(put 'ssh-deploy-async-with-threads 'safe-local-variable 'booleanp)
 
 (defcustom ssh-deploy-revision-folder "~/.ssh-deploy-revisions/"
   "String variable with file name to revisions with trailing slash."

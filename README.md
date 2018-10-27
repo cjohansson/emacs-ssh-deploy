@@ -34,18 +34,28 @@ Here is a list of other variables you can set globally or per directory:
 * `ssh-deploy-automatically-detect-remote-changes` Enables automatic detection of remote changes *(integer)*
 * `ssh-deploy-on-explicit-save` Enabled automatic uploads on save *(integer)*
 * `ssh-deploy-exclude-list` A list defining what paths to exclude from deployment *(list)*
+<<<<<<< HEAD
 * `ssh-deploy-async` Enables asynchronous transfers (you need to have `(make-thread)` or `async.el` installed as well) *(integer)*
+=======
+* `ssh-deploy-async` Enables asynchronous transfers (you need to have `(make-thread)` or `async.el` installed as well) *(boolean)*
+>>>>>>> b93b94469ef7f00c87367b16c371596683065343
 * `ssh-deploy-remote-sql-database` Default database when connecting to remote SQL database *(string)*
 * `ssh-deploy-remote-sql-password` Default password when connecting to remote SQL database *(string)*
 * `ssh-deploy-remote-sql-port` - Default port when connecting to remote SQL database *(integer)*
 * `ssh-deploy-remote-sql-server` Default server when connecting to remote SQL database *(string)*
 * `ssh-deploy-remote-sql-user` Default user when connecting to remote SQL database *(string)*
 * `ssh-deploy-remote-shell-executable` Default remote shell executable when launching shell on remote host *(string)*
+<<<<<<< HEAD
 * `ssh-deploy-verbose` Show messages in message buffer when starting and ending actions, default t *(integer)*
 * `ssh-deploy-script` - Your custom lambda function that will be called using (funcall) when running deploy script handler *(function)*
 * `ssh-deploy-async-with-threads` - Whether to use threads (make threads) instead of processes (async-start) for asynchronous operations, default nil *(integer)*
 
 When integers are used as booleans, above zero equals true and otherwise it's false.
+=======
+* `ssh-deploy-verbose` Show messages in message buffer when starting and ending actions, default t *(boolean)*
+* `ssh-deploy-script` - Your custom lambda function that will be called using (funcall) when running deploy script handler
+* `ssh-deploy-async-with-threads` - Whether to use threads (make threads) instead of processes (async-start) for asynchronous operations, default nil *(boolean)*
+>>>>>>> b93b94469ef7f00c87367b16c371596683065343
 
 ## Deployment configuration examples
 
