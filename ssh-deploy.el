@@ -755,7 +755,7 @@
            (lambda()
              (add-to-list 'load-path script-filename)
              (require 'ssh-deploy)
-             (ssh-deploy--diff-directories-data directory-a directory-b (list @exclude-list))) ;; Flycheck complains - why?
+             (ssh-deploy--diff-directories-data directory-a directory-b (list exclude-list))) ;; Flycheck complains - why?
            (lambda(diff)
              (message "Completed calculation of differences between directory '%s' and '%s'. Result: %s only in A %s only in B %s differs. (asynchronously)" (nth 0 diff) (nth 1 diff) (length (nth 4 diff)) (length (nth 5 diff)) (length (nth 7 diff)))
              (if (or (> (length (nth 4 diff)) 0) (> (length (nth 5 diff)) 0) (> (length (nth 7 diff)) 0))
@@ -779,7 +779,6 @@
     (if (and (ssh-deploy--file-is-in-path path-local root-local)
              (ssh-deploy--file-is-included path-local exclude-list))
         (let* ((revision-folder (or revision-folder ssh-deploy-revision-folder))
-               (exclude-list (or exclude-list ssh-deploy-exclude-list))
                (revision-path (ssh-deploy--get-revision-path path-local revision-folder))
                (path-remote (expand-file-name (ssh-deploy--get-relative-path root-local path-local) root-remote)))
 
@@ -950,9 +949,8 @@
 (defun ssh-deploy-delete-both (path-local &optional root-local root-remote async debug exclude-list)
   "Delete PATH-LOCAL relative to ROOT-LOCAL as well as on ROOT-REMOTE, do it asynchronously if ASYNC is non-nil, debug if DEBUG is non-nil, check if path is excluded in EXCLUDE-LIST."
   (let ((root-local (or root-local ssh-deploy-root-local))
-        (root-remote (or root-remote ssh-deploy-root-remote)))
-    (if (not exclude-list)
-        (setq exclude-list ssh-deploy-exclude-list))
+        (root-remote (or root-remote ssh-deploy-root-remote))
+        (exclude-list (or exclude-list ssh-deploy-exclude-list)))
     (if (and (ssh-deploy--file-is-in-path path-local root-local)
              (ssh-deploy--file-is-included path-local exclude-list))
         (let ((path-remote (expand-file-name (ssh-deploy--get-relative-path root-local path-local) root-remote)))
@@ -963,19 +961,16 @@
 ;;;###autoload
 (defun ssh-deploy-rename (old-path-local new-path-local &optional root-local root-remote async debug exclude-list with-threads)
   "Rename OLD-PATH-LOCAL to NEW-PATH-LOCAL under ROOT-LOCAL as well as on ROOT-REMOTE, do it asynchronously if ASYNC is non-nil, debug if DEBUG is non-nil but check if path is excluded in EXCLUDE-LIST first.  Use multi-threading if WITH-THREADS is above zero."
-  (if (not debug)
-      (setq debug ssh-deploy-debug))
-  (if (not async)
-      (setq async ssh-deploy-async))
   (let ((root-local (or root-local ssh-deploy-root-local))
         (root-remote (or root-remote ssh-deploy-root-remote))
-        (exclude-list (or exclude-list ssh-deploy-exclude-list)))
+        (exclude-list (or exclude-list ssh-deploy-exclude-list))
+        (debug (or debug ssh-deploy-debug))
+        (async (or async ssh-deploy-async)))
     (if (and (ssh-deploy--file-is-in-path old-path-local root-local)
              (ssh-deploy--file-is-in-path new-path-local root-local)
              (ssh-deploy--file-is-included old-path-local exclude-list)
              (ssh-deploy--file-is-included new-path-local exclude-list))
-        (let ((exclude-list (or exclude-list ssh-deploy-exclude-list))
-              (old-path-remote (expand-file-name (ssh-deploy--get-relative-path root-local old-path-local) root-remote))
+        (let ((old-path-remote (expand-file-name (ssh-deploy--get-relative-path root-local old-path-local) root-remote))
               (new-path-remote (expand-file-name (ssh-deploy--get-relative-path root-local new-path-local) root-remote)))
           (ssh-deploy--mode-line-set-status-and-update ssh-deploy--status-renaming)
           (rename-file old-path-local new-path-local t)
