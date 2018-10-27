@@ -54,7 +54,7 @@ When integers are used as booleans, above zero equals true and otherwise it's fa
 
 You really need to do a bit of research about how to connect via different protocols using TRAMP on your operating system, I think Windows users should use `plink` for most protocols. Linux should work out of the box and macOS requires a bit of tweaking to get FTP support.
 
-### SSH, automatic uploads, SQL
+### SSH, with automatic uploads and SQL
 
 ``` emacs-lisp
 ((nil . (
@@ -67,7 +67,7 @@ You really need to do a bit of research about how to connect via different proto
 )))
 ```
 
-### SFTP, automatic uploads
+### SFTP, with automatic uploads
 
 ``` emacs-lisp
 ((nil . (
@@ -77,7 +77,7 @@ You really need to do a bit of research about how to connect via different proto
 )))
 ```
 
-### SSH, custom port, not asynchronous, without automatic uploads
+### SSH, custom port 2120, not asynchronous and without automatic uploads
 
 ``` emacs-lisp
 ((nil . (
@@ -90,7 +90,7 @@ You really need to do a bit of research about how to connect via different proto
 
 You can pipe remote connections as well like this:
 
-### SSH, not asynchronous, automatic uploads, piped to other user on remote server and with custom deployment script.
+### SSH, not asynchronous, with automatic uploads, piped to other user on remote server and with custom deployment script.
 
 ``` emacs-lisp
 ((nil . (
@@ -154,23 +154,23 @@ By combining a `~/.authinfo.gpg` setup and a `public-key` setup you should be ab
 (add-to-list 'load-path "~/.emacs.d/ssh-deploy/")
 (require 'ssh-deploy)
 (ssh-deploy-line-mode) ;; If you want mode-line feature
-(add-hook 'after-save-hook (lambda() (if (and (boundp 'ssh-deploy-on-explicit-save) ssh-deploy-on-explicit-save) (ssh-deploy-upload-handler)) ))
-(add-hook 'find-file-hook (lambda() (if (and (boundp 'ssh-deploy-automatically-detect-remote-changes) ssh-deploy-automatically-detect-remote-changes) (ssh-deploy-remote-changes-handler)) ))
-(global-set-key (kbd "C-c C-z f") (lambda() (interactive)(ssh-deploy-upload-handler-forced) ))
-(global-set-key (kbd "C-c C-z u") (lambda() (interactive)(ssh-deploy-upload-handler) ))
-(global-set-key (kbd "C-c C-z D") (lambda() (interactive)(ssh-deploy-delete-handler) ))
-(global-set-key (kbd "C-c C-z d") (lambda() (interactive)(ssh-deploy-download-handler) ))
-(global-set-key (kbd "C-c C-z x") (lambda() (interactive)(ssh-deploy-diff-handler) ))
-(global-set-key (kbd "C-c C-z t") (lambda() (interactive)(ssh-deploy-remote-terminal-eshell-base-handler) ))
-(global-set-key (kbd "C-c C-z T") (lambda() (interactive)(ssh-deploy-remote-terminal-eshell-handler) ))
-(global-set-key (kbd "C-c C-z h") (lambda() (interactive)(ssh-deploy-remote-terminal-shell-base-handler) ))
-(global-set-key (kbd "C-c C-z H") (lambda() (interactive)(ssh-deploy-remote-terminal-shell-handler) ))
-(global-set-key (kbd "C-c C-z R") (lambda() (interactive)(ssh-deploy-rename-handler) ))
-(global-set-key (kbd "C-c C-z e") (lambda() (interactive)(ssh-deploy-remote-changes-handler) ))
-(global-set-key (kbd "C-c C-z b") (lambda() (interactive)(ssh-deploy-browse-remote-base-handler) ))
-(global-set-key (kbd "C-c C-z o") (lambda() (interactive)(ssh-deploy-open-remote-file-handler) ))
-(global-set-key (kbd "C-c C-z m") (lambda() (interactive)(ssh-deploy-remote-sql-mysql-handler) ))
-(global-set-key (kbd "C-c C-z s") (lambda() (interactive)(ssh-deploy-run-deploy-script-handler) ))
+(add-hook 'after-save-hook (lambda() (if (and (boundp 'ssh-deploy-on-explicit-save) (> ssh-deploy-on-explicit-save 0)) (ssh-deploy-upload-handler)) ))
+(add-hook 'find-file-hook (lambda() (if (and (boundp 'ssh-deploy-automatically-detect-remote-changes) (> ssh-deploy-automatically-detect-remote-changes 0)) (ssh-deploy-remote-changes-handler)) ))
+(global-set-key (kbd "C-c C-z f") 'ssh-deploy-upload-handler-forced)
+(global-set-key (kbd "C-c C-z u") 'ssh-deploy-upload-handler)
+(global-set-key (kbd "C-c C-z D") 'ssh-deploy-delete-handler)
+(global-set-key (kbd "C-c C-z d") 'ssh-deploy-download-handler)
+(global-set-key (kbd "C-c C-z x") 'ssh-deploy-diff-handler)
+(global-set-key (kbd "C-c C-z t") 'ssh-deploy-remote-terminal-eshell-base-handler)
+(global-set-key (kbd "C-c C-z T") 'ssh-deploy-remote-terminal-eshell-handler)
+(global-set-key (kbd "C-c C-z h") 'ssh-deploy-remote-terminal-shell-base-handler)
+(global-set-key (kbd "C-c C-z H") 'ssh-deploy-remote-terminal-shell-handler)
+(global-set-key (kbd "C-c C-z R") 'ssh-deploy-rename-handler)
+(global-set-key (kbd "C-c C-z e") 'ssh-deploy-remote-changes-handler)
+(global-set-key (kbd "C-c C-z b") 'ssh-deploy-browse-remote-base-handler)
+(global-set-key (kbd "C-c C-z o") 'ssh-deploy-open-remote-file-handler)
+(global-set-key (kbd "C-c C-z m") 'ssh-deploy-remote-sql-mysql-handler)
+(global-set-key (kbd "C-c C-z s") 'ssh-deploy-run-deploy-script-handler)
 ```
 
 * Or use the `use-package` and `hydra-script` I'm using:
@@ -180,8 +180,8 @@ By combining a `~/.authinfo.gpg` setup and a `public-key` setup you should be ab
         :ensure t
         :demand
         :bind (("C-c C-z" . hydra-ssh-deploy/body))
-        :hook ((after-save . (lambda() (if (and (boundp 'ssh-deploy-on-explicit-save) (> ssh-deploy-on-explicit-save 0) (ssh-deploy-upload-handler)) ))
-               (find-file . (lambda() (if (and (boundp 'ssh-deploy-automatically-detect-remote-changes) (> ssh-deploy-automatically-detect-remote-changes 0) (ssh-deploy-remote-changes-handler)) )))
+        :hook ((after-save . (lambda() (if (and (boundp 'ssh-deploy-on-explicit-save) (> ssh-deploy-on-explicit-save 0)) (ssh-deploy-upload-handler)) ))
+               (find-file . (lambda() (if (and (boundp 'ssh-deploy-automatically-detect-remote-changes) (> ssh-deploy-automatically-detect-remote-changes 0)) (ssh-deploy-remote-changes-handler)) )))
         :config
         (ssh-deploy-line-mode) ;; If you want mode-line feature
         (defhydra hydra-ssh-deploy (:color red :hint nil)
@@ -221,6 +221,18 @@ By combining a `~/.authinfo.gpg` setup and a `public-key` setup you should be ab
 * Restart Emacs or re-evaluate your *emacs-init-script*
 
 ## Example usage
+
+File contents `/Users/username/Web/MySite/.dir-locals.el`:
+
+``` emacs-lisp
+((nil . (
+  (ssh-deploy-root-local . "/Users/username/Web/MySite/")
+  (ssh-deploy-root-remote . "/ssh:myuser@myserver.com|sudo:web@myserver.com:/var/www/MySite/")
+  (ssh-deploy-async . 1)
+  (ssh-deploy-on-explicit-save . 1)
+  (ssh-deploy-script . (lambda() (let ((default-directory ssh-deploy-root-remote))(shell-command "bash compile.sh"))))
+)))
+```
 
 * Now when you save a file somewhere under the directory `/Users/username/Web/MySite/`, the script will launch and deploy the file with the remote server.
 * If you press `C-c C-z x` and the current buffer is a file, you will launch a `ediff` session showing differences between local file and remote file via TRAMP, or if current buffer is a directory it will open a buffer showing directory differences
