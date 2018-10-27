@@ -1,4 +1,5 @@
-# `emacs-ssh-deploy` [![MELPA](http://melpa.org/packages/ssh-deploy-badge.svg)](http://melpa.org/#/ssh-deploy) [![MELPA Stable](http://stable.melpa.org/packages/ssh-deploy-badge.svg)](http://stable.melpa.org/#/ssh-deploy)
+# `emacs-ssh-deploy`
+[![License GPL 3](https://img.shields.io/badge/license-GPL_3-green.svg)](https://www.gnu.org/licenses/gpl-3.0.txt) [![MELPA](https://melpa.org/packages/ssh-deploy-badge.svg)](https://melpa.org/#/ssh-deploy) [![MELPA Stable](https://stable.melpa.org/packages/ssh-deploy-badge.svg)](https://stable.melpa.org/#/ssh-deploy)
 
 The `ssh-deploy` plug-in for Emacs makes it possible to effortlessly deploy local files and directories to remote hosts via TRAMP (including but not limited to SSH, SFTP, FTP). It tries to provide functions that can be easily used by custom scripts.
 
@@ -16,7 +17,7 @@ The `ssh-deploy` plug-in for Emacs makes it possible to effortlessly deploy loca
 * Open corresponding file on the remote host
 * Open SQL database-session on remote hosts
 * Run custom deployment scripts
-* All operations support asynchronous mode if `async.el` is installed. (You need to setup an automatic authorization for this, i.e. `~/.netrc`, `~/.authinfo` or `~/.authinfo.gpg` and/or key-based password-less authorization)
+* All operations support asynchronous mode if `(make-thread`) or `async.el` is installed. (You need to setup an automatic authorization for this, i.e. `~/.netrc`, `~/.authinfo` or `~/.authinfo.gpg` and/or key-based password-less authorization)
 
 The idea for this plug-in was to mimic the behavior of **PhpStorm** deployment functionality.
 
@@ -28,24 +29,27 @@ Here is a list of other variables you can set globally or per directory:
 
 * `ssh-deploy-root-local` The local root that should be under deployment *(string)*
 * `ssh-deploy-root-remote` The remote TRAMP root that is used for deployment *(string)*
-* `ssh-deploy-debug` Enables debugging messages *(boolean)*
+* `ssh-deploy-debug` Enables debugging messages *(integer)*
 * `ssh-deploy-revision-folder` The folder used for storing local revisions *(string)*
-* `ssh-deploy-automatically-detect-remote-changes` Enables automatic detection of remote changes *(boolean)*
-* `ssh-deploy-on-explicit-save` Enabled automatic uploads on save *(boolean)*
+* `ssh-deploy-automatically-detect-remote-changes` Enables automatic detection of remote changes *(integer)*
+* `ssh-deploy-on-explicit-save` Enabled automatic uploads on save *(integer)*
 * `ssh-deploy-exclude-list` A list defining what paths to exclude from deployment *(list)*
-* `ssh-deploy-async` Enables asynchronous transfers (you need to have `async.el` installed as well) *(boolean)*
+* `ssh-deploy-async` Enables asynchronous transfers (you need to have `(make-thread)` or `async.el` installed as well) *(integer)*
 * `ssh-deploy-remote-sql-database` Default database when connecting to remote SQL database *(string)*
 * `ssh-deploy-remote-sql-password` Default password when connecting to remote SQL database *(string)*
 * `ssh-deploy-remote-sql-port` - Default port when connecting to remote SQL database *(integer)*
 * `ssh-deploy-remote-sql-server` Default server when connecting to remote SQL database *(string)*
 * `ssh-deploy-remote-sql-user` Default user when connecting to remote SQL database *(string)*
 * `ssh-deploy-remote-shell-executable` Default remote shell executable when launching shell on remote host *(string)*
-* `ssh-deploy-verbose` Show messages in message buffer when starting and ending actions, default t *(boolean)*
-* `ssh-deploy-script` - Your custom lambda function that will be called using (funcall) when running deploy script handler
+* `ssh-deploy-verbose` Show messages in message buffer when starting and ending actions, default t *(integer)*
+* `ssh-deploy-script` - Your custom lambda function that will be called using (funcall) when running deploy script handler *(function)*
+* `ssh-deploy-async-with-threads` - Whether to use threads (make threads) instead of processes (async-start) for asynchronous operations, default nil *(integer)*
+
+When integers are used as booleans, above zero equals true and otherwise it's false.
 
 ## Deployment configuration examples
 
-* Download ssh-deploy and place it at `~/.emacs.d/ssh-deploy/` or install via `package.el` (`M-x list-packages` or `M-x package-install` + `ssh-deploy`) from the `MELPA` repository.
+* Download ssh-deploy and place it at `~/.emacs.d/ssh-deploy/` or install via `package.el` (`M-x list-packages` or `M-x package-install` + `ssh-deploy`) from the `ELPA` or `MELPA` repository.
 * So if you want to deploy `/Users/username/Web/MySite/` to create this `DirectoryVariables` file in your project root at `/Users/username/Web/MySite/.dir-locals.el`.
 
 You really need to do a bit of research about how to connect via different protocols using TRAMP on your operating system, I think Windows users should use `plink` for most protocols. Linux should work out of the box and macOS requires a bit of tweaking to get FTP support.
@@ -149,6 +153,7 @@ By combining a `~/.netrc`, `~/.authinfo` or `~/.authinfo.gpg` setup and a `publi
 ;; ssh-deploy - prefix = C-c C-z, f = forced upload, u = upload, d = download, x = diff, t = terminal, b = browse, h = shell
 (add-to-list 'load-path "~/.emacs.d/ssh-deploy/")
 (require 'ssh-deploy)
+(ssh-deploy-line-mode) ;; If you want mode-line feature
 (add-hook 'after-save-hook (lambda() (if (and (boundp 'ssh-deploy-on-explicit-save) ssh-deploy-on-explicit-save) (ssh-deploy-upload-handler)) ))
 (add-hook 'find-file-hook (lambda() (if (and (boundp 'ssh-deploy-automatically-detect-remote-changes) ssh-deploy-automatically-detect-remote-changes) (ssh-deploy-remote-changes-handler)) ))
 (global-set-key (kbd "C-c C-z f") (lambda() (interactive)(ssh-deploy-upload-handler-forced) ))
@@ -178,6 +183,7 @@ By combining a `~/.netrc`, `~/.authinfo` or `~/.authinfo.gpg` setup and a `publi
         :hook ((after-save . (lambda() (if (and (boundp 'ssh-deploy-on-explicit-save) ssh-deploy-on-explicit-save) (ssh-deploy-upload-handler)) ))
                (find-file . (lambda() (if (and (boundp 'ssh-deploy-automatically-detect-remote-changes) ssh-deploy-automatically-detect-remote-changes) (ssh-deploy-remote-changes-handler)) )))
         :config
+        (ssh-deploy-line-mode) ;; If you want mode-line feature
         (defhydra hydra-ssh-deploy (:color red :hint nil)
           "
     _u_: Upload                              _f_: Force Upload
@@ -210,7 +216,7 @@ By combining a `~/.netrc`, `~/.authinfo` or `~/.authinfo.gpg` setup and a `publi
           ("s" ssh-deploy-run-deploy-script-handler)))
 ```
 
-(1) You can remove the `(add-to-list)` and `(require)` lines if you installed via `MELPA` repository.
+(1) You can remove the `(add-to-list)` and `(require)` lines if you installed via `ELPA` or `MELPA` repository.
 
 * Restart Emacs or re-evaluate your *emacs-init-script*
 
@@ -248,9 +254,18 @@ macOS 10.13 removed the Darwin port of BSD `ftp` which is needed for `ange-ftp`,
 4. Type `./configure` then `make` and then `sudo make install`
 5. Type `mv ./src/ftp /usr/local/bin/ftp`
 
+## TRAMP FTP doesn't read my ~/.authinfo.gpg
+
+Ange-FTP defaults to ~/.netrc so you need to add this to your init script:
+
+``` elisp
+(setq ange-ftp-netrc-filename "~/.authinfo.gpg")
+```
+
 ## Read more
-* <http://www.gnu.org/software/tramp/>
-* <http://melpa.org/>
+* <https://www.gnu.org/software/tramp/>
+* <https://elpa.gnu.org/>
+* <https://melpa.org/>
 * <https://www.emacswiki.org/emacs/DirectoryVariables>
 * <https://www.emacswiki.org/emacs/EdiffMode>
 * <https://github.com/jwiegley/emacs-async>
