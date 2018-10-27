@@ -40,9 +40,9 @@
 ;; ssh-deploy-root-local,ssh-deploy-root-remote, ssh-deploy-on-explicit-save
 ;; you can setup a directory for TRAMP deployment.
 ;;
-;; For asynchronous transfers you need to setup ~/.netrc, ~/.authinfo or ~/.authinfo.gpg or key-based authorization or equivalent for automatic authentication.
+;; For asynchronous transfers you need to setup ~/.authinfo.gpg or key-based authorization or equivalent for automatic authentication.
 ;;
-;; Example contents of ~/.netrc, ~/.authinfo or ~/.authinfo.gpg for password-based interaction-free authentication:
+;; Example contents of ~/.authinfo.gpg for password-based interaction-free authentication:
 ;; machine myserver.com login myuser port ftp password mypassword
 ;; machine myserver2.com login myuser2 port ssh password mypassword2
 ;; machine myserver3.com login myuser3 port sftp password mypassword3
@@ -57,9 +57,6 @@
 ;;
 ;; - To setup automatic storing of base revisions and detection of remote changes do this:
 ;;     (add-hook 'find-file-hook (lambda() (if (and (boundp 'ssh-deploy-automatically-detect-remote-changes) (> ssh-deploy-automatically-detect-remote-changes 0)) (ssh-deploy-remote-changes-handler)) ))
-;;
-;; - To enable mode line to this:
-;;    (ssh-deploy-line-mode)
 ;;
 ;; - To enable mode line to this:
 ;;    (ssh-deploy-line-mode)

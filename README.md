@@ -17,7 +17,7 @@ The `ssh-deploy` plug-in for Emacs makes it possible to effortlessly deploy loca
 * Open corresponding file on the remote host
 * Open SQL database-session on remote hosts
 * Run custom deployment scripts
-* All operations support asynchronous mode if `(make-thread`) or `async.el` is installed. (You need to setup an automatic authorization for this, i.e. `~/.netrc`, `~/.authinfo` or `~/.authinfo.gpg` and/or key-based password-less authorization)
+* All operations support asynchronous mode if `(make-thread`) or `async.el` is installed. (You need to setup an automatic authorization for this, i.e. `~/.authinfo.gpg` and/or key-based password-less authorization)
 
 The idea for this plug-in was to mimic the behavior of **PhpStorm** deployment functionality.
 
@@ -131,7 +131,7 @@ Host remote-host
 
 ## Interaction-free password-based setup on *NIX systems
 
-For automatic **FTP** connections you need to setup `~/.netrc`, `~/.authinfo` or `~/.authinfo.gpg` with your login credentials. An example of contents:
+For automatic **FTP** connections you need to setup `~/.authinfo.gpg` with your login credentials. An example of contents:
 
 ``` shell
 machine myserver.com login myuser port ftp password mypassword
@@ -224,7 +224,7 @@ By combining a `~/.authinfo.gpg` setup and a `public-key` setup you should be ab
 
 * Now when you save a file somewhere under the directory `/Users/username/Web/MySite/`, the script will launch and deploy the file with the remote server.
 * If you press `C-c C-z x` and the current buffer is a file, you will launch a `ediff` session showing differences between local file and remote file via TRAMP, or if current buffer is a directory it will open a buffer showing directory differences
-* If you press `C-c C-z f` you will **force** upload local file or directory to remote host even if they have external changes.
+w* If you press `C-c C-z f` you will **force** upload local file or directory to remote host even if they have external changes.
 * If you press `C-c C-z u` you will upload local file or directory to remote host.
 * If you press `C-c C-z d` you will download the current file or directory from remote host and then reload current buffer.
 * If you press `C-c C-z D` you will delete the current file or directory after a confirmation on local and remote host.
