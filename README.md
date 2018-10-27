@@ -34,28 +34,18 @@ Here is a list of other variables you can set globally or per directory:
 * `ssh-deploy-automatically-detect-remote-changes` Enables automatic detection of remote changes *(integer)*
 * `ssh-deploy-on-explicit-save` Enabled automatic uploads on save *(integer)*
 * `ssh-deploy-exclude-list` A list defining what paths to exclude from deployment *(list)*
-<<<<<<< HEAD
 * `ssh-deploy-async` Enables asynchronous transfers (you need to have `(make-thread)` or `async.el` installed as well) *(integer)*
-=======
-* `ssh-deploy-async` Enables asynchronous transfers (you need to have `(make-thread)` or `async.el` installed as well) *(boolean)*
->>>>>>> b93b94469ef7f00c87367b16c371596683065343
 * `ssh-deploy-remote-sql-database` Default database when connecting to remote SQL database *(string)*
 * `ssh-deploy-remote-sql-password` Default password when connecting to remote SQL database *(string)*
 * `ssh-deploy-remote-sql-port` - Default port when connecting to remote SQL database *(integer)*
 * `ssh-deploy-remote-sql-server` Default server when connecting to remote SQL database *(string)*
 * `ssh-deploy-remote-sql-user` Default user when connecting to remote SQL database *(string)*
 * `ssh-deploy-remote-shell-executable` Default remote shell executable when launching shell on remote host *(string)*
-<<<<<<< HEAD
 * `ssh-deploy-verbose` Show messages in message buffer when starting and ending actions, default t *(integer)*
 * `ssh-deploy-script` - Your custom lambda function that will be called using (funcall) when running deploy script handler *(function)*
 * `ssh-deploy-async-with-threads` - Whether to use threads (make threads) instead of processes (async-start) for asynchronous operations, default nil *(integer)*
 
 When integers are used as booleans, above zero equals true and otherwise it's false.
-=======
-* `ssh-deploy-verbose` Show messages in message buffer when starting and ending actions, default t *(boolean)*
-* `ssh-deploy-script` - Your custom lambda function that will be called using (funcall) when running deploy script handler
-* `ssh-deploy-async-with-threads` - Whether to use threads (make threads) instead of processes (async-start) for asynchronous operations, default nil *(boolean)*
->>>>>>> b93b94469ef7f00c87367b16c371596683065343
 
 ## Deployment configuration examples
 
@@ -70,7 +60,7 @@ You really need to do a bit of research about how to connect via different proto
 ((nil . (
   (ssh-deploy-root-local . "/Users/username/Web/MySite/")
   (ssh-deploy-root-remote . "/ssh:myuser@myserver.com:/var/www/MySite/")
-  (ssh-deploy-on-explicit-save . t)
+  (ssh-deploy-on-explicit-save . 1)
   (ssh-deploy-remote-sql-database . "myuser")
   (ssh-deploy-remote-sql-password . "mypassword")
   (ssh-deploy-remote-sql-user . "myuser")
@@ -83,7 +73,7 @@ You really need to do a bit of research about how to connect via different proto
 ((nil . (
   (ssh-deploy-root-local . "/Users/username/Web/MySite/")
   (ssh-deploy-root-remote . "/sftp:myuser@myserver.com:/var/www/MySite/")
-  (ssh-deploy-on-explicit-save . t)
+  (ssh-deploy-on-explicit-save . 1)
 )))
 ```
 
@@ -93,8 +83,8 @@ You really need to do a bit of research about how to connect via different proto
 ((nil . (
   (ssh-deploy-root-local . "/Users/username/Web/MySite/")
   (ssh-deploy-root-remote . "/ssh:myuser@myserver.com#2120:/var/www/MySite/")
-  (ssh-deploy-on-explicit-save . nil)
-  (ssh-deploy-async . nil)
+  (ssh-deploy-on-explicit-save . 0)
+  (ssh-deploy-async . 0)
 )))
 ```
 
@@ -106,8 +96,8 @@ You can pipe remote connections as well like this:
 ((nil . (
   (ssh-deploy-root-local . "/Users/username/Web/MySite/")
   (ssh-deploy-root-remote . "/ssh:myuser@myserver.com|sudo:web@myserver.com:/var/www/MySite/")
-  (ssh-deploy-async . nil)
-  (ssh-deploy-on-explicit-save . t)
+  (ssh-deploy-async . 0)
+  (ssh-deploy-on-explicit-save . 1)
   (ssh-deploy-script . (lambda() (let ((default-directory ssh-deploy-root-remote))(shell-command "bash compile.sh"))))
 )))
 ```
@@ -120,7 +110,7 @@ If you have a password-less sudo on your remote host you should be to do this as
 ((nil . (
   (ssh-deploy-root-local . "/Users/username/Web/MySite/")
   (ssh-deploy-root-remote . "/ftp:myuser@myserver.com:/MySite/")
-  (ssh-deploy-on-explicit-save . t)
+  (ssh-deploy-on-explicit-save . 1)
 )))
 ```
 
@@ -153,7 +143,7 @@ Set your user and group as owner and file permissions to `600`. Emacs should now
 
 ## Interaction-free SSH setup using public-key password-based authorization
 
-By combining a `~/.netrc`, `~/.authinfo` or `~/.authinfo.gpg` setup and a `public-key` setup you should be able to have a interaction-free public-key password-based authorization that can be used asynchronously.
+By combining a `~/.authinfo.gpg` setup and a `public-key` setup you should be able to have a interaction-free public-key password-based authorization that can be used asynchronously.
 
 ## Emacs configuration example
 
@@ -190,8 +180,8 @@ By combining a `~/.netrc`, `~/.authinfo` or `~/.authinfo.gpg` setup and a `publi
         :ensure t
         :demand
         :bind (("C-c C-z" . hydra-ssh-deploy/body))
-        :hook ((after-save . (lambda() (if (and (boundp 'ssh-deploy-on-explicit-save) ssh-deploy-on-explicit-save) (ssh-deploy-upload-handler)) ))
-               (find-file . (lambda() (if (and (boundp 'ssh-deploy-automatically-detect-remote-changes) ssh-deploy-automatically-detect-remote-changes) (ssh-deploy-remote-changes-handler)) )))
+        :hook ((after-save . (lambda() (if (and (boundp 'ssh-deploy-on-explicit-save) (> ssh-deploy-on-explicit-save 0) (ssh-deploy-upload-handler)) ))
+               (find-file . (lambda() (if (and (boundp 'ssh-deploy-automatically-detect-remote-changes) (> ssh-deploy-automatically-detect-remote-changes 0) (ssh-deploy-remote-changes-handler)) )))
         :config
         (ssh-deploy-line-mode) ;; If you want mode-line feature
         (defhydra hydra-ssh-deploy (:color red :hint nil)
@@ -266,7 +256,7 @@ macOS 10.13 removed the Darwin port of BSD `ftp` which is needed for `ange-ftp`,
 
 ## TRAMP FTP doesn't read my ~/.authinfo.gpg
 
-Ange-FTP defaults to ~/.netrc so you need to add this to your init script:
+Ange-FTP defaults to `~/.netrc` so you need to add this to your init script:
 
 ``` elisp
 (setq ange-ftp-netrc-filename "~/.authinfo.gpg")

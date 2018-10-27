@@ -127,16 +127,16 @@
 ;; ((nil . (
 ;;   (ssh-deploy-root-local . "/Users/Chris/Web/Site1/")
 ;;   (ssh-deploy-root-remote . "/ssh:myuser@myserver.com:/var/www/site1/")
-;;   (ssh-deploy-on-explicit-save . t)
-;;   (ssh-deploy-async . t)
+;;   (ssh-deploy-on-explicit-save . 1)
+;;   (ssh-deploy-async . 1)
 ;; )))
 ;;
 ;; Here is an example for SFTP deployment, /Users/Chris/Web/Site2/.dir-locals.el:
 ;; ((nil . (
 ;;   (ssh-deploy-root-local . "/Users/Chris/Web/Site2/")
 ;;   (ssh-deploy-root-remote . "/sftp:myuser@myserver.com:/var/www/site2/")
-;;   (ssh-deploy-on-explicit-save . nil)
-;;   (ssh-deploy-async . nil)
+;;   (ssh-deploy-on-explicit-save . 0)
+;;   (ssh-deploy-async . 0)
 ;;   (ssh-deploy-script . (lambda() (let ((default-directory ssh-deploy-root-remote))(shell-command "bash compile.sh"))))
 ;; )))
 ;;
