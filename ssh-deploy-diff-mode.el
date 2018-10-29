@@ -3,8 +3,8 @@
 ;; Author: Christian Johansson <github.com/cjohansson>
 ;; Maintainer: Christian Johansson <github.com/cjohansson>
 ;; Created: 1 Feb 2018
-;; Modified: 23 Feb 2018
-;; Version: 1.14
+;; Modified: 29 Oct 2018
+;; Version: 1.15
 ;; Keywords: tools, convenience
 ;; URL: https://github.com/cjohansson/emacs-ssh-deploy
 
@@ -216,6 +216,7 @@
               (t "Copy B is not available in this section"))
       (display-warning 'ssh-deploy "Function ssh-deploy-download is missing" :warning))))
 
+;; TODO Should we really pass path as buffer argument in this?
 (defun ssh-deploy-diff-mode--delete (parts)
   "Delete path in both, only in a or only in b based on PARTS from section A, B or BOTH."
   (require 'ssh-deploy)

@@ -3,8 +3,8 @@
 ;; Author: Christian Johansson <christian@cvj.se>
 ;; Maintainer: Christian Johansson <christian@cvj.se>
 ;; Created: 5 Jul 2016
-;; Modified: 27 Oct 2018
-;; Version: 2.01
+;; Modified: 29 Oct 2018
+;; Version: 2.02
 ;; Keywords: tools, convenience
 ;; URL: https://github.com/cjohansson/emacs-ssh-deploy
 
@@ -904,14 +904,13 @@
       ;; File is not inside root or is excluded from it
       (when (> ssh-deploy-debug 0) (message "File %s is not in root or is excluded from it." path-local)))))
 
-(defun ssh-deploy-delete (path &optional async buffer async-with-threads)
-  "Delete PATH and use flags ASYNC, set status in BUFFER.  Use multi-threading if ASYNC-WITH-THREADS is above zero."
+(defun ssh-deploy-delete (path &optional async async-with-threads)
+  "Delete PATH and use flags ASYNC.  Use multi-threading if ASYNC-WITH-THREADS is above zero."
   (let ((async (or async ssh-deploy-async))
         (async-with-threads (or async-with-threads ssh-deploy-async-with-threads)))
     (if (> async 0)
         (progn
-          (when buffer
-            (ssh-deploy--mode-line-set-status-and-update ssh-deploy--status-deleting buffer))
+          (ssh-deploy--mode-line-set-status-and-update ssh-deploy--status-deleting path)
           (ssh-deploy--async-process
            (lambda()
              (if (file-exists-p path)
@@ -920,8 +919,8 @@
                      (if file-or-directory
                          (delete-file path t)
                        (delete-directory path t t))
-                     (list path 0 buffer)))
-               (list path 1 buffer)))
+                     (list path 0 path)))
+               (list path 1 path)))
            (lambda(response)
              (when (nth 2 response)
                (ssh-deploy--mode-line-set-status-and-update ssh-deploy--status-idle (nth 2 response))
@@ -932,35 +931,33 @@
                    (t (display-warning 'ssh-deploy (format "Did not find '%s' for deletion. (asynchronously)" (nth 0 response)) :warning))))
            async-with-threads))
       (if (file-exists-p path)
-          (ssh-deploy--mode-line-set-status-and-update ssh-deploy--status-deleting buffer)
-        (let ((file-or-directory (not (file-directory-p path))))
-          (when buffer
-            (ssh-deploy--mode-line-set-status-and-update ssh-deploy--status-deleting buffer))
-          (progn
-            (if file-or-directory
-                (delete-file path t)
-              (delete-directory path t t))
-            (when buffer
-              (ssh-deploy--mode-line-set-status-and-update ssh-deploy--status-idle buffer)
-              (let ((local-buffer (find-buffer-visiting buffer)))
+          (let ((file-or-directory (not (file-directory-p path))))
+            (ssh-deploy--mode-line-set-status-and-update ssh-deploy--status-deleting path)
+            (progn
+              (if file-or-directory
+                  (delete-file path t)
+                (delete-directory path t t))
+              (ssh-deploy--mode-line-set-status-and-update ssh-deploy--status-idle path)
+              (let ((local-buffer (find-buffer-visiting path)))
                 (when local-buffer
-                  (kill-buffer local-buffer))))
-            (message "Completed deletion of '%s'. (synchronously)" path)))
+                  (kill-buffer local-buffer)))
+              (message "Completed deletion of '%s'. (synchronously)" path)))
         (display-warning 'ssh-deploy (format "Did not find '%s' for deletion. (synchronously)" path) :warning)))))
 
 ;;;###autoload
-(defun ssh-deploy-delete-both (path-local &optional root-local root-remote async debug exclude-list)
-  "Delete PATH-LOCAL relative to ROOT-LOCAL as well as on ROOT-REMOTE, do it asynchronously if ASYNC is non-nil, debug if DEBUG is non-nil, check if path is excluded in EXCLUDE-LIST."
+(defun ssh-deploy-delete-both (path-local &optional root-local root-remote async debug exclude-list async-with-threads)
+  "Delete PATH-LOCAL relative to ROOT-LOCAL as well as on ROOT-REMOTE, do it asynchronously if ASYNC is non-nil, debug if DEBUG is non-nil, check if path is excluded in EXCLUDE-LIST.  Use async threads is ASYNC-WITH-THREADS is above zero."
   (let ((root-local (or root-local ssh-deploy-root-local))
         (root-remote (or root-remote ssh-deploy-root-remote))
         (async (or async ssh-deploy-async))
         (debug (or debug ssh-deploy-debug))
-        (exclude-list (or exclude-list ssh-deploy-exclude-list)))
+        (exclude-list (or exclude-list ssh-deploy-exclude-list))
+        (async-with-threads (or async async-with-threads)))
     (if (and (ssh-deploy--file-is-in-path path-local root-local)
              (ssh-deploy--file-is-included path-local exclude-list))
         (let ((path-remote (expand-file-name (ssh-deploy--get-relative-path root-local path-local) root-remote)))
-          (ssh-deploy-delete path-local async path-local)
-          (ssh-deploy-delete path-remote async path-local))
+          (ssh-deploy-delete path-local async async-with-threads)
+          (ssh-deploy-delete path-remote async async-with-threads))
       (when (> debug 0) (message "Path '%s' is not in the root '%s' or is excluded from it." path-local root-local)))))
 
 ;;;###autoload
@@ -1242,14 +1239,14 @@
                  (root-local (file-truename ssh-deploy-root-local))
                  (yes-no-prompt (read-string (format "Type 'yes' to confirm that you want to delete the file '%s': " path-local))))
             (if (string= yes-no-prompt "yes")
-                (ssh-deploy-delete-both path-local root-local ssh-deploy-root-remote ssh-deploy-async ssh-deploy-debug)))
+                (ssh-deploy-delete-both path-local root-local ssh-deploy-root-remote ssh-deploy-async ssh-deploy-debug ssh-deploy-async-with-threads)))
         (if (and (ssh-deploy--is-not-empty-string default-directory)
                  (file-exists-p default-directory))
             (let* ((path-local (file-truename default-directory))
                    (root-local (file-truename ssh-deploy-root-local))
                    (yes-no-prompt (read-string (format "Type 'yes' to confirm that you want to delete the directory '%s': " path-local))))
               (if (string= yes-no-prompt "yes")
-                  (ssh-deploy-delete-both path-local root-local ssh-deploy-root-remote ssh-deploy-async ssh-deploy-debug ssh-deploy-exclude-list)))))))
+                  (ssh-deploy-delete-both path-local root-local ssh-deploy-root-remote ssh-deploy-async ssh-deploy-debug ssh-deploy-exclude-list ssh-deploy-async-with-threads)))))))
 
 ;;;###autoload
 (defun ssh-deploy-rename-handler ()
