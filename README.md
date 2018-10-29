@@ -181,42 +181,12 @@ By combining a `~/.authinfo.gpg` setup and a `public-key` setup you should be ab
       (use-package ssh-deploy
         :ensure t
         :demand
-        :bind (("C-c C-z" . hydra-ssh-deploy/body))
+        :bind (("C-c C-z" . ssh-deploy-hydra/body))
         :hook ((after-save . ssh-deploy-after-save)
                (find-file . ssh-deploy-find-file))
         :config
         (ssh-deploy-line-mode) ;; If you want mode-line feature
-        
-        (defhydra hydra-ssh-deploy (:color red :hint nil)
-          "
-    _u_: Upload                              _f_: Force Upload
-    _d_: Download
-    _D_: Delete
-    _x_: Difference
-    _t_: Eshell Base Terminal                _T_: Eshell Relative Terminal
-    _h_: Shell Base Terminal                 _H_: Shell Relative Terminal
-    _e_: Detect Remote Changes
-    _R_: Rename
-    _b_: Browse Base                         _B_: Browse Relative
-    _o_: Open current file on remote         _m_: Open sql-mysql on remote
-    _s_: Run deploy script
-    "
-          ("f" ssh-deploy-upload-handler-forced)
-          ("u" ssh-deploy-upload-handler)
-          ("d" ssh-deploy-download-handler)
-          ("D" ssh-deploy-delete-handler)
-          ("x" ssh-deploy-diff-handler)
-          ("t" ssh-deploy-remote-terminal-eshell-base-handler)
-          ("T" ssh-deploy-remote-terminal-eshell-handler)
-          ("h" ssh-deploy-remote-terminal-shell-base-handler)
-          ("H" ssh-deploy-remote-terminal-shell-handler)
-          ("e" ssh-deploy-remote-changes-handler)
-          ("R" ssh-deploy-rename-handler)
-          ("b" ssh-deploy-browse-remote-base-handler)
-          ("B" ssh-deploy-browse-remote-handler)
-          ("o" ssh-deploy-open-remote-file-handler)
-          ("m" ssh-deploy-remote-sql-mysql-handler)
-          ("s" ssh-deploy-run-deploy-script-handler)))
+      )
 ```
 
 (1) You can remove the `(add-to-list)` and `(require)` lines if you installed via `ELPA` or `MELPA` repository.
