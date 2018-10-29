@@ -153,9 +153,11 @@ By combining a `~/.authinfo.gpg` setup and a `public-key` setup you should be ab
 ;; ssh-deploy - prefix = C-c C-z, f = forced upload, u = upload, d = download, x = diff, t = terminal, b = browse, h = shell
 (add-to-list 'load-path "~/.emacs.d/ssh-deploy/")
 (require 'ssh-deploy)
+
 (ssh-deploy-line-mode) ;; If you want mode-line feature
-(add-hook 'after-save-hook (lambda() (if (and (boundp 'ssh-deploy-on-explicit-save) (> ssh-deploy-on-explicit-save 0)) (ssh-deploy-upload-handler)) ))
-(add-hook 'find-file-hook (lambda() (if (and (boundp 'ssh-deploy-automatically-detect-remote-changes) (> ssh-deploy-automatically-detect-remote-changes 0)) (ssh-deploy-remote-changes-handler)) ))
+(ssh-deploy-add-after-save-hook) ;; If you want automatic upload support
+(ssh-deploy-add-find-file-hook) ;; If you want detecting remote changes support
+
 (global-set-key (kbd "C-c C-z f") 'ssh-deploy-upload-handler-forced)
 (global-set-key (kbd "C-c C-z u") 'ssh-deploy-upload-handler)
 (global-set-key (kbd "C-c C-z D") 'ssh-deploy-delete-handler)
@@ -180,10 +182,11 @@ By combining a `~/.authinfo.gpg` setup and a `public-key` setup you should be ab
         :ensure t
         :demand
         :bind (("C-c C-z" . hydra-ssh-deploy/body))
-        :hook ((after-save . (lambda() (if (and (boundp 'ssh-deploy-on-explicit-save) (> ssh-deploy-on-explicit-save 0)) (ssh-deploy-upload-handler)) ))
-               (find-file . (lambda() (if (and (boundp 'ssh-deploy-automatically-detect-remote-changes) (> ssh-deploy-automatically-detect-remote-changes 0)) (ssh-deploy-remote-changes-handler)) )))
+        :hook ((after-save . ssh-deploy-after-save)
+               (find-file . ssh-deploy-find-file))
         :config
         (ssh-deploy-line-mode) ;; If you want mode-line feature
+        
         (defhydra hydra-ssh-deploy (:color red :hint nil)
           "
     _u_: Upload                              _f_: Force Upload

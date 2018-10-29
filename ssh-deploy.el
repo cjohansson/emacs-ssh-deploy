@@ -53,10 +53,10 @@
 ;; (setq ange-ftp-netrc-filename "~/.authinfo.gpg")
 ;;
 ;; - To setup a upload hook on save do this:
-;;     (add-hook 'after-save-hook (lambda() (if (and (boundp 'ssh-deploy-on-explicit-save) (> ssh-deploy-on-explicit-save 0)) (ssh-deploy-upload-handler)) ))
+;; Add to init-script: (ssh-deploy-add-after-save-hook)
 ;;
 ;; - To setup automatic storing of base revisions and detection of remote changes do this:
-;;     (add-hook 'find-file-hook (lambda() (if (and (boundp 'ssh-deploy-automatically-detect-remote-changes) (> ssh-deploy-automatically-detect-remote-changes 0)) (ssh-deploy-remote-changes-handler)) ))
+;; Add to init-script: (ssh-deploy-add-find-file-hook)
 ;;
 ;; - To enable mode line to this:
 ;;    (ssh-deploy-line-mode)
@@ -84,10 +84,11 @@
 ;;     :ensure t
 ;;     :demand
 ;;     :bind (("C-c C-z" . hydra-ssh-deploy/body))
-;;     :hook ((after-save . (lambda() (if (and (boundp 'ssh-deploy-on-explicit-save) (> ssh-deploy-on-explicit-save 0) (ssh-deploy-upload-handler)) )))
-;;            (find-file . (lambda() (if (and (boundp 'ssh-deploy-automatically-detect-remote-changes) (> ssh-deploy-automatically-detect-remote-changes 0)) (ssh-deploy-remote-changes-handler)) )))
+;;     :hook ((after-save . ssh-deploy-after-save)
+;;            (find-file . ssh-deploy-find-file))
 ;;     :config
 ;;     (ssh-deploy-line-mode) ;; If you want mode-line feature
+;;
 ;;     (defhydra hydra-ssh-deploy (:color red :hint nil)
 ;;       "
 ;; _u_: Upload                              _f_: Force Upload
@@ -221,11 +222,11 @@
 (put 'ssh-deploy-async-with-threads 'permanent-local t)
 (put 'ssh-deploy-async-with-threads 'safe-local-variable 'integerp)
 
-(defcustom ssh-deploy-async-with-threads nil
-  "Boolean variable if asynchronous method should use threads if available, nil by default."
+(defcustom ssh-deploy-async-with-threads 0
+  "Boolean variable if asynchronous method should use threads if available, 0 by default."
   :type 'boolean)
 (put 'ssh-deploy-async-with-threads 'permanent-local t)
-(put 'ssh-deploy-async-with-threads 'safe-local-variable 'booleanp)
+(put 'ssh-deploy-async-with-threads 'safe-local-variable 'integerp)
 
 (defcustom ssh-deploy-revision-folder "~/.ssh-deploy-revisions/"
   "String variable with file name to revisions with trailing slash."
@@ -351,26 +352,20 @@
       (let ((buffer (find-buffer-visiting filename)))
         (when buffer
           (with-current-buffer buffer
-            (unless (listp ssh-deploy--mode-line-status)
-              (setq ssh-deploy--mode-line-status '()))
             (push status ssh-deploy--mode-line-status)
             ;; (message "SSH Deploy - Updated status to: %s" ssh-deploy--mode-line-status)
             (ssh-deploy--mode-line-status-refresh))))
     (progn
-      (unless (listp ssh-deploy--mode-line-status)
-        (setq ssh-deploy--mode-line-status '()))
       (push status ssh-deploy--mode-line-status)
       ;; (message "SSH Deploy - Updated status to: %s" ssh-deploy--mode-line-status)
       (ssh-deploy--mode-line-status-refresh))))
 
 (defun ssh-deploy--mode-line-status-refresh ()
   "Refresh the status text based on the status variable."
-  (unless (listp ssh-deploy--mode-line-status)
-    ;; (message "Resetting status: %s" ssh-deploy--mode-line-status)
-    (setq ssh-deploy--mode-line-status '()))
   (let ((status (pop ssh-deploy--mode-line-status)))
     ;; (message "SSH Deploy - Refreshing status based on: %s" status)
-    (ssh-deploy--mode-line-status-update status)))
+    (when status
+      (ssh-deploy--mode-line-status-update status))))
 
 (defun ssh-deploy--mode-line-status-update (&optional status)
   "Update the local status text variable to a text representation based on STATUS."
@@ -919,14 +914,13 @@
                      (if file-or-directory
                          (delete-file path t)
                        (delete-directory path t t))
-                     (list path 0 path)))
-               (list path 1 path)))
+                     (list path 0)))
+               (list path 1)))
            (lambda(response)
-             (when (nth 2 response)
-               (ssh-deploy--mode-line-set-status-and-update ssh-deploy--status-idle (nth 2 response))
-               (let ((local-buffer (find-buffer-visiting (nth 2 response))))
-                 (when local-buffer
-                   (kill-buffer local-buffer))))
+             (ssh-deploy--mode-line-set-status-and-update ssh-deploy--status-idle (nth 0 response))
+             (let ((local-buffer (find-buffer-visiting (nth 0 response))))
+               (when local-buffer
+                 (kill-buffer local-buffer)))
              (cond ((= 0 (nth 1 response)) (message "Completed deletion of '%s'. (asynchronously)" (nth 0 response)))
                    (t (display-warning 'ssh-deploy (format "Did not find '%s' for deletion. (asynchronously)" (nth 0 response)) :warning))))
            async-with-threads))
@@ -1239,7 +1233,7 @@
                  (root-local (file-truename ssh-deploy-root-local))
                  (yes-no-prompt (read-string (format "Type 'yes' to confirm that you want to delete the file '%s': " path-local))))
             (if (string= yes-no-prompt "yes")
-                (ssh-deploy-delete-both path-local root-local ssh-deploy-root-remote ssh-deploy-async ssh-deploy-debug ssh-deploy-async-with-threads)))
+                (ssh-deploy-delete-both path-local root-local ssh-deploy-root-remote ssh-deploy-async ssh-deploy-debug ssh-deploy-exclude-list ssh-deploy-async-with-threads)))
         (if (and (ssh-deploy--is-not-empty-string default-directory)
                  (file-exists-p default-directory))
             (let* ((path-local (file-truename default-directory))
@@ -1402,6 +1396,23 @@
   (add-to-list 'global-mode-string 'ssh-deploy--mode-line-status-text t))
 
 (ssh-deploy--mode-line-status-refresh)
+
+
+;;; Hooks
+
+
+(defun ssh-deploy-after-save () "Logic for automatic uploads."
+       (when (and (boundp 'ssh-deploy-on-explicit-save) ssh-deploy-on-explicit-save (> ssh-deploy-on-explicit-save 0)) (ssh-deploy-upload-handler)))
+
+(defun ssh-deploy-add-after-save-hook () "Add the `after-save-hook'."
+       (when (fboundp 'ssh-deploy-after-save)
+         (add-hook 'after-save-hook 'ssh-deploy-after-save)))
+
+(defun ssh-deploy-find-file () "Logic for detecting remote change."
+       (when (and (boundp 'ssh-deploy-automatically-detect-remote-changes) ssh-deploy-automatically-detect-remote-changes (> ssh-deploy-automatically-detect-remote-changes 0)) (ssh-deploy-remote-changes-handler)))
+
+(defun ssh-deploy-add-find-file-hook () "Add the `find-file-hook'."
+       (when (fboundp 'ssh-deploy-find-file) (add-hook 'find-file-hook 'ssh-deploy-find-file)))
 
 
 (provide 'ssh-deploy)
