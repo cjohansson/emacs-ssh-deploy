@@ -157,22 +157,7 @@ By combining a `~/.authinfo.gpg` setup and a `public-key` setup you should be ab
 (ssh-deploy-line-mode) ;; If you want mode-line feature
 (ssh-deploy-add-after-save-hook) ;; If you want automatic upload support
 (ssh-deploy-add-find-file-hook) ;; If you want detecting remote changes support
-
-(global-set-key (kbd "C-c C-z f") 'ssh-deploy-upload-handler-forced)
-(global-set-key (kbd "C-c C-z u") 'ssh-deploy-upload-handler)
-(global-set-key (kbd "C-c C-z D") 'ssh-deploy-delete-handler)
-(global-set-key (kbd "C-c C-z d") 'ssh-deploy-download-handler)
-(global-set-key (kbd "C-c C-z x") 'ssh-deploy-diff-handler)
-(global-set-key (kbd "C-c C-z t") 'ssh-deploy-remote-terminal-eshell-base-handler)
-(global-set-key (kbd "C-c C-z T") 'ssh-deploy-remote-terminal-eshell-handler)
-(global-set-key (kbd "C-c C-z h") 'ssh-deploy-remote-terminal-shell-base-handler)
-(global-set-key (kbd "C-c C-z H") 'ssh-deploy-remote-terminal-shell-handler)
-(global-set-key (kbd "C-c C-z R") 'ssh-deploy-rename-handler)
-(global-set-key (kbd "C-c C-z e") 'ssh-deploy-remote-changes-handler)
-(global-set-key (kbd "C-c C-z b") 'ssh-deploy-browse-remote-base-handler)
-(global-set-key (kbd "C-c C-z o") 'ssh-deploy-open-remote-file-handler)
-(global-set-key (kbd "C-c C-z m") 'ssh-deploy-remote-sql-mysql-handler)
-(global-set-key (kbd "C-c C-z s") 'ssh-deploy-run-deploy-script-handler)
+(global-set-key (kbd "C-c C-z") 'ssh-deploy-prefix-map)
 ```
 
 * Or use the `use-package` and `hydra-script` I'm using:

@@ -61,23 +61,8 @@
 ;; - To enable mode line to this:
 ;;    (ssh-deploy-line-mode)
 ;;
-;; - To set key-bindings do something like this:
-;;     (global-set-key (kbd "C-c C-z f") 'ssh-deploy-upload-handler-forced)
-;;     (global-set-key (kbd "C-c C-z u") 'ssh-deploy-upload-handler)
-;;     (global-set-key (kbd "C-c C-z D") 'ssh-deploy-delete-handler)
-;;     (global-set-key (kbd "C-c C-z d") 'ssh-deploy-download-handler)
-;;     (global-set-key (kbd "C-c C-z x") 'ssh-deploy-diff-handler)
-;;     (global-set-key (kbd "C-c C-z t") 'ssh-deploy-remote-terminal-eshell-base-handler)
-;;     (global-set-key (kbd "C-c C-z T") 'ssh-deploy-remote-terminal-eshell-handler)
-;;     (global-set-key (kbd "C-c C-z h") 'ssh-deploy-remote-terminal-shell-base-handler)
-;;     (global-set-key (kbd "C-c C-z H") 'ssh-deploy-remote-terminal-shell-handler)
-;;     (global-set-key (kbd "C-c C-z R") 'ssh-deploy-rename-handler)
-;;     (global-set-key (kbd "C-c C-z e") 'ssh-deploy-remote-changes-handler)
-;;     (global-set-key (kbd "C-c C-z b") 'ssh-deploy-browse-remote-base-handler)
-;;     (global-set-key (kbd "C-c C-z B") 'ssh-deploy-browse-remote-handler)
-;;     (global-set-key (kbd "C-c C-z o") 'ssh-deploy-open-remote-file-handler)
-;;     (global-set-key (kbd "C-c C-z m") 'ssh-deploy-remote-sql-mysql-handler)
-;;     (global-set-key (kbd "C-c C-z s") 'ssh-deploy-run-deploy-script-handler)
+;; - To set global key-bindings do something like this:
+;;     (global-set-key (kbd "C-c C-a") 'ssh-deploy-prefix-map)
 ;;
 ;; - To install and set-up using use-package and hydra do this:
 ;;   (use-package ssh-deploy
@@ -1415,6 +1400,26 @@
     ("o" ssh-deploy-open-remote-file-handler)
     ("m" ssh-deploy-remote-sql-mysql-handler)
     ("s" ssh-deploy-run-deploy-script-handler)))
+
+(defvar ssh-deploy-prefix-map
+  (let ((map (make-sparse-keymap)))
+    (define-key map "f" 'ssh-deploy-upload-handler-force)
+    (define-key map "u" 'ssh-deploy-upload-handle)
+    (define-key map "D" 'ssh-deploy-delete-handler)
+    (define-key map "d" 'ssh-deploy-download-handler)
+    (define-key map "x" 'ssh-deploy-diff-handler)
+    (define-key map "t" 'ssh-deploy-remote-terminal-eshell-base-handler)
+    (define-key map "T" 'ssh-deploy-remote-terminal-eshell-handler)
+    (define-key map "h" 'ssh-deploy-remote-terminal-shell-base-handler)
+    (define-key map "H" 'ssh-deploy-remote-terminal-shell-handler)
+    (define-key map "R" 'ssh-deploy-rename-handler)
+    (define-key map "e" 'ssh-deploy-remote-changes-handler)
+    (define-key map "b" 'ssh-deploy-browse-remote-base-handler)
+    (define-key map "B" 'ssh-deploy-browse-remote-handler)
+    (define-key map "o" 'ssh-deploy-open-remote-file-handler)
+    (define-key map "m" 'ssh-deploy-remote-sql-mysql-handler)
+    (define-key map "s" 'ssh-deploy-run-deploy-script-handler)))
+(fset 'ssh-deploy-prefix-map ssh-deploy-prefix-map)
 
 
 (provide 'ssh-deploy)
