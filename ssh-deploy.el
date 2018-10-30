@@ -1353,7 +1353,7 @@
 (ssh-deploy--mode-line-status-refresh)
 
 
-;;; Hooks
+;;; Usability shortcuts
 
 
 (defun ssh-deploy-after-save () "Logic for automatic uploads."
