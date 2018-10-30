@@ -62,7 +62,10 @@
 ;;    (ssh-deploy-line-mode)
 ;;
 ;; - To set global key-bindings do something like this:
-;;     (global-set-key (kbd "C-c C-a") 'ssh-deploy-prefix-map)
+;;     (global-set-key (kbd "C-c C-z") 'ssh-deploy-prefix-map)
+;;
+;; - To set global key-bindings for hudra do something like this:
+;;     (global-set-key (kbd "C-c C-z") 'ssh-deploy-hydra/body)
 ;;
 ;; - To install and set-up using use-package and hydra do this:
 ;;   (use-package ssh-deploy
@@ -1372,6 +1375,8 @@
 (when (fboundp 'defhydra)
   (defhydra ssh-deploy-hydra (:color red :hint nil)
     "
+    SSH Deploy Menu
+    
     _u_: Upload                              _f_: Force Upload
     _d_: Download
     _D_: Delete
@@ -1418,7 +1423,8 @@
     (define-key map "B" 'ssh-deploy-browse-remote-handler)
     (define-key map "o" 'ssh-deploy-open-remote-file-handler)
     (define-key map "m" 'ssh-deploy-remote-sql-mysql-handler)
-    (define-key map "s" 'ssh-deploy-run-deploy-script-handler)))
+    (define-key map "s" 'ssh-deploy-run-deploy-script-handler)
+    map))
 (fset 'ssh-deploy-prefix-map ssh-deploy-prefix-map)
 
 
