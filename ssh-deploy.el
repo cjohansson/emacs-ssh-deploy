@@ -4,7 +4,7 @@
 ;; Maintainer: Christian Johansson <christian@cvj.se>
 ;; Created: 5 Jul 2016
 ;; Modified: 30 Oct 2018
-;; Version: 2.03
+;; Version: 2.04
 ;; Keywords: tools, convenience
 ;; URL: https://github.com/cjohansson/emacs-ssh-deploy
 
@@ -347,6 +347,9 @@
 
      ((= status ssh-deploy--status-detecting-remote-changes)
       (setq status-text "diff.."))
+
+     ((and ssh-deploy-root-local ssh-deploy-root-remote)
+      (setq status-text "idle"))
 
      (t (setq status-text ""))
 
