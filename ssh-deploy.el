@@ -3,8 +3,8 @@
 ;; Author: Christian Johansson <christian@cvj.se>
 ;; Maintainer: Christian Johansson <christian@cvj.se>
 ;; Created: 5 Jul 2016
-;; Modified: 29 Oct 2018
-;; Version: 2.02
+;; Modified: 30 Oct 2018
+;; Version: 2.03
 ;; Keywords: tools, convenience
 ;; URL: https://github.com/cjohansson/emacs-ssh-deploy
 
@@ -64,7 +64,7 @@
 ;; - To set global key-bindings do something like this:
 ;;     (global-set-key (kbd "C-c C-z") 'ssh-deploy-prefix-map)
 ;;
-;; - To set global key-bindings for hudra do something like this:
+;; - To set global key-bindings for the pre-defined hydra do something like this:
 ;;     (global-set-key (kbd "C-c C-z") 'ssh-deploy-hydra/body)
 ;;
 ;; - To install and set-up using use-package and hydra do this:

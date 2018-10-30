@@ -153,11 +153,15 @@ By combining a `~/.authinfo.gpg` setup and a `public-key` setup you should be ab
 ;; ssh-deploy - prefix = C-c C-z, f = forced upload, u = upload, d = download, x = diff, t = terminal, b = browse, h = shell
 (add-to-list 'load-path "~/.emacs.d/ssh-deploy/")
 (require 'ssh-deploy)
-
 (ssh-deploy-line-mode) ;; If you want mode-line feature
 (ssh-deploy-add-after-save-hook) ;; If you want automatic upload support
 (ssh-deploy-add-find-file-hook) ;; If you want detecting remote changes support
 (global-set-key (kbd "C-c C-z") 'ssh-deploy-prefix-map)
+```
+
+If you want to use the pre-defined hydra you can use this key-binding instead:
+``` elisp
+(global-set-key (kbd "C-c C-z") 'ssh-deploy-hydra/body)
 ```
 
 * Or use the `use-package` and `hydra-script` I'm using:
