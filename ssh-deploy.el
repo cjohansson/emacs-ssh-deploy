@@ -58,8 +58,11 @@
 ;; - To setup automatic storing of base revisions and detection of remote changes do this:
 ;; Add to init-script: (ssh-deploy-add-find-file-hook)
 ;;
-;; - To enable mode line to this:
-;;    (ssh-deploy-line-mode)
+;; - To enable mode-line feature do this:
+;; (ssh-deploy-line-mode)
+;;
+;; - To enable menu-bar feature do this:
+;; (ssh-deploy-add-menu)
 ;;
 ;; - To set global key-bindings do something like this:
 ;;     (global-set-key (kbd "C-c C-z") 'ssh-deploy-prefix-map)
@@ -76,6 +79,7 @@
 ;;            (find-file . ssh-deploy-find-file))
 ;;     :config
 ;;     (ssh-deploy-line-mode) ;; If you want mode-line feature
+;;     (ssh-deploy-add-menu) ;; If you want menu-bar feature
 ;;    )
 ;;
 ;;
@@ -1350,7 +1354,9 @@
       (define-key-after global-map [menu-bar sshdeploy] (cons "Deployment" ssh-deploy-menu-map) 'tools)
     (define-key-after global-map [menu-bar sshdeploy] 'undefined 'tools)))
 
-(add-hook 'menu-bar-update-hook 'ssh-deploy-menu-map-update)
+(defun ssh-deploy-add-menu ()
+  "Add menu-bar support."
+  (add-hook 'menu-bar-update-hook 'ssh-deploy-menu-map-update))
 
 
 ;;; Mode Line

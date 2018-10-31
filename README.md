@@ -154,6 +154,7 @@ By combining a `~/.authinfo.gpg` setup and a `public-key` setup you should be ab
 (add-to-list 'load-path "~/.emacs.d/ssh-deploy/")
 (require 'ssh-deploy)
 (ssh-deploy-line-mode) ;; If you want mode-line feature
+(ssh-deploy-add-menu) ;; If you want menu-bar feature
 (ssh-deploy-add-after-save-hook) ;; If you want automatic upload support
 (ssh-deploy-add-find-file-hook) ;; If you want detecting remote changes support
 (global-set-key (kbd "C-c C-z") 'ssh-deploy-prefix-map)
@@ -175,6 +176,7 @@ If you want to use the pre-defined hydra you can use this key-binding instead:
                (find-file . ssh-deploy-find-file))
         :config
         (ssh-deploy-line-mode) ;; If you want mode-line feature
+        (ssh-deploy-add-menu) ;; If you want menu-bar feature
       )
 ```
 
