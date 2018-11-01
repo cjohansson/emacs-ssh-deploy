@@ -38,15 +38,6 @@
 
 
 (defconst ssh-deploy-diff-mode--keywords
-  (list
-   "DIRECTORY A"
-   "DIRECTORY B"
-   "EXCLUDE-LIST"
-   "FILES ONLY IN A"
-   "FILES ONLY IN B"
-   "FILES IN BOTH BUT DIFFERS"
-   "HELP"
-   )
   '(
     "DIRECTORY A"
     "DIRECTORY B"
