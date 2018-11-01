@@ -3,8 +3,8 @@
 ;; Author: Christian Johansson <github.com/cjohansson>
 ;; Maintainer: Christian Johansson <github.com/cjohansson>
 ;; Created: 1 Feb 2018
-;; Modified: 29 Oct 2018
-;; Version: 1.15
+;; Modified: 1 Nov 2018
+;; Version: 1.16
 ;; Keywords: tools, convenience
 ;; URL: https://github.com/cjohansson/emacs-ssh-deploy
 
@@ -178,12 +178,9 @@
          (root-remote (nth 3 parts))
          (path-local (file-truename (expand-file-name file-name root-local)))
          (path-remote (expand-file-name file-name root-remote)))
-    (if (fboundp 'ssh-deploy-upload)
-        (cond ((or (= section ssh-deploy-diff-mode--section-only-in-a)
-                   (= section ssh-deploy-diff-mode--section-in-both))
-               (ssh-deploy-upload path-local path-remote 1))
-              (t "Copy A is not available in this section"))
-      (display-warning 'ssh-deploy "Function ssh-deploy-upload is missing" :warning))))
+    (cond ((memq section '(only-in-a in-both))
+           (ssh-deploy-upload path-local path-remote 1))
+          (t (message "Copy A is not available in this section")))))
 
 (defun ssh-deploy-diff-mode--copy-b (parts)
   "Perform an download of remote-path to local-path based on PARTS from section B or section BOTH."
@@ -194,49 +191,41 @@
          (root-remote (nth 3 parts))
          (path-local (file-truename (expand-file-name file-name root-local)))
          (path-remote (expand-file-name file-name root-remote)))
-    (if (fboundp 'ssh-deploy-download)
-        (cond ((or (= section ssh-deploy-diff-mode--section-only-in-b)
-                   (= section ssh-deploy-diff-mode--section-in-both))
-               (ssh-deploy-download path-remote path-local))
-              (t "Copy B is not available in this section"))
-      (display-warning 'ssh-deploy "Function ssh-deploy-download is missing" :warning))))
+    (cond ((memq section '(only-in-b in-both))
+           (ssh-deploy-download path-remote path-local))
+          (t (message "Copy B is not available in this section")))))
 
 ;; TODO Should we really pass path as buffer argument in this?
 (defun ssh-deploy-diff-mode--delete (parts)
   "Delete path in both, only in a or only in b based on PARTS from section A, B or BOTH."
-  (require 'ssh-deploy)
   (let* ((section (nth 1 parts))
          (file-name (nth 0 parts))
          (root-local (nth 2 parts))
          (root-remote (nth 3 parts))
          (path-local (file-truename (expand-file-name file-name root-local)))
          (path-remote (expand-file-name file-name root-remote)))
-    (if (and (fboundp 'ssh-deploy-delete)
-             (fboundp 'ssh-deploy-delete-both))
-        (cond ((= section ssh-deploy-diff-mode--section-in-both)
-               (let ((yes-no-prompt (read-string (format "Type 'yes' to confirm that you want to delete the file '%s': " file-name))))
-                 (if (string= yes-no-prompt "yes")
-                     (ssh-deploy-delete-both path-local))))
-              ((= section ssh-deploy-diff-mode--section-only-in-a) (ssh-deploy-delete path-local))
-              ((= section ssh-deploy-diff-mode--section-only-in-b) (ssh-deploy-delete path-remote))
-              ((= section ssh-deploy-diff-mode--section-in-both) (ssh-deploy-delete-both path-local))
-              (t (message "Delete is not available in this section")))
-      (display-warning 'ssh-deploy "Function ssh-deploy-delete or ssh-deploy-delete-both is missing" :warning))))
+    (pcase section
+      ('in-both
+       (let ((yes-no-prompt (read-string (format "Type 'yes' to confirm that you want to delete the file '%s': " file-name))))
+         (if (string= yes-no-prompt "yes")
+             (ssh-deploy-delete-both path-local))))
+      ('only-in-a
+       (ssh-deploy-delete path-local))
+      ('only-in-b
+       (ssh-deploy-delete-both path-remote))
+      (_ (message "Delete is not available in this section")))))
 
 (defun ssh-deploy-diff-mode--difference (parts)
   "If file exists in both start a difference session based on PARTS."
-  (require 'ssh-deploy)
   (let ((section (nth 1 parts)))
-    (if (= section ssh-deploy-diff-mode--section-in-both)
-        (if (fboundp 'ssh-deploy-diff-files)
-            (let* ((file-name (nth 0 parts))
-                   (root-local (file-truename (nth 2 parts)))
-                   (root-remote (nth 3 parts))
-                   (path-local (file-truename (expand-file-name file-name root-local)))
-                   (path-remote (expand-file-name file-name root-remote)))
-              (ssh-deploy-diff-files path-local path-remote)))
-      (display-warning 'ssh-deploy "Function ssh-deploy-diff-files is missing" :warning))
-    (message "File must exists in both roots to perform a difference action.")))
+    (if (eq section 'in-both)
+        (let* ((file-name (nth 0 parts))
+               (root-local (file-truename (nth 2 parts)))
+               (root-remote (nth 3 parts))
+               (path-local (file-truename (expand-file-name file-name root-local)))
+               (path-remote (expand-file-name file-name root-remote)))
+          (ssh-deploy-diff-files path-local path-remote))
+      (message "File must exists in both roots to perform a difference action."))))
 
 (defun ssh-deploy-diff-mode--open (parts)
   "Perform a open file action based on PARTS from section A or section B."
@@ -247,26 +236,19 @@
          (root-remote (nth 3 parts))
          (path-local (file-truename (expand-file-name file-name root-local)))
          (path-remote (expand-file-name file-name root-remote)))
-    (cond ((= section ssh-deploy-diff-mode--section-only-in-a)
-           (progn
-             (message "Opening file '%s'" path-local)
-             (find-file path-local)))
-          ((= section ssh-deploy-diff-mode--section-only-in-b)
-           (progn
-             (message "Opening file '%s'" path-remote)
-             (find-file path-remote)))
-          (t (message "Open is not available in this section")))))
+    (pcase section
+      ('only-in-a
+       (message "Opening file '%s'" path-local)
+       (find-file path-local))
+      ('only-in-b
+       (message "Opening file '%s'" path-remote)
+       (find-file path-remote))
+      (_ (message "Open is not available in this section")))))
 
-(defun ssh-deploy-diff-mode ()
+(define-derived-mode ssh-deploy-diff-mode special-mode "SSH-Deploy-Diff"
   "Major mode for SSH Deploy interactive directory differences."
-  (interactive)
-  (kill-all-local-variables)
-  (use-local-map ssh-deploy-diff-mode--map)
-  (set (make-local-variable 'font-lock-defaults) '(ssh-deploy-diff-mode--font-lock-keywords))
-  (setq major-mode 'ssh-deploy-diff-mode)
-  (setq mode-name "SSH-Deploy-Diff")
-  (read-only-mode t)
-  (run-hooks 'ssh-deploy-diff-mode-hook))
+  (set (make-local-variable 'font-lock-defaults)
+       '(ssh-deploy-diff-mode--font-lock-keywords)))
 
 (provide 'ssh-deploy-diff-mode)
 
