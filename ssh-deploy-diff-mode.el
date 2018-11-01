@@ -49,11 +49,12 @@
     )
   "Use list of keywords to build regular expression for syntax highlighting.")
 
-(defconst ssh-deploy-diff-mode--font-lock-keywords
-  "Minimal highlighting expressions for SSH Deploy Diff major mode."
+(defconst ssh-deploy-diff-mode--font-lock-keyword
   (let ((regex (concat "\\<" (regexp-opt ssh-deploy-diff-mode--keywords t) "\\>")))
     (list
-     '("\\('\\w*'\\)" . font-lock-variable-name-face))))
+     `(,regex . font-lock-builtin-face)
+     '("\\('\\w*'\\)" . font-lock-variable-name-face)))
+  "Minimal highlighting expressions for SSH Deploy Diff major mode.")
 
 (defvar ssh-deploy-diff-mode-map
   (let ((map (make-keymap)))
