@@ -36,22 +36,6 @@
 ;;; Code:
 
 
-(defvar ssh-deploy-diff-mode nil)
-
-(defconst ssh-deploy-diff-mode--section-directory-a 0 "Section for directory a.")
-(defconst ssh-deploy-diff-mode--section-directory-b 1 "Section for directory b.")
-(defconst ssh-deploy-diff-mode--section-exclude-list 2 "Section for exclude-list.")
-(defconst ssh-deploy-diff-mode--section-only-in-a 3 "Section for only in a.")
-(defconst ssh-deploy-diff-mode--section-only-in-b 4 "Section for only in b.")
-(defconst ssh-deploy-diff-mode--section-in-both 5 "Section for in both.")
-
-(defconst ssh-deploy-diff-mode--action-copy 0 "Action for copy.")
-(defconst ssh-deploy-diff-mode--action-copy-a 1 "Action for copy A.")
-(defconst ssh-deploy-diff-mode--action-copy-b 2 "Action for copy B.")
-(defconst ssh-deploy-diff-mode--action-delete 3 "Action for delete.")
-(defconst ssh-deploy-diff-mode--action-difference 4 "Action for difference.")
-(defconst ssh-deploy-diff-mode--action-refresh 5 "Action for refreshing differences.")
-(defconst ssh-deploy-diff-mode--action-open 6 "Action for open file.")
 
 (defconst ssh-deploy-diff-mode--keywords
   (list
@@ -63,18 +47,25 @@
    "FILES IN BOTH BUT DIFFERS"
    "HELP"
    )
+  '(
+    "DIRECTORY A"
+    "DIRECTORY B"
+    "EXCLUDE-LIST"
+    "FILES ONLY IN A"
+    "FILES ONLY IN B"
+    "FILES IN BOTH BUT DIFFERS"
+    "HELP"
+    )
   "Use list of keywords to build regular expression for syntax highlighting.")
 
-(let ((regex (concat "\\<" (regexp-opt ssh-deploy-diff-mode--keywords t) "\\>")))
-  (defconst ssh-deploy-diff-mode--font-lock-keywords
+(defconst ssh-deploy-diff-mode--font-lock-keywords
+  "Minimal highlighting expressions for SSH Deploy Diff major mode."
+  (let ((regex (concat "\\<" (regexp-opt ssh-deploy-diff-mode--keywords t) "\\>")))
     (list
-     `(,regex . font-lock-builtin-face)
-     '("\\('\\w*'\\)" . font-lock-variable-name-face))
-    "Minimal highlighting expressions for SSH Deploy Diff major mode."))
+     '("\\('\\w*'\\)" . font-lock-variable-name-face))))
 
-(defvar ssh-deploy-diff-mode--map
+(defvar ssh-deploy-diff-mode-map
   (let ((map (make-keymap)))
-    (define-key map "q" 'quit-window)
     (define-key map "C" 'ssh-deploy-diff-mode-copy-handler)
     (define-key map "a" 'ssh-deploy-diff-mode-copy-a-handler)
     (define-key map "b" 'ssh-deploy-diff-mode-copy-b-handler)
@@ -86,13 +77,13 @@
     map)
   "Key-map for SSH Deploy Diff major mode.")
 
-(defun ssh-deploy-diff-mode-copy-handler() "Start the copy action." (interactive)(ssh-deploy-diff-mode--action-handler ssh-deploy-diff-mode--action-copy))
-(defun ssh-deploy-diff-mode-copy-a-handler() "Start the copy A action." (interactive)(ssh-deploy-diff-mode--action-handler ssh-deploy-diff-mode--action-copy-a))
-(defun ssh-deploy-diff-mode-copy-b-handler() "Start the copy B action." (interactive)(ssh-deploy-diff-mode--action-handler ssh-deploy-diff-mode--action-copy-b))
-(defun ssh-deploy-diff-mode-delete-handler() "Start the delete action." (interactive)(ssh-deploy-diff-mode--action-handler ssh-deploy-diff-mode--action-delete))
-(defun ssh-deploy-diff-mode-difference-handler() "Start the difference action." (interactive)(ssh-deploy-diff-mode--action-handler ssh-deploy-diff-mode--action-difference))
-(defun ssh-deploy-diff-mode-refresh-handler() "Start the refresh action." (interactive)(ssh-deploy-diff-mode--action-handler ssh-deploy-diff-mode--action-refresh))
-(defun ssh-deploy-diff-mode-open-handler() "Start the open action." (interactive)(ssh-deploy-diff-mode--action-handler ssh-deploy-diff-mode--action-open))
+(defun ssh-deploy-diff-mode-copy-handler() "Start the copy action." (interactive)(ssh-deploy-diff-mode--action-handler #'ssh-deploy-diff-mode--action-copy))
+(defun ssh-deploy-diff-mode-copy-a-handler() "Start the copy A action." (interactive)(ssh-deploy-diff-mode--action-handler #'ssh-deploy-diff-mode--action-copy-a))
+(defun ssh-deploy-diff-mode-copy-b-handler() "Start the copy B action." (interactive)(ssh-deploy-diff-mode--action-handler #'ssh-deploy-diff-mode--action-copy-b))
+(defun ssh-deploy-diff-mode-delete-handler() "Start the delete action." (interactive)(ssh-deploy-diff-mode--action-handler #'ssh-deploy-diff-mode--action-delete))
+(defun ssh-deploy-diff-mode-difference-handler() "Start the difference action." (interactive)(ssh-deploy-diff-mode--action-handler #'ssh-deploy-diff-mode--action-difference))
+(defun ssh-deploy-diff-mode-refresh-handler() "Start the refresh action." (interactive)(ssh-deploy-diff-mode--action-handler #'ssh-deploy-diff-mode--action-refresh))
+(defun ssh-deploy-diff-mode-open-handler() "Start the open action." (interactive)(ssh-deploy-diff-mode--action-handler #'ssh-deploy-diff-mode--action-open))
 
 (defun ssh-deploy-diff-mode--get-parts ()
   "Return current file and section if any."
@@ -111,14 +102,17 @@
           (let* ((start (line-beginning-position))
                  (end (line-end-position))
                  (section (buffer-substring-no-properties start end)))
-            (setq section (replace-regexp-in-string ": ([0-9]+)$" "" section))
-            (cond ((string= section "DIRECTORY A") (setq section ssh-deploy-diff-mode--section-directory-a))
-                  ((string= section "DIRECTORY B") (setq section ssh-deploy-diff-mode--section-directory-b))
-                  ((string= section "EXCLUDE-LIST") (setq section ssh-deploy-diff-mode--section-exclude-list))
-                  ((string= section "FILES ONLY IN A") (setq section ssh-deploy-diff-mode--section-only-in-a))
-                  ((string= section "FILES ONLY IN B") (setq section ssh-deploy-diff-mode--section-only-in-b))
-                  ((string= section "FILES IN BOTH BUT DIFFERS") (setq section ssh-deploy-diff-mode--section-in-both))
-                  (t (message "Could not find section %s" section)))
+            (setq section (replace-regexp-in-string ": ([0-9]+)\\'" "" section))
+            (setq section
+                  (pcase section
+                    ("DIRECTORY A" 'directory-a)
+                    ("DIRECTORY B" 'directory-b)
+                    ("EXCLUDE-LIST" 'exclude-list)
+                    ("FILES ONLY IN A" 'only-in-a)
+                    ("FILES ONLY IN B" 'only-in-b)
+                    ("FILES IN BOTH BUT DIFFERS" 'in-both)
+                    (_ (message "Could not find section %s" section)
+                       section)))
             (while (and (> (line-number-at-pos) 1)
                         (not (looking-at "^DIRECTORY B:")))
               (forward-line -1))
@@ -143,50 +137,41 @@
   (interactive)
   (let ((parts (ssh-deploy-diff-mode--get-parts)))
     (if (not (eq parts nil))
-        (cond ((and (not (null (nth 0 parts))) (= action ssh-deploy-diff-mode--action-copy)) (ssh-deploy-diff-mode--copy parts))
-              ((and (not (null (nth 0 parts))) (= action ssh-deploy-diff-mode--action-copy-a)) (ssh-deploy-diff-mode--copy-a parts))
-              ((and (not (null (nth 0 parts))) (= action ssh-deploy-diff-mode--action-copy-b)) (ssh-deploy-diff-mode--copy-b parts))
-              ((and (not (null (nth 0 parts))) (= action ssh-deploy-diff-mode--action-delete)) (ssh-deploy-diff-mode--delete parts))
-              ((and (not (null (nth 0 parts))) (= action ssh-deploy-diff-mode--action-difference)) (ssh-deploy-diff-mode--difference parts))
-              ((and (not (null (nth 0 parts))) (= action ssh-deploy-diff-mode--action-open)) (ssh-deploy-diff-mode--open parts))
-              ((= action ssh-deploy-diff-mode--action-refresh) (ssh-deploy-diff-mode--refresh parts))
-              (t (message "Found nothing to do in the section for action %s" action)))
-      (message "Found nothing to do"))))
+        (cond
+         ((null parts) (message "Found nothing to do"))
+         ((not (or (nth 0 parts)
+                   ;; FIXME: Comparing equality of functions is bad karma!
+                   (eq action #'ssh-deploy-diff-mode--refresh)))
+          (message "Found nothing to do in the section for action %s"
+                   (replace-regexp-in-string "ssh-deploy-diff-mode--" ""
+                                             (format "%s" action))))
+         (t (funcall action parts))))))
 
 (defun ssh-deploy-diff-mode--refresh (parts)
   "Refresh current difference query based on PARTS."
   (interactive)
-  (require 'ssh-deploy)
-  (if (and (boundp 'ssh-deploy-root-local)
-           (boundp 'ssh-deploy-root-remote)
-           (fboundp 'ssh-deploy-diff-directories))
-      (let ((root-local (nth 2 parts))
-            (root-remote (nth 3 parts)))
-        (progn
-          (kill-this-buffer)
-          (ssh-deploy-diff-directories root-local root-remote)))))
+  (let ((root-local (nth 2 parts))
+        (root-remote (nth 3 parts)))
+    (kill-this-buffer)
+    (ssh-deploy-diff-directories root-local root-remote)))
 
 (defun ssh-deploy-diff-mode--copy (parts)
   "Perform an upload or download depending on section in PARTS."
-  (require 'ssh-deploy)
   (let* ((file-name (nth 0 parts))
          (root-local (file-truename (nth 2 parts)))
          (root-remote (nth 3 parts))
          (path-local (file-truename (expand-file-name file-name root-local)))
          (path-remote (expand-file-name file-name root-remote))
          (section (nth 1 parts)))
-    (if (and (fboundp 'ssh-deploy-download)
-             (fboundp 'ssh-deploy-upload))
-        (cond ((= section ssh-deploy-diff-mode--section-only-in-a)
-               (ssh-deploy-upload path-local path-remote 1))
-              ((= section ssh-deploy-diff-mode--section-only-in-b)
-               (ssh-deploy-download path-remote path-local))
-              (t (message "Copy is not available in this section")))
-      (display-warning 'ssh-deploy "Function ssh-deploy-download or ssh-deploy-upload is missing" :warning))))
+    (pcase section
+      ('only-in-a
+       (ssh-deploy-upload path-local path-remote 1))
+      ('only-in-b
+       (ssh-deploy-download path-remote path-local))
+      (_ (message "Copy is not available in this section")))))
 
 (defun ssh-deploy-diff-mode--copy-a (parts)
   "Perform a upload of local-path to remote-path based on PARTS from section A or section BOTH."
-  (require 'ssh-deploy)
   (let* ((section (nth 1 parts))
          (file-name (nth 0 parts))
          (root-local (file-truename (nth 2 parts)))
