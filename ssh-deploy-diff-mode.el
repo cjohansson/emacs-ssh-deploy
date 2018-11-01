@@ -49,7 +49,7 @@
     )
   "Use list of keywords to build regular expression for syntax highlighting.")
 
-(defconst ssh-deploy-diff-mode--font-lock-keyword
+(defconst ssh-deploy-diff-mode--font-lock-keywords
   (let ((regex (concat "\\<" (regexp-opt ssh-deploy-diff-mode--keywords t) "\\>")))
     (list
      `(,regex . font-lock-builtin-face)
