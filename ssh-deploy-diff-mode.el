@@ -69,13 +69,13 @@
     map)
   "Key-map for SSH Deploy Diff major mode.")
 
-(defun ssh-deploy-diff-mode-copy-handler() "Start the copy action." (interactive)(ssh-deploy-diff-mode--action-handler #'ssh-deploy-diff-mode--action-copy))
-(defun ssh-deploy-diff-mode-copy-a-handler() "Start the copy A action." (interactive)(ssh-deploy-diff-mode--action-handler #'ssh-deploy-diff-mode--action-copy-a))
-(defun ssh-deploy-diff-mode-copy-b-handler() "Start the copy B action." (interactive)(ssh-deploy-diff-mode--action-handler #'ssh-deploy-diff-mode--action-copy-b))
-(defun ssh-deploy-diff-mode-delete-handler() "Start the delete action." (interactive)(ssh-deploy-diff-mode--action-handler #'ssh-deploy-diff-mode--action-delete))
-(defun ssh-deploy-diff-mode-difference-handler() "Start the difference action." (interactive)(ssh-deploy-diff-mode--action-handler #'ssh-deploy-diff-mode--action-difference))
-(defun ssh-deploy-diff-mode-refresh-handler() "Start the refresh action." (interactive)(ssh-deploy-diff-mode--action-handler #'ssh-deploy-diff-mode--action-refresh))
-(defun ssh-deploy-diff-mode-open-handler() "Start the open action." (interactive)(ssh-deploy-diff-mode--action-handler #'ssh-deploy-diff-mode--action-open))
+(defun ssh-deploy-diff-mode-copy-handler() "Start the copy action." (interactive)(ssh-deploy-diff-mode--action-handler #'ssh-deploy-diff-mode--copy))
+(defun ssh-deploy-diff-mode-copy-a-handler() "Start the copy A action." (interactive)(ssh-deploy-diff-mode--action-handler #'ssh-deploy-diff-mode--copy-a))
+(defun ssh-deploy-diff-mode-copy-b-handler() "Start the copy B action." (interactive)(ssh-deploy-diff-mode--action-handler #'ssh-deploy-diff-mode--copy-b))
+(defun ssh-deploy-diff-mode-delete-handler() "Start the delete action." (interactive)(ssh-deploy-diff-mode--action-handler #'ssh-deploy-diff-mode--delete))
+(defun ssh-deploy-diff-mode-difference-handler() "Start the difference action." (interactive)(ssh-deploy-diff-mode--action-handler #'ssh-deploy-diff-mode--difference))
+(defun ssh-deploy-diff-mode-refresh-handler() "Start the refresh action." (interactive)(ssh-deploy-diff-mode--action-handler #'ssh-deploy-diff-mode--refresh))
+(defun ssh-deploy-diff-mode-open-handler() "Start the open action." (interactive)(ssh-deploy-diff-mode--action-handler #'ssh-deploy-diff-mode--open))
 
 (defun ssh-deploy-diff-mode--get-parts ()
   "Return current file and section if any."
