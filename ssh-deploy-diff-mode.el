@@ -36,7 +36,6 @@
 ;;; Code:
 
 
-
 (defconst ssh-deploy-diff-mode--keywords
   '(
     "DIRECTORY A"
@@ -187,7 +186,6 @@
            (ssh-deploy-download path-remote path-local))
           (t (message "Copy B is not available in this section")))))
 
-;; TODO Should we really pass path as buffer argument in this?
 (defun ssh-deploy-diff-mode--delete (parts)
   "Delete path in both, only in a or only in b based on PARTS from section A, B or BOTH."
   (let* ((section (nth 1 parts))
@@ -204,7 +202,7 @@
       ('only-in-a
        (ssh-deploy-delete path-local))
       ('only-in-b
-       (ssh-deploy-delete-both path-remote))
+       (ssh-deploy-delete path-remote))
       (_ (message "Delete is not available in this section")))))
 
 (defun ssh-deploy-diff-mode--difference (parts)
