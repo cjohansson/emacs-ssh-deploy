@@ -448,7 +448,7 @@
         (progn
           (require 'ediff-util)
           (if (fboundp 'ediff-same-file-contents)
-              (if (or (eq t force)
+              (if (or (> force 0)
                       (not (file-exists-p path-remote))
                       (and (file-exists-p revision-path) (ediff-same-file-contents revision-path path-remote)))
                   (progn
