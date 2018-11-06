@@ -4,7 +4,7 @@
 ;; Maintainer: Christian Johansson <christian@cvj.se>
 ;; Created: 5 Jul 2016
 ;; Modified: 4 Nov 2018
-;; Version: 2.06
+;; Version: 2.07
 ;; Keywords: tools, convenience
 ;; URL: https://github.com/cjohansson/emacs-ssh-deploy
 
@@ -1096,7 +1096,7 @@
                  (ssh-deploy--file-is-in-path path-local root-local)
                  (ssh-deploy--file-is-included path-local ssh-deploy-exclude-list))
             (let ((path-remote (expand-file-name (ssh-deploy--get-relative-path root-local path-local) ssh-deploy-root-remote)))
-              (ssh-deploy-upload path-local path-remote force ssh-deploy-async ssh-deploy-revision-folder))
+              (ssh-deploy-upload path-local path-remote force ssh-deploy-async ssh-deploy-revision-folder ssh-deploy-async-with-threads))
           (when (> ssh-deploy-debug 0) (message "Ignoring upload, path '%s' is empty, not in the root '%s' or is excluded from it." path-local root-local))))))
 
 ;;;###autoload
@@ -1114,7 +1114,7 @@
            (ssh-deploy--is-not-empty-string buffer-file-name))
       (progn
         (when (> ssh-deploy-debug 0) (message "Detecting remote-changes.."))
-        (ssh-deploy-remote-changes (file-truename buffer-file-name) (file-truename ssh-deploy-root-local) ssh-deploy-root-remote ssh-deploy-async ssh-deploy-revision-folder ssh-deploy-exclude-list))
+        (ssh-deploy-remote-changes (file-truename buffer-file-name) (file-truename ssh-deploy-root-local) ssh-deploy-root-remote ssh-deploy-async ssh-deploy-revision-folder ssh-deploy-exclude-list ssh-deploy-async-with-threads))
     (when (> ssh-deploy-debug 0) (message "Ignoring remote-changes check since a root is empty or the current buffer lacks a file-name."))))
 
 ;;;###autoload
@@ -1162,7 +1162,7 @@
                  (ssh-deploy--file-is-in-path path-local root-local)
                  (ssh-deploy--file-is-included path-local ssh-deploy-exclude-list))
             (let ((path-remote (expand-file-name (ssh-deploy--get-relative-path root-local path-local) ssh-deploy-root-remote)))
-              (ssh-deploy-download path-remote path-local ssh-deploy-async ssh-deploy-revision-folder))
+              (ssh-deploy-download path-remote path-local ssh-deploy-async ssh-deploy-revision-folder ssh-deploy-async-with-threads))
           (when (> ssh-deploy-debug 0) (message "Ignoring upload, path '%s' is empty, not in the root '%s' or is excluded from it." path-local root-local))))))
 
 ;;;###autoload
@@ -1219,7 +1219,7 @@
                  (new-path-local-tmp (read-file-name "New file name:" (file-name-directory old-path-local) basename nil basename))
                  (new-path-local (file-truename new-path-local-tmp)))
             (if (not (string= old-path-local new-path-local))
-                (ssh-deploy-rename old-path-local new-path-local root-local ssh-deploy-root-remote ssh-deploy-async ssh-deploy-debug)))
+                (ssh-deploy-rename old-path-local new-path-local root-local ssh-deploy-root-remote ssh-deploy-async ssh-deploy-debug ssh-deploy-exclude-list ssh-deploy-async-with-threads)))
         (if (and (ssh-deploy--is-not-empty-string default-directory)
                  (file-exists-p default-directory))
             (let* ((old-path-local (file-truename default-directory))
@@ -1228,7 +1228,7 @@
                    (new-path-local-tmp (read-file-name "New directory name:" (file-name-directory old-path-local) basename nil basename))
                    (new-path-local (file-truename new-path-local-tmp)))
               (if (not (string= old-path-local new-path-local))
-                  (ssh-deploy-rename old-path-local new-path-local root-local ssh-deploy-root-remote ssh-deploy-async ssh-deploy-debug ssh-deploy-exclude-list)))))))
+                  (ssh-deploy-rename old-path-local new-path-local root-local ssh-deploy-root-remote ssh-deploy-async ssh-deploy-debug ssh-deploy-exclude-list ssh-deploy-async-with-threads)))))))
 
 ;;;###autoload
 (defun ssh-deploy-remote-terminal-eshell-handler ()
