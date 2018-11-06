@@ -816,7 +816,7 @@
                                      (if (ediff-same-file-contents path-local path-remote)
                                          (progn
                                            (copy-file path-local revision-path t t t t)
-                                           (list 0 (format "Remote file '%s' has not changed created base revision. (asynchronously)" path-remote) path-local))
+                                           (list 0 (format "Remote file '%s' has not changed, created base revision. (asynchronously)" path-remote) path-local))
                                        (list 1 (format "Remote file '%s' has changed please download or diff. (asynchronously)" path-remote) path-local))
                                    (list 1 "Function ediff-file-same-contents is missing. (asynchronously)" path-local)))
                              (list 0 (format "Remote file '%s' doesn't exist. (asynchronously)" path-remote) path-local)))
