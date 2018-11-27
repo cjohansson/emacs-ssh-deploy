@@ -41,11 +41,11 @@ Here is a list of other variables you can set globally or per directory:
 * `ssh-deploy-remote-sql-server` Default server when connecting to remote SQL database *(string)*
 * `ssh-deploy-remote-sql-user` Default user when connecting to remote SQL database *(string)*
 * `ssh-deploy-remote-shell-executable` Default remote shell executable when launching shell on remote host *(string)*
-* `ssh-deploy-verbose` Show messages in message buffer when starting and ending actions, default t *(integer)*
+* `ssh-deploy-verbose` Show messages in message buffer when starting and ending actions *(integer)*
 * `ssh-deploy-script` - Your custom lambda function that will be called using (funcall) when running deploy script handler *(function)*
-* `ssh-deploy-async-with-threads` - Whether to use threads (make threads) instead of processes (async-start) for asynchronous operations, default nil *(integer)*
+* `ssh-deploy-async-with-threads` - Whether to use threads (make threads) instead of processes (async-start) for asynchronous operations *(integer)*
 
-When integers are used as booleans, above zero equals true and otherwise it's false.
+When integers are used as booleans, above zero means true, zero means false and nil means unset and fallback to global settings.
 
 ## Deployment configuration examples
 
