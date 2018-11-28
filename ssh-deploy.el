@@ -1,10 +1,12 @@
-;;; ssh-deploy.el --- Deployment via TRAMP, global or per directory. -*- lexical-binding: t -*-
+;;; ssh-deploy.el --- Deployment via TRAMP, global or per directory.  -*- lexical-binding:t -*-
+
+;; Copyright (C) 2017-2018  Free Software Foundation, Inc.
 
 ;; Author: Christian Johansson <christian@cvj.se>
 ;; Maintainer: Christian Johansson <christian@cvj.se>
 ;; Created: 5 Jul 2016
-;; Modified: 4 Nov 2018
-;; Version: 2.07
+;; Modified: 28 Nov 2018
+;; Version: 3.0
 ;; Keywords: tools, convenience
 ;; URL: https://github.com/cjohansson/emacs-ssh-deploy
 
@@ -23,9 +25,7 @@
 ;; General Public License for more details.
 
 ;; You should have received a copy of the GNU General Public License
-;; along with GNU Emacs; see the file COPYING.  If not, write to the
-;; Free Software Foundation, Inc., 59 Temple Place - Suite 330,
-;; Boston, MA 02111-1307, USA.
+;; along with GNU Emacs.  If not, see <http://www.gnu.org/licenses/>.
 
 ;;; Commentary:
 
