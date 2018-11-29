@@ -228,8 +228,7 @@
 
 (defcustom ssh-deploy-remote-sql-server nil
   "String variable of remote sql server, nil by default."
-  :type 'string
-  :group 'ssh-deploy)
+  :type 'string)
 (put 'ssh-deploy-remote-sql-server 'permanent-local t)
 (put 'ssh-deploy-remote-sql-server 'safe-local-variable 'stringp)
 
