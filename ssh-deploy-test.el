@@ -37,10 +37,19 @@
 ;;; Code:
 
 
-(autoload 'ssh-deploy-diff-mode "ssh-deploy-diff-mode")
-(autoload 'ssh-deploy "ssh-deploy")
-(autoload 'ssh-deploy--file-is-in-path "ssh-deploy")
 (autoload 'should "ert")
+
+(autoload 'ssh-deploy-diff-mode "ssh-deploy-diff-mode")
+
+(autoload 'ssh-deploy "ssh-deploy")
+(autoload 'ssh-deploy--get-revision-path "ssh-deploy")
+(autoload 'ssh-deploy--file-is-in-path "ssh-deploy")
+(autoload 'ssh-deploy--is-not-empty-string "ssh-deploy")
+
+(defun ssh-deploy-test--get-revision-path ()
+  "Test this function."
+  (should (string= (expand-file-name "./_mydirectory_random-file.txt") (ssh-deploy--get-revision-path "/mydirectory/random-file.txt" (expand-file-name "."))))
+  )
 
 (defun ssh-deploy-test--file-is-in-path ()
   "Test this function."
@@ -49,10 +58,18 @@
   (should (equal nil (ssh-deploy--file-is-in-path "/mydirectory2/test.txt" "/mydirectory/")))
   )
 
+(defun ssh-deploy-test--is-not-empty-string ()
+  "Test this function."
+  (should (equal t (ssh-deploy--is-not-empty-string "abc")))
+  (should (equal nil (ssh-deploy--is-not-empty-string "")))
+  (should (equal nil (ssh-deploy--is-not-empty-string nil)))
+  )
 
 (defun ssh-deploy-tests ()
   "Run test for plug-in."
+  (ssh-deploy-test--get-revision-path)
   (ssh-deploy-test--file-is-in-path)
+  (ssh-deploy-test--is-not-empty-string)
   )
 
 (ssh-deploy-tests)
