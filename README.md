@@ -4,6 +4,7 @@
 The `ssh-deploy` plug-in for Emacs makes it possible to effortlessly deploy local files and directories to remote hosts via TRAMP (including but not limited to SSH, SFTP, FTP). It tries to provide functions that can be easily used by custom scripts.
 
 ## Features:
+
 * Define syncing configuration per directory or per file (using `DirectoryVariables` or `File Variables`)
 * Control whether uploads of files should be automatic on save
 * Manual downloads and uploads of directories and files
@@ -237,6 +238,10 @@ Ange-FTP defaults to `~/.netrc` so you need to add this to your init script:
 ``` elisp
 (setq ange-ftp-netrc-filename "~/.authinfo.gpg")
 ```
+
+## Tests
+
+Run `make tests` from plug-in folder to run tests, if you need to specify specific Emacs use export syntax i.e. `export emacs="YOUR_PATH" && make tests`
 
 ## Read more
 * <https://www.gnu.org/software/tramp/>
