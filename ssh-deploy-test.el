@@ -2,16 +2,6 @@
 
 ;; Copyright (C) 2017-2018  Free Software Foundation, Inc.
 
-;; Author: Christian Johansson <christian@cvj.se>
-;; Maintainer: Christian Johansson <christian@cvj.se>
-;; Created: 5 Jul 2016
-;; Modified: 28 Nov 2018
-;; Version: 3.0
-;; Keywords: tools, convenience
-;; URL: https://github.com/cjohansson/emacs-ssh-deploy
-
-;; Package-Requires: ((emacs "24"))
-
 ;; This file is not part of GNU Emacs.
 
 ;; This program is free software; you can redistribute it and/or
@@ -65,14 +55,14 @@
   (should (equal nil (ssh-deploy--is-not-empty-string nil)))
   )
 
-(defun ssh-deploy-tests ()
+(defun ssh-deploy-test ()
   "Run test for plug-in."
   (ssh-deploy-test--get-revision-path)
   (ssh-deploy-test--file-is-in-path)
   (ssh-deploy-test--is-not-empty-string)
   )
 
-(ssh-deploy-tests)
+(ssh-deploy-test)
 
 
 (provide 'ssh-deploy-test)

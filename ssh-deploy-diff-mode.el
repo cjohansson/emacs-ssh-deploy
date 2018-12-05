@@ -2,16 +2,6 @@
 
 ;; Copyright (C) 2017-2018  Free Software Foundation, Inc.
 
-;; Author: Christian Johansson <christian@cvj.se>
-;; Maintainer: Christian Johansson <christian@cvj.se>
-;; Created: 1 Feb 2018
-;; Modified: 28 Nov 2018
-;; Version: 2.0
-;; Keywords: tools, convenience
-;; URL: https://github.com/cjohansson/emacs-ssh-deploy
-
-;; Package-Requires: ((emacs "24"))
-
 ;; This file is not part of GNU Emacs.
 
 ;; This program is free software; you can redistribute it and/or
