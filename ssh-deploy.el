@@ -290,10 +290,14 @@
            async-with-threads
            (> async-with-threads 0))
       (make-thread (lambda()
-                     (if start
-                         (let ((result (funcall start)))
-                           (if finish
-                               (funcall finish result))))))
+                     (let ((ssh-deploy-async 0)
+                           (ssh-deploy-async-with-threads 0)
+                           (ssh-deploy-on-explicit-save 0)
+                           (ssh-deploy-automatically-detect-remote-changes 0))
+                       (if start
+                           (let ((result (funcall start)))
+                             (if finish
+                                 (funcall finish result)))))))
     (if (fboundp 'async-start)
         (if start
             (let ((ftp-netrc nil))
@@ -301,9 +305,13 @@
                 (setq ftp-netrc ange-ftp-netrc-filename))
               (async-start
                (lambda()
-                 (if ftp-netrc
-                     (defvar ange-ftp-netrc-filename ftp-netrc))
-                 (funcall start))
+                 (let ((ssh-deploy-async 0)
+                       (ssh-deploy-async-with-threads 0)
+                       (ssh-deploy-on-explicit-save 0)
+                       (ssh-deploy-automatically-detect-remote-changes 0))
+                   (if ftp-netrc
+                       (defvar ange-ftp-netrc-filename ftp-netrc))
+                   (funcall start)))
                finish)))
       (display-warning 'ssh-deploy "Neither make-thread nor async-start functions are available!"))))
 
@@ -354,14 +362,10 @@
      ((and ssh-deploy-root-local ssh-deploy-root-remote)
       (setq status-text "idle"))
 
-     (t (setq status-text ""))
-
-     )
+     (t (setq status-text "")))
 
     (make-local-variable 'ssh-deploy--mode-line-status-text)
-    (setq ssh-deploy--mode-line-status-text (ssh-deploy--mode-line-status-text-format status-text))
-    ;; (message "SSH Deploy - Updated status text to: '%s' from: %d" ssh-deploy--mode-line-status-text status)
-    ))
+    (setq ssh-deploy--mode-line-status-text (ssh-deploy--mode-line-status-text-format status-text))))
 
 (defun ssh-deploy--mode-line-status-text-format (text)
   "Return a formatted string based on TEXT."
@@ -1295,11 +1299,13 @@
   (interactive)
   (if ssh-deploy-script
       (if (> ssh-deploy-async 0)
-          (progn
+          (let ((script-filename (file-name-directory (symbol-file 'ssh-deploy-diff-directories))))
             (message "Executing of deployment-script starting... (asynchronously)")
             (ssh-deploy--async-process
              `(lambda() (let ((ssh-deploy-root-local ,ssh-deploy-root-local)
                               (ssh-deploy-root-remote ,ssh-deploy-root-remote))
+                          (add-to-list 'load-path ,script-filename)
+                          (require 'ssh-deploy)
                           (funcall ,ssh-deploy-script)))
              (lambda(result) (message "Completed execution of deployment-script. Return: '%s' (asynchronously)" result))
              ssh-deploy-async-with-threads))
