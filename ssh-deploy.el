@@ -1,4 +1,4 @@
-;;; ssh-deploy.el --- Deployment via TRAMP, global or per directory.  -*- lexical-binding:t -*-
+;;; ssh-deploy.el --- Deployment via Tramp, global or per directory.  -*- lexical-binding:t -*-
 
 ;; Copyright (C) 2017-2018  Free Software Foundation, Inc.
 
@@ -32,13 +32,13 @@
 ;; ssh-deploy enables automatic deploys on explicit-save actions, manual uploads, renaming,
 ;; deleting, downloads, file and directory differences, launching remote terminals (eshell, shell),
 ;; detection of remote changes, remote directory browsing, remote SQL database sessions and
-;; running custom deployment scripts via TRAMP.
+;; running custom deployment scripts via Tramp.
 ;;
 ;; For asynchronous operations it uses package '`make-thread' or if not available '`async.el'.
 ;;
 ;; By setting the variables (globally, per directory or per file):
 ;; ssh-deploy-root-local,ssh-deploy-root-remote, ssh-deploy-on-explicit-save
-;; you can setup a directory for TRAMP deployment.
+;; you can setup a directory for Tramp deployment.
 ;;
 ;; For asynchronous transfers you need to setup ~/.authinfo.gpg or key-based authorization or equivalent for automatic authentication.
 ;;
@@ -110,7 +110,7 @@
 ;; Here is a list of other variables you can set globally or per directory:
 
 ;; * `ssh-deploy-root-local' - The local root that should be under deployment *(string)*
-;; * `ssh-deploy-root-remote' - The remote TRAMP root that is used for deployment *(string)*
+;; * `ssh-deploy-root-remote' - The remote Tramp root that is used for deployment *(string)*
 ;; * `ssh-deploy-debug' - Enables debugging messages *(integer)*
 ;; * `ssh-deploy-revision-folder' - The folder used for storing local revisions *(string)*
 ;; * `ssh-deploy-automatically-detect-remote-changes' - Enables automatic detection of remote changes *(integer)*
@@ -137,7 +137,7 @@
 (autoload 'ssh-deploy-diff-mode "ssh-deploy-diff-mode")
 
 (defgroup ssh-deploy nil
-  "Upload, download, difference, browse and terminal handler for files and directories on remote hosts via TRAMP."
+  "Upload, download, difference, browse and terminal handler for files and directories on remote hosts via Tramp."
   :group 'tools
   :group 'convenience)
 
@@ -407,7 +407,7 @@
        (not (zerop (length string)))))
 
 (defun ssh-deploy--upload-via-tramp-async (path-local path-remote force revision-folder async-with-threads)
-  "Upload PATH-LOCAL to PATH-REMOTE via TRAMP asynchronously and FORCE upload despite remote change, check for revisions in REVISION-FOLDER.  Use multi-treaded async if ASYNC-WITH-THREADS is specified."
+  "Upload PATH-LOCAL to PATH-REMOTE via Tramp asynchronously and FORCE upload despite remote change, check for revisions in REVISION-FOLDER.  Use multi-treaded async if ASYNC-WITH-THREADS is specified."
   (let ((file-or-directory (not (file-directory-p path-local))))
     (ssh-deploy--mode-line-set-status-and-update ssh-deploy--status-uploading path-local)
     (if file-or-directory
@@ -442,7 +442,7 @@
          (when ssh-deploy-verbose (message "Completed upload of directory '%s'. (asynchronously)" return-path)))))))
 
 (defun ssh-deploy--upload-via-tramp (path-local path-remote force revision-folder)
-  "Upload PATH-LOCAL to PATH-REMOTE via TRAMP synchronously and FORCE despite remote change compared with copy in REVISION-FOLDER."
+  "Upload PATH-LOCAL to PATH-REMOTE via Tramp synchronously and FORCE despite remote change compared with copy in REVISION-FOLDER."
   (let ((file-or-directory (not (file-directory-p path-local)))
         (revision-path (ssh-deploy--get-revision-path path-local revision-folder)))
     (ssh-deploy--mode-line-set-status-and-update ssh-deploy--status-uploading)
@@ -469,7 +469,7 @@
       (when ssh-deploy-verbose (message "Completed upload of '%s'. (synchronously)" path-local)))))
 
 (defun ssh-deploy--download-via-tramp-async (path-remote path-local revision-folder async-with-threads)
-  "Download PATH-REMOTE to PATH-LOCAL via TRAMP asynchronously and make a copy in REVISION-FOLDER, use multi-threading if ASYNC-WITH-THREADS is above zero."
+  "Download PATH-REMOTE to PATH-LOCAL via Tramp asynchronously and make a copy in REVISION-FOLDER, use multi-threading if ASYNC-WITH-THREADS is above zero."
   (let ((revision-path (ssh-deploy--get-revision-path path-local revision-folder)))
     (ssh-deploy--mode-line-set-status-and-update ssh-deploy--status-downloading path-local)
     (when ssh-deploy-verbose (message "Downloading '%s' to '%s'.. (asynchronously)" path-remote path-local))
@@ -494,7 +494,7 @@
      async-with-threads)))
 
 (defun ssh-deploy--download-via-tramp (path-remote path-local revision-folder)
-  "Download PATH-REMOTE to PATH-LOCAL via TRAMP synchronously and store a copy in REVISION-FOLDER."
+  "Download PATH-REMOTE to PATH-LOCAL via Tramp synchronously and store a copy in REVISION-FOLDER."
   (let ((file-or-directory (not (file-directory-p path-remote))))
     (ssh-deploy--mode-line-set-status-and-update ssh-deploy--status-downloading)
     (if file-or-directory
@@ -1041,7 +1041,7 @@
 
 ;;;###autoload
 (defun ssh-deploy-upload (path-local path-remote &optional force async revision-folder async-with-threads)
-  "Upload PATH-LOCAL to PATH-REMOTE and ROOT-LOCAL via TRAMP, FORCE uploads despite remote change, ASYNC determines if transfer should be asynchronously, check version in REVISION-FOLDER.  If you want asynchronous threads pass ASYNC-WITH-THREADS above zero."
+  "Upload PATH-LOCAL to PATH-REMOTE and ROOT-LOCAL via Tramp, FORCE uploads despite remote change, ASYNC determines if transfer should be asynchronously, check version in REVISION-FOLDER.  If you want asynchronous threads pass ASYNC-WITH-THREADS above zero."
   (let ((force (or force 0))
         (async (or async ssh-deploy-async))
         (revision-folder (or revision-folder ssh-deploy-revision-folder))
@@ -1052,7 +1052,7 @@
 
 ;;;###autoload
 (defun ssh-deploy-download (path-remote path-local &optional async revision-folder async-with-threads)
-  "Download PATH-REMOTE to PATH-LOCAL via TRAMP, ASYNC determines if transfer should be asynchrous or not, check for revisions in REVISION-FOLDER.  If you want asynchronous threads pass ASYNC-WITH-THREADS above zero."
+  "Download PATH-REMOTE to PATH-LOCAL via Tramp, ASYNC determines if transfer should be asynchrous or not, check for revisions in REVISION-FOLDER.  If you want asynchronous threads pass ASYNC-WITH-THREADS above zero."
   (let ((async (or async ssh-deploy-async))
         (revision-folder (or revision-folder ssh-deploy-revision-folder))
         (async-with-threads (or async-with-threads ssh-deploy-async-with-threads)))

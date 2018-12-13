@@ -1,7 +1,7 @@
 # `emacs-ssh-deploy`
 [![License GPL 3](https://img.shields.io/badge/license-GPL_3-green.svg)](https://www.gnu.org/licenses/gpl-3.0.txt) [![MELPA](https://melpa.org/packages/ssh-deploy-badge.svg)](https://melpa.org/#/ssh-deploy) [![MELPA Stable](https://stable.melpa.org/packages/ssh-deploy-badge.svg)](https://stable.melpa.org/#/ssh-deploy)
 
-The `ssh-deploy` plug-in for Emacs makes it possible to effortlessly deploy local files and directories to remote hosts via TRAMP (including but not limited to SSH, SFTP, FTP). It tries to provide functions that can be easily used by custom scripts.
+The `ssh-deploy` plug-in for Emacs makes it possible to effortlessly deploy local files and directories to remote hosts via Tramp (including but not limited to SSH, SFTP, FTP). It tries to provide functions that can be easily used by custom scripts.
 
 ## Features:
 
@@ -12,13 +12,14 @@ The `ssh-deploy` plug-in for Emacs makes it possible to effortlessly deploy loca
 * Launch remote `eshell` and `shell` terminals in base or relative directory
 * Launch remote `dired` browsing in base or relative directory
 * Launch difference sessions for files using `ediff`
-* Launch difference sessions for directories using a custom implementation of recursive directory differences over TRAMP based on `ediff`
+* Launch difference sessions for directories using a custom implementation of recursive directory differences over Tramp based on `ediff`
 * Rename files and directories on local host and have it mirrored on the remote
 * Delete files and directories on local host and have it mirrored on the remote
 * Open corresponding file on the remote host
 * Open SQL database-session on remote hosts
 * Run custom deployment scripts
 * All operations support asynchronous mode if `(make-thread`) or `async.el` is installed. (You need to setup an automatic authorization for this, i.e. `~/.authinfo.gpg` and/or key-based password-less authorization)
+* Tries to follow best-practice both in terms of performance and code style
 
 The idea for this plug-in was to mimic the behavior of **PhpStorm** deployment functionality.
 
@@ -29,7 +30,7 @@ This application is made by Christian Johansson <christian@cvj.se> 2016-2018 and
 Here is a list of other variables you can set globally or per directory:
 
 * `ssh-deploy-root-local` The local root that should be under deployment *(string)*
-* `ssh-deploy-root-remote` The remote TRAMP root that is used for deployment *(string)*
+* `ssh-deploy-root-remote` The remote Tramp root that is used for deployment *(string)*
 * `ssh-deploy-debug` Enables debugging messages *(integer)*
 * `ssh-deploy-revision-folder` The folder used for storing local revisions *(string)*
 * `ssh-deploy-automatically-detect-remote-changes` Enables automatic detection of remote changes *(integer)*
@@ -53,7 +54,7 @@ When integers are used as booleans, above zero means true, zero means false and 
 * Download ssh-deploy and place it at `~/.emacs.d/ssh-deploy/` or install via `package.el` (`M-x list-packages` or `M-x package-install` + `ssh-deploy`) from the `ELPA` or `MELPA` repository.
 * So if you want to deploy `/Users/username/Web/MySite/` to create this `DirectoryVariables` file in your project root at `/Users/username/Web/MySite/.dir-locals.el`.
 
-You really need to do a bit of research about how to connect via different protocols using TRAMP on your operating system, I think Windows users should use `plink` for most protocols. Linux should work out of the box and macOS requires a bit of tweaking to get FTP support.
+You really need to do a bit of research about how to connect via different protocols using Tramp on your operating system, I think Windows users should use `plink` for most protocols. Linux should work out of the box and macOS requires a bit of tweaking to get FTP support.
 
 ### SSH, with automatic uploads and SQL
 
@@ -200,7 +201,7 @@ File contents `/Users/username/Web/MySite/.dir-locals.el`:
 ```
 
 * Now when you save a file somewhere under the directory `/Users/username/Web/MySite/`, the script will launch and deploy the file with the remote server.
-* If you press `C-c C-z x` and the current buffer is a file, you will launch a `ediff` session showing differences between local file and remote file via TRAMP, or if current buffer is a directory it will open a buffer showing directory differences
+* If you press `C-c C-z x` and the current buffer is a file, you will launch a `ediff` session showing differences between local file and remote file via Tramp, or if current buffer is a directory it will open a buffer showing directory differences
 w* If you press `C-c C-z f` you will **force** upload local file or directory to remote host even if they have external changes.
 * If you press `C-c C-z u` you will upload local file or directory to remote host.
 * If you press `C-c C-z d` you will download the current file or directory from remote host and then reload current buffer.
@@ -221,9 +222,9 @@ The local path and local root is evaluated based on their `truename` so if you u
 
 The above configuration example uses the Emacs plug-in `use-package` which I highly recommend.
 
-## TRAMP FTP problem in macOS 10.13
+## Tramp FTP problem in macOS 10.13
 
-macOS 10.13 removed the Darwin port of BSD `ftp` which is needed for `ange-ftp`, which is required by TRAMP. You can get it back by doing this:
+macOS 10.13 removed the Darwin port of BSD `ftp` which is needed for `ange-ftp`, which is required by Tramp. You can get it back by doing this:
 
 1. Download <https://opensource.apple.com/tarballs/lukemftp/lukemftp-16.tar.gz> or some other version from <https://opensource.apple.com/tarballs/lukemftp/>
 2. Extract archive
@@ -231,7 +232,7 @@ macOS 10.13 removed the Darwin port of BSD `ftp` which is needed for `ange-ftp`,
 4. Type `./configure` then `make` and then `sudo make install`
 5. Type `mv ./src/ftp /usr/local/bin/ftp`
 
-## TRAMP FTP doesn't read my ~/.authinfo.gpg
+## Tramp FTP doesn't read my ~/.authinfo.gpg
 
 Ange-FTP defaults to `~/.netrc` so you need to add this to your init script:
 
@@ -244,10 +245,11 @@ Ange-FTP defaults to `~/.netrc` so you need to add this to your init script:
 Run `make tests` from plug-in folder to run tests, if you need to specify specific Emacs use export syntax i.e. `export emacs="YOUR_PATH" && make tests`
 
 ## Read more
-* <https://www.gnu.org/software/tramp/>
-* <https://elpa.gnu.org/>
-* <https://melpa.org/>
-* <https://www.emacswiki.org/emacs/DirectoryVariables>
-* <https://www.emacswiki.org/emacs/EdiffMode>
-* <https://github.com/jwiegley/emacs-async>
-* <https://github.com/jwiegley/use-package>
+* [Tramp](https://www.gnu.org/software/tramp/) - Transparent Remote (file) Access, Multiple Protocol
+* [ELPA](https://elpa.gnu.org/) - GNU Emacs Lisp Package Archive
+* [MELPA](https://melpa.org/) - Milkypostman’s Emacs Lisp Package Archive
+* [Directory Variables](https://www.emacswiki.org/emacs/DirectoryVariables)
+* [Ediff Mode](https://www.emacswiki.org/emacs/EdiffMode)
+* [emacs-async](https://github.com/jwiegley/emacs-async)
+* [use-package](https://github.com/jwiegley/use-package)
+* [The Emacs Lisp Style Guide](https://github.com/bbatsov/emacs-lisp-style-guide)
