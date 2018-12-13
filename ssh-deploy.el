@@ -299,20 +299,20 @@
                              (if finish
                                  (funcall finish result)))))))
     (if (fboundp 'async-start)
-        (if start
-            (let ((ftp-netrc nil))
-              (when (boundp 'ange-ftp-netrc-filename)
-                (setq ftp-netrc ange-ftp-netrc-filename))
-              (async-start
-               (lambda()
-                 (let ((ssh-deploy-async 0)
-                       (ssh-deploy-async-with-threads 0)
-                       (ssh-deploy-on-explicit-save 0)
-                       (ssh-deploy-automatically-detect-remote-changes 0))
-                   (if ftp-netrc
-                       (defvar ange-ftp-netrc-filename ftp-netrc))
-                   (funcall start)))
-               finish)))
+        (when start
+          (let ((ftp-netrc nil))
+            (when (boundp 'ange-ftp-netrc-filename)
+              (setq ftp-netrc ange-ftp-netrc-filename))
+            (async-start
+             (lambda()
+               (let ((ssh-deploy-async 0)
+                     (ssh-deploy-async-with-threads 0)
+                     (ssh-deploy-on-explicit-save 0)
+                     (ssh-deploy-automatically-detect-remote-changes 0))
+                 (if ftp-netrc
+                     (defvar ange-ftp-netrc-filename ftp-netrc))
+                 (funcall start)))
+             finish)))
       (display-warning 'ssh-deploy "Neither make-thread nor async-start functions are available!"))))
 
 (defun ssh-deploy--mode-line-set-status-and-update (status &optional filename)
@@ -392,9 +392,9 @@
   "Return non-nil if PATH is not in EXCLUDE-LIST."
   (let ((not-found t))
     (dolist (element exclude-list)
-      (if (and (not (null element))
-               (not (null (string-match element path))))
-          (setq not-found nil)))
+      (when (and (not (null element))
+                 (not (null (string-match element path))))
+        (setq not-found nil)))
     not-found))
 
 (defun ssh-deploy--get-relative-path (root path)
@@ -419,7 +419,7 @@
              (if (fboundp 'ediff-same-file-contents)
                  (if (or (> force 0) (not (file-exists-p path-remote)) (and (file-exists-p revision-path) (ediff-same-file-contents revision-path path-remote)))
                      (progn
-                       (if (not (file-directory-p (file-name-directory path-remote)))
+                       (when (not (file-directory-p (file-name-directory path-remote)))
                            (make-directory (file-name-directory path-remote) t))
                        (copy-file path-local path-remote t t t t)
                        (copy-file path-local revision-path t t t t)
@@ -455,8 +455,8 @@
                       (and (file-exists-p revision-path) (ediff-same-file-contents revision-path path-remote)))
                   (progn
                     (when ssh-deploy-verbose (message "Uploading file '%s' to '%s'.. (synchronously)" path-local path-remote))
-                    (if (not (file-directory-p (file-name-directory path-remote)))
-                        (make-directory (file-name-directory path-remote) t))
+                    (when (not (file-directory-p (file-name-directory path-remote)))
+                      (make-directory (file-name-directory path-remote) t))
                     (copy-file path-local path-remote t t t t)
                     (ssh-deploy-store-revision path-local revision-folder)
                     (when ssh-deploy-verbose (message "Completed upload of '%s'. (synchronously)" path-local)))
@@ -478,7 +478,7 @@
        (let ((file-or-directory (not (file-directory-p path-remote))))
          (if file-or-directory
              (progn
-               (if (not (file-directory-p (file-name-directory path-local)))
+               (when (not (file-directory-p (file-name-directory path-local)))
                    (make-directory (file-name-directory path-local) t))
                (copy-file path-remote path-local t t t t)
                (copy-file path-local revision-path t t t t))
@@ -500,7 +500,7 @@
     (if file-or-directory
         (progn
           (when ssh-deploy-verbose (message "Downloading file '%s' to '%s'.. (synchronously)" path-remote path-local))
-          (if (not (file-directory-p (file-name-directory path-local)))
+          (when (not (file-directory-p (file-name-directory path-local)))
               (make-directory (file-name-directory path-local) t))
           (copy-file path-remote path-local t t t t)
           (ssh-deploy-store-revision path-local revision-folder)
@@ -1079,9 +1079,9 @@
       (if (and (ssh-deploy--is-not-empty-string buffer-file-name)
                (file-exists-p buffer-file-name))
           (setq path-local (file-truename buffer-file-name))
-        (if (and (ssh-deploy--is-not-empty-string default-directory)
-                 (file-exists-p default-directory))
-            (setq path-local (file-truename default-directory))))
+        (when (and (ssh-deploy--is-not-empty-string default-directory)
+                   (file-exists-p default-directory))
+          (setq path-local (file-truename default-directory))))
       (if (and (ssh-deploy--is-not-empty-string path-local)
                (ssh-deploy--file-is-in-path path-local root-local)
                (ssh-deploy--file-is-included path-local ssh-deploy-exclude-list))
