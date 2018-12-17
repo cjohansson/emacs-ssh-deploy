@@ -33,34 +33,30 @@
 
 (autoload 'ssh-deploy "ssh-deploy")
 (autoload 'ssh-deploy--get-revision-path "ssh-deploy")
-(autoload 'ssh-deploy--file-is-in-path "ssh-deploy")
-(autoload 'ssh-deploy--is-not-empty-string "ssh-deploy")
+(autoload 'ssh-deploy--file-is-in-path-p "ssh-deploy")
+(autoload 'ssh-deploy--is-not-empty-string-p "ssh-deploy")
 
 (defun ssh-deploy-test--get-revision-path ()
   "Test this function."
-  (should (string= (expand-file-name "./_mydirectory_random-file.txt") (ssh-deploy--get-revision-path "/mydirectory/random-file.txt" (expand-file-name "."))))
-  )
+  (should (string= (expand-file-name "./_mydirectory_random-file.txt") (ssh-deploy--get-revision-path "/mydirectory/random-file.txt" (expand-file-name ".")))))
 
 (defun ssh-deploy-test--file-is-in-path ()
   "Test this function."
-  (should (equal t (ssh-deploy--file-is-in-path "/mydirectory/test.txt" "/mydirectory/")))
-  (should (equal nil (ssh-deploy--file-is-in-path "/mydirectory/test.txt" "/mydirectory2/")))
-  (should (equal nil (ssh-deploy--file-is-in-path "/mydirectory2/test.txt" "/mydirectory/")))
-  )
+  (should (equal t (ssh-deploy--file-is-in-path-p "/mydirectory/test.txt" "/mydirectory/")))
+  (should (equal nil (ssh-deploy--file-is-in-path-p "/mydirectory/test.txt" "/mydirectory2/")))
+  (should (equal nil (ssh-deploy--file-is-in-path-p "/mydirectory2/test.txt" "/mydirectory/"))))
 
 (defun ssh-deploy-test--is-not-empty-string ()
   "Test this function."
-  (should (equal t (ssh-deploy--is-not-empty-string "abc")))
-  (should (equal nil (ssh-deploy--is-not-empty-string "")))
-  (should (equal nil (ssh-deploy--is-not-empty-string nil)))
-  )
+  (should (equal t (ssh-deploy--is-not-empty-string-p "abc")))
+  (should (equal nil (ssh-deploy--is-not-empty-string-p "")))
+  (should (equal nil (ssh-deploy--is-not-empty-string-p nil))))
 
 (defun ssh-deploy-test ()
   "Run test for plug-in."
   (ssh-deploy-test--get-revision-path)
   (ssh-deploy-test--file-is-in-path)
-  (ssh-deploy-test--is-not-empty-string)
-  )
+  (ssh-deploy-test--is-not-empty-string))
 
 (ssh-deploy-test)
 
