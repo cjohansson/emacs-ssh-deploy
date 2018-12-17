@@ -92,19 +92,33 @@ You really need to do a bit of research about how to connect via different proto
 
 You can pipe remote connections as well like this:
 
-### SSH, not asynchronous, with automatic uploads, piped to other user on remote server and with custom deployment script.
+### SSH, asynchronous using threads, with automatic uploads, piped to other user on remote server and with custom deployment script.
 
 ``` emacs-lisp
 ((nil . (
   (ssh-deploy-root-local . "/Users/username/Web/MySite/")
   (ssh-deploy-root-remote . "/ssh:myuser@myserver.com|sudo:web@myserver.com:/var/www/MySite/")
-  (ssh-deploy-async . 0)
+  (ssh-deploy-async . 1)
+  (ssh-deploy-async-with-threads . 1)
   (ssh-deploy-on-explicit-save . 1)
-  (ssh-deploy-script . (lambda() (let ((default-directory ssh-deploy-root-remote))(shell-command "bash compile.sh"))))
+  (ssh-deploy-script . (lambda() (let ((default-directory ssh-deploy-root-remote)) (shell-command "bash compile.sh"))))
 )))
 ```
 
-If you have a password-less sudo on your remote host you should be to do this asynchronously.
+### SSH, asynchronous not using threads, without automatic uploads, piped to other user on remote server and with custom deployment script.
+
+``` emacs-lisp
+((nil . (
+  (ssh-deploy-root-local . "/Users/username/Web/MySite/")
+  (ssh-deploy-root-remote . "/ssh:myuser@myserver.com|sudo:web@myserver.com:/var/www/MySite/")
+  (ssh-deploy-async . 1)
+  (ssh-deploy-async-with-threads . 0)
+  (ssh-deploy-on-explicit-save . 0)
+  (ssh-deploy-script . (lambda() (let ((default-directory ssh-deploy-root-local)) (shell-command "bash compile.sh") (ssh-deploy-upload-handler))))
+)))
+```
+
+If you have a password-less sudo on your remote host you should be to do this asynchronously or if you have your sudo credentials in your `~/.authinfo.gpg` file.
 
 ### FTP, with automatic uploads
 
