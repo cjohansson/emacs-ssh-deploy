@@ -122,7 +122,7 @@
   "Route valid ACTION to their functions."
   (interactive)
   (let ((parts (ssh-deploy-diff-mode--get-parts)))
-    (when (not (eq parts nil))
+    (unless (eq parts nil)
       (cond
        ((null parts) (message "Found nothing to do"))
        ((not (or (nth 0 parts)

@@ -419,8 +419,8 @@
              (if (fboundp 'ediff-same-file-contents)
                  (if (or (> force 0) (not (file-exists-p path-remote)) (and (file-exists-p revision-path) (ediff-same-file-contents revision-path path-remote)))
                      (progn
-                       (when (not (file-directory-p (file-name-directory path-remote)))
-                           (make-directory (file-name-directory path-remote) t))
+                       (unless (file-directory-p (file-name-directory path-remote))
+                         (make-directory (file-name-directory path-remote) t))
                        (copy-file path-local path-remote t t t t)
                        (copy-file path-local revision-path t t t t)
                        (list 0 (format "Completed upload of file '%s'. (asynchronously)" path-remote) path-local))
@@ -455,7 +455,7 @@
                       (and (file-exists-p revision-path) (ediff-same-file-contents revision-path path-remote)))
                   (progn
                     (when ssh-deploy-verbose (message "Uploading file '%s' to '%s'.. (synchronously)" path-local path-remote))
-                    (when (not (file-directory-p (file-name-directory path-remote)))
+                    (unless (file-directory-p (file-name-directory path-remote))
                       (make-directory (file-name-directory path-remote) t))
                     (copy-file path-local path-remote t t t t)
                     (ssh-deploy-store-revision path-local revision-folder)
@@ -478,8 +478,8 @@
        (let ((file-or-directory (not (file-directory-p path-remote))))
          (if file-or-directory
              (progn
-               (when (not (file-directory-p (file-name-directory path-local)))
-                   (make-directory (file-name-directory path-local) t))
+               (unless (file-directory-p (file-name-directory path-local))
+                 (make-directory (file-name-directory path-local) t))
                (copy-file path-remote path-local t t t t)
                (copy-file path-local revision-path t t t t))
            (copy-directory path-remote path-local t t t))
@@ -500,8 +500,8 @@
     (if file-or-directory
         (progn
           (when ssh-deploy-verbose (message "Downloading file '%s' to '%s'.. (synchronously)" path-remote path-local))
-          (when (not (file-directory-p (file-name-directory path-local)))
-              (make-directory (file-name-directory path-local) t))
+          (unless (file-directory-p (file-name-directory path-local))
+            (make-directory (file-name-directory path-local) t))
           (copy-file path-remote path-local t t t t)
           (ssh-deploy-store-revision path-local revision-folder)
           (ssh-deploy--mode-line-set-status-and-update ssh-deploy--status-idle)
@@ -1014,7 +1014,7 @@
 ;;;###autoload
 (defun ssh-deploy-store-revision (path &optional root)
   "Store PATH in revision-folder ROOT."
-  (when (not (file-directory-p path))
+  (unless (file-directory-p path)
     (let* ((root (or root ssh-deploy-revision-folder))
            (revision-path (ssh-deploy--get-revision-path path root)))
       (when ssh-deploy-verbose (message "Storing revision of '%s' at '%s'.." path revision-path))
@@ -1208,7 +1208,7 @@
                (basename (file-name-nondirectory old-path-local))
                (new-path-local-tmp (read-file-name "New file name:" (file-name-directory old-path-local) basename nil basename))
                (new-path-local (file-truename new-path-local-tmp)))
-          (when (not (string= old-path-local new-path-local))
+          (unless (string= old-path-local new-path-local)
             (ssh-deploy-rename old-path-local new-path-local root-local ssh-deploy-root-remote ssh-deploy-async ssh-deploy-debug ssh-deploy-exclude-list ssh-deploy-async-with-threads)))
       (when (and (ssh-deploy--is-not-empty-string default-directory)
                  (file-exists-p default-directory))
@@ -1217,7 +1217,7 @@
                (basename (file-name-nondirectory old-path-local))
                (new-path-local-tmp (read-file-name "New directory name:" (file-name-directory old-path-local) basename nil basename))
                (new-path-local (file-truename new-path-local-tmp)))
-          (when (not (string= old-path-local new-path-local))
+          (unless (string= old-path-local new-path-local)
             (ssh-deploy-rename old-path-local new-path-local root-local ssh-deploy-root-remote ssh-deploy-async ssh-deploy-debug ssh-deploy-exclude-list ssh-deploy-async-with-threads)))))))
 
 ;;;###autoload
