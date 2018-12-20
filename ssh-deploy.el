@@ -412,7 +412,7 @@
     (ssh-deploy--mode-line-set-status-and-update ssh-deploy--status-uploading path-local)
     (if file-or-directory
         (let ((revision-path (ssh-deploy--get-revision-path path-local revision-folder)))
-          (when ssh-deploy-verbose (message "Uploading file '%s' to '%s'.. (asynchronously)" path-local path-remote))
+          (when (> ssh-deploy-verbose 0) (message "Uploading file '%s' to '%s'.. (asynchronously)" path-local path-remote))
           (ssh-deploy--async-process
            (lambda()
              (require 'ediff-util)
@@ -429,17 +429,17 @@
            (lambda(return)
              (ssh-deploy--mode-line-set-status-and-update ssh-deploy--status-idle (nth 2 return))
              (if (= (nth 0 return) 0)
-                 (when ssh-deploy-verbose (message (nth 1 return)))
+                 (when (> ssh-deploy-verbose 0) (message (nth 1 return)))
                (display-warning 'ssh-deploy (nth 1 return) :warning)))
            async-with-threads))
-      (when ssh-deploy-verbose (message "Uploading directory '%s' to '%s'.. (asynchronously)" path-local path-remote))
+      (when (> ssh-deploy-verbose 0) (message "Uploading directory '%s' to '%s'.. (asynchronously)" path-local path-remote))
       (ssh-deploy--async-process
        (lambda()
          (copy-directory path-local path-remote t t t)
          path-local)
        (lambda(return-path)
          (ssh-deploy--mode-line-set-status-and-update ssh-deploy--status-idle return-path)
-         (when ssh-deploy-verbose (message "Completed upload of directory '%s'. (asynchronously)" return-path)))))))
+         (when (> ssh-deploy-verbose 0) (message "Completed upload of directory '%s'. (asynchronously)" return-path)))))))
 
 (defun ssh-deploy--upload-via-tramp (path-local path-remote force revision-folder)
   "Upload PATH-LOCAL to PATH-REMOTE via Tramp synchronously and FORCE despite remote change compared with copy in REVISION-FOLDER."
@@ -454,25 +454,25 @@
                       (not (file-exists-p path-remote))
                       (and (file-exists-p revision-path) (ediff-same-file-contents revision-path path-remote)))
                   (progn
-                    (when ssh-deploy-verbose (message "Uploading file '%s' to '%s'.. (synchronously)" path-local path-remote))
+                    (when (> ssh-deploy-verbose 0) (message "Uploading file '%s' to '%s'.. (synchronously)" path-local path-remote))
                     (unless (file-directory-p (file-name-directory path-remote))
                       (make-directory (file-name-directory path-remote) t))
                     (copy-file path-local path-remote t t t t)
                     (ssh-deploy-store-revision path-local revision-folder)
-                    (when ssh-deploy-verbose (message "Completed upload of '%s'. (synchronously)" path-local)))
+                    (when (> ssh-deploy-verbose 0) (message "Completed upload of '%s'. (synchronously)" path-local)))
                 (display-warning 'ssh-deploy (format "Remote file '%s' has changed, please download or diff. (synchronously)" path-remote) :warning))
             (display-warning 'ssh-deploy "Function 'ediff-same-file-contents' is missing." :warning))
           (ssh-deploy--mode-line-set-status-and-update ssh-deploy--status-idle))
-      (when ssh-deploy-verbose (message "Uploading directory '%s' to '%s'.. (synchronously)" path-local path-remote))
+      (when (> ssh-deploy-verbose 0) (message "Uploading directory '%s' to '%s'.. (synchronously)" path-local path-remote))
       (copy-directory path-local path-remote t t t)
       (ssh-deploy--mode-line-set-status-and-update ssh-deploy--status-idle)
-      (when ssh-deploy-verbose (message "Completed upload of '%s'. (synchronously)" path-local)))))
+      (when (> ssh-deploy-verbose 0) (message "Completed upload of '%s'. (synchronously)" path-local)))))
 
 (defun ssh-deploy--download-via-tramp-async (path-remote path-local revision-folder async-with-threads)
   "Download PATH-REMOTE to PATH-LOCAL via Tramp asynchronously and make a copy in REVISION-FOLDER, use multi-threading if ASYNC-WITH-THREADS is above zero."
   (let ((revision-path (ssh-deploy--get-revision-path path-local revision-folder)))
     (ssh-deploy--mode-line-set-status-and-update ssh-deploy--status-downloading path-local)
-    (when ssh-deploy-verbose (message "Downloading '%s' to '%s'.. (asynchronously)" path-remote path-local))
+    (when (> ssh-deploy-verbose 0) (message "Downloading '%s' to '%s'.. (asynchronously)" path-remote path-local))
     (ssh-deploy--async-process
      (lambda()
        (let ((file-or-directory (not (file-directory-p path-remote))))
@@ -486,7 +486,7 @@
          path-local))
      (lambda(return-path)
        (ssh-deploy--mode-line-set-status-and-update ssh-deploy--status-idle return-path)
-       (when ssh-deploy-verbose (message "Completed download of '%s'. (asynchronously)" return-path))
+       (when (> ssh-deploy-verbose 0) (message "Completed download of '%s'. (asynchronously)" return-path))
        (let ((local-buffer (find-buffer-visiting return-path)))
          (when local-buffer
            (with-current-buffer local-buffer
@@ -499,13 +499,13 @@
     (ssh-deploy--mode-line-set-status-and-update ssh-deploy--status-downloading)
     (if file-or-directory
         (progn
-          (when ssh-deploy-verbose (message "Downloading file '%s' to '%s'.. (synchronously)" path-remote path-local))
+          (when (> ssh-deploy-verbose 0) (message "Downloading file '%s' to '%s'.. (synchronously)" path-remote path-local))
           (unless (file-directory-p (file-name-directory path-local))
             (make-directory (file-name-directory path-local) t))
           (copy-file path-remote path-local t t t t)
           (ssh-deploy-store-revision path-local revision-folder)
           (ssh-deploy--mode-line-set-status-and-update ssh-deploy--status-idle)
-          (when ssh-deploy-verbose (message "Completed download of file '%s'. (synchronously)" path-local)))
+          (when (> ssh-deploy-verbose 0) (message "Completed download of file '%s'. (synchronously)" path-local)))
       (message "Downloading directory '%s' to '%s'.. (synchronously)" path-remote path-local)
       (copy-directory path-remote path-local t t t)
       (ssh-deploy--mode-line-set-status-and-update ssh-deploy--status-idle)
@@ -766,7 +766,7 @@
                              (ssh-deploy--mode-line-set-status-and-update ssh-deploy--status-idle (nth 2 return))
 
                              (if (= (nth 0 return) 0)
-                                 (when ssh-deploy-verbose (message (nth 1 return)))
+                                 (when (> ssh-deploy-verbose 0) (message (nth 1 return)))
                                (display-warning 'ssh-deploy (nth 1 return) :warning)))
                            async-with-threads))
 
@@ -781,10 +781,10 @@
                             (require 'ediff-util)
                             (if (fboundp 'ediff-same-file-contents)
                                 (if (ediff-same-file-contents revision-path path-remote)
-                                    (when ssh-deploy-verbose (message "Remote file '%s' has not changed. (synchronously)" path-remote))
+                                    (when (> ssh-deploy-verbose 0) (message "Remote file '%s' has not changed. (synchronously)" path-remote))
                                   (display-warning 'ssh-deploy (format "Remote file '%s' has changed, please download or diff. (synchronously)" path-remote) :warning))
                               (display-warning 'ssh-deploy "Function 'ediff-same-file-contents' is missing. (synchronously)" :warning)))
-                        (when ssh-deploy-verbose (message "Remote file '%s' doesn't exist. (synchronously)" path-remote)))
+                        (when (> ssh-deploy-verbose 0) (message "Remote file '%s' doesn't exist. (synchronously)" path-remote)))
 
                       ;; Update buffer status to idle
                       (ssh-deploy--mode-line-set-status-and-update ssh-deploy--status-idle))
@@ -818,7 +818,7 @@
                            (ssh-deploy--mode-line-set-status-and-update ssh-deploy--status-idle (nth 2 return))
 
                            (if (= (nth 0 return) 0)
-                               (when ssh-deploy-verbose (message (nth 1 return)))
+                               (when (> ssh-deploy-verbose 0) (message (nth 1 return)))
                              (display-warning 'ssh-deploy (nth 1 return) :warning)))
                          async-with-threads))
 
@@ -835,10 +835,10 @@
                               (if (ediff-same-file-contents path-local path-remote)
                                   (progn
                                     (copy-file path-local revision-path t t t t)
-                                    (when ssh-deploy-verbose (message "Remote file '%s' has not changed, created base revision. (synchronously)" path-remote)))
+                                    (when (> ssh-deploy-verbose 0) (message "Remote file '%s' has not changed, created base revision. (synchronously)" path-remote)))
                                 (display-warning 'ssh-deploy (format "Remote file '%s' has changed, please download or diff. (synchronously)" path-remote) :warning))
                             (display-warning 'ssh-deploy "Function 'ediff-same-file-contents' is missing. (synchronously)" :warning)))
-                      (when ssh-deploy-verbose (message "Remote file '%s' does not exist. (synchronously)" path-remote)))
+                      (when (> ssh-deploy-verbose 0) (message "Remote file '%s' does not exist. (synchronously)" path-remote)))
 
                     ;; Update buffer status to idle
                     (ssh-deploy--mode-line-set-status-and-update ssh-deploy--status-idle))))
@@ -1017,7 +1017,7 @@
   (unless (file-directory-p path)
     (let* ((root (or root ssh-deploy-revision-folder))
            (revision-path (ssh-deploy--get-revision-path path root)))
-      (when ssh-deploy-verbose (message "Storing revision of '%s' at '%s'.." path revision-path))
+      (when (> ssh-deploy-verbose 0) (message "Storing revision of '%s' at '%s'.." path revision-path))
       (copy-file path revision-path t t t t))))
 
 ;;;###autoload
@@ -1131,7 +1131,7 @@
     (let* ((root-local (file-truename ssh-deploy-root-local))
            (path-local (file-truename buffer-file-name))
            (path-remote (expand-file-name (ssh-deploy--get-relative-path root-local path-local) ssh-deploy-root-remote)))
-      (when ssh-deploy-verbose (message "Opening file on remote '%s'" path-remote))
+      (when (> ssh-deploy-verbose 0) (message "Opening file on remote '%s'" path-remote))
       (find-file path-remote))))
 
 ;;;###autoload
