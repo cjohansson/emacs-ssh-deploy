@@ -5,7 +5,7 @@
 ;; Author: Christian Johansson <christian@cvj.se>
 ;; Maintainer: Christian Johansson <christian@cvj.se>
 ;; Created: 5 Jul 2016
-;; Modified: 17 Dec 2018
+;; Modified: 8 Feb 2019
 ;; Version: 3.0.3
 ;; Keywords: tools, convenience
 ;; URL: https://github.com/cjohansson/emacs-ssh-deploy
@@ -74,6 +74,7 @@
 ;;   (use-package ssh-deploy
 ;;     :ensure t
 ;;     :demand
+;;     :after hydra
 ;;     :bind (("C-c C-z" . ssh-deploy-hydra/body))
 ;;     :hook ((after-save . ssh-deploy-after-save)
 ;;            (find-file . ssh-deploy-find-file))
@@ -1367,6 +1368,7 @@
 (defun ssh-deploy-after-save () "Logic for automatic uploads."
        (when (and (boundp 'ssh-deploy-on-explicit-save) ssh-deploy-on-explicit-save (> ssh-deploy-on-explicit-save 0)) (ssh-deploy-upload-handler)))
 
+;;;###autoload
 (defun ssh-deploy-add-after-save-hook () "Add the `after-save-hook'."
        (when (fboundp 'ssh-deploy-after-save)
          (add-hook 'after-save-hook 'ssh-deploy-after-save)))
@@ -1374,6 +1376,7 @@
 (defun ssh-deploy-find-file () "Logic for detecting remote change."
        (when (and (boundp 'ssh-deploy-automatically-detect-remote-changes) ssh-deploy-automatically-detect-remote-changes (> ssh-deploy-automatically-detect-remote-changes 0)) (ssh-deploy-remote-changes-handler)))
 
+;;;###autoload
 (defun ssh-deploy-add-find-file-hook () "Add the `find-file-hook'."
        (when (fboundp 'ssh-deploy-find-file) (add-hook 'find-file-hook 'ssh-deploy-find-file)))
 
