@@ -1380,9 +1380,12 @@
 (defun ssh-deploy-add-find-file-hook () "Add the `find-file-hook'."
        (when (fboundp 'ssh-deploy-find-file) (add-hook 'find-file-hook 'ssh-deploy-find-file)))
 
-(when (fboundp 'defhydra)
-  (defhydra ssh-deploy-hydra (:color red :hint nil)
-    "
+;;;###autoload
+(defun ssh-deploy-set-hydra (shortcut)
+  "Attach hydra at SHORTCUT."
+  (when (fboundp 'defhydra)
+    (defhydra ssh-deploy-hydra (:color red :hint nil)
+      "
     SSH Deploy Menu
     
     _u_: Upload                              _f_: Force Upload
@@ -1397,22 +1400,23 @@
     _o_: Open current file on remote         _m_: Open sql-mysql on remote
     _s_: Run deploy script
     "
-    ("f" #'ssh-deploy-upload-handler-forced)
-    ("u" #'ssh-deploy-upload-handler)
-    ("d" #'ssh-deploy-download-handler)
-    ("D" #'ssh-deploy-delete-handler)
-    ("x" #'ssh-deploy-diff-handler)
-    ("t" #'ssh-deploy-remote-terminal-eshell-base-handler)
-    ("T" #'ssh-deploy-remote-terminal-eshell-handler)
-    ("h" #'ssh-deploy-remote-terminal-shell-base-handler)
-    ("H" #'ssh-deploy-remote-terminal-shell-handler)
-    ("e" #'ssh-deploy-remote-changes-handler)
-    ("R" #'ssh-deploy-rename-handler)
-    ("b" #'ssh-deploy-browse-remote-base-handler)
-    ("B" #'ssh-deploy-browse-remote-handler)
-    ("o" #'ssh-deploy-open-remote-file-handler)
-    ("m" #'ssh-deploy-remote-sql-mysql-handler)
-    ("s" #'ssh-deploy-run-deploy-script-handler)))
+      ("f" #'ssh-deploy-upload-handler-forced)
+      ("u" #'ssh-deploy-upload-handler)
+      ("d" #'ssh-deploy-download-handler)
+      ("D" #'ssh-deploy-delete-handler)
+      ("x" #'ssh-deploy-diff-handler)
+      ("t" #'ssh-deploy-remote-terminal-eshell-base-handler)
+      ("T" #'ssh-deploy-remote-terminal-eshell-handler)
+      ("h" #'ssh-deploy-remote-terminal-shell-base-handler)
+      ("H" #'ssh-deploy-remote-terminal-shell-handler)
+      ("e" #'ssh-deploy-remote-changes-handler)
+      ("R" #'ssh-deploy-rename-handler)
+      ("b" #'ssh-deploy-browse-remote-base-handler)
+      ("B" #'ssh-deploy-browse-remote-handler)
+      ("o" #'ssh-deploy-open-remote-file-handler)
+      ("m" #'ssh-deploy-remote-sql-mysql-handler)
+      ("s" #'ssh-deploy-run-deploy-script-handler))
+    (global-set-key (kbd shortcut) 'ssh-deploy-hydra/body)))
 
 (defvar ssh-deploy-prefix-map
   (let ((map (make-sparse-keymap)))
