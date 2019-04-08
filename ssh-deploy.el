@@ -1416,7 +1416,8 @@
       ("o" #'ssh-deploy-open-remote-file-handler)
       ("m" #'ssh-deploy-remote-sql-mysql-handler)
       ("s" #'ssh-deploy-run-deploy-script-handler))
-    (global-set-key (kbd shortcut) 'ssh-deploy-hydra/body)))
+    (when (fboundp 'ssh-deploy-hydra/body)
+      (global-set-key (kbd shortcut) #'ssh-deploy-hydra/body))))
 
 (defvar ssh-deploy-prefix-map
   (let ((map (make-sparse-keymap)))
