@@ -257,7 +257,7 @@ Ange-FTP defaults to `~/.netrc` so you need to add this to your init script:
 
 ## Tests
 
-Run `make tests` from plug-in folder to run tests, if you need to specify specific Emacs use export syntax i.e. `export emacs="YOUR_PATH" && make tests`
+Run `make test` from plug-in folder to run tests, if you need to specify specific Emacs use export syntax i.e. `export emacs="YOUR_PATH" && make tests`
 
 ## Read more
 * [Tramp](https://www.gnu.org/software/tramp/) - Transparent Remote (file) Access, Multiple Protocol
