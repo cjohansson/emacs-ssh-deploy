@@ -57,18 +57,26 @@
            (file-b (expand-file-name "test-b" directory-b))
            (file-b-contents "Random text")
            (ssh-deploy-root-local directory-a)
-           (ssh-deploy-root-remote directory-b))
+           (ssh-deploy-root-remote directory-b)
+           (ssh-deploy-on-explicit-save 0)
+           (ssh-deploy-async 0)
+           (ssh-deploy-verbose 0)
+           (ssh-deploy-debug 0))
 
+      ;; Just bypass the linter here
       (when (and ssh-deploy-root-local
-                 ssh-deploy-root-remote)
+                 ssh-deploy-root-remote
+                 ssh-deploy-on-explicit-save
+                 ssh-deploy-async
+                 ssh-deploy-verbose
+                 ssh-deploy-debug)
 
-        ;; Create a new file and add it's contents
-        (find-file file-b)
-        (insert file-b-contents)
-        (save-buffer)
+        (let ((old-default-directory default-directory))
 
-        ;; Visit local root
-        (let ((default-directory directory-a))
+          ;; Create a new file and add it's contents
+          (find-file file-b)
+          (insert file-b-contents)
+          (save-buffer)
 
           ;; Download file
           (ssh-deploy-download file-b file-a 0 nil 0)
@@ -77,8 +85,82 @@
           (should (equal t (ediff-same-file-contents file-a file-b)))
 
           (delete-file file-b)
-          (delete-file file-a))))
-    
+          (delete-file file-a)
+
+          ;; (find-file) changes default-directory so we revert it here
+          (setq default-directory old-default-directory))))
+
+    (delete-directory directory-a t)
+    (delete-directory directory-b t)))
+
+(defun ssh-deploy-test--upload ()
+  "Test uploads."
+
+  (require 'ediff-util)
+
+  (let ((directory-a (expand-file-name "test-a/"))
+        (directory-b (expand-file-name "test-b/")))
+
+    ;; Delete directories if they already exists
+    (when (file-directory-p directory-a)
+      (delete-directory directory-a t))
+    (when (file-directory-p directory-b)
+      (delete-directory directory-b t))
+
+    (make-directory-internal directory-a)
+    (make-directory-internal directory-b)
+
+    (let* ((file-a (expand-file-name "test.txt" directory-a))
+           (file-b (expand-file-name "test.txt" directory-b))
+           (file-a-contents "Random text")
+           (ssh-deploy-root-local directory-a)
+           (ssh-deploy-root-remote directory-b)
+           (ssh-deploy-on-explicit-save 1)
+           (ssh-deploy-async 0)
+           (ssh-deploy-verbose 0)
+           (ssh-deploy-debug 0))
+
+      ;; Just bypass the linter here
+      (when (and ssh-deploy-root-local
+                 ssh-deploy-root-remote
+                 ssh-deploy-on-explicit-save
+                 ssh-deploy-async
+                 ssh-deploy-verbose
+                 ssh-deploy-debug)
+
+        ;; Create a new file and add it's contents
+        (let ((old-default-directory default-directory))
+
+          (ssh-deploy-add-after-save-hook)
+          (find-file file-a)
+          (insert file-a-contents)
+          (save-buffer) ;; NOTE Should trigger upload action
+
+          ;; Verify that both files have equal contents
+          (should (equal t (ediff-same-file-contents file-a file-b)))
+
+          ;; Turn of automatic uploads
+          (let ((ssh-deploy-on-explicit-save 0))
+
+            ;; Update should not trigger upload
+            (insert file-a-contents)
+            (save-buffer)
+
+            ;; Verify that both files have equal contents
+            (should (equal nil (ediff-same-file-contents file-a file-b)))
+
+            (ssh-deploy-upload-handler)
+
+            ;; Verify that both files have equal contents
+            (should (equal t (ediff-same-file-contents file-a file-b)))
+
+            ;; Delete both test files
+            (delete-file file-b)
+            (delete-file file-a))
+
+          ;; (find-file) changes default-directory so we revert it here
+          (setq default-directory old-default-directory))))
+
     (delete-directory directory-a t)
     (delete-directory directory-b t)))
 
@@ -103,6 +185,7 @@
   (ssh-deploy-test--get-revision-path)
   (ssh-deploy-test--file-is-in-path)
   (ssh-deploy-test--is-not-empty-string)
+  (ssh-deploy-test--upload)
   (ssh-deploy-test--download))
 
 (ssh-deploy-test)
