@@ -36,6 +36,52 @@
 (autoload 'ssh-deploy--file-is-in-path-p "ssh-deploy")
 (autoload 'ssh-deploy--is-not-empty-string-p "ssh-deploy")
 
+(defun ssh-deploy-test--download ()
+  "Test downloads."
+
+  (require 'ediff-util)
+
+  (let ((directory-a (expand-file-name "test-a/"))
+        (directory-b (expand-file-name "test-b/")))
+
+    ;; Delete directories if they already exists
+    (when (file-directory-p directory-a)
+      (delete-directory directory-a t))
+    (when (file-directory-p directory-b)
+      (delete-directory directory-b t))
+
+    (make-directory-internal directory-a)
+    (make-directory-internal directory-b)
+
+    (let* ((file-a (expand-file-name "test-b" directory-a))
+           (file-b (expand-file-name "test-b" directory-b))
+           (file-b-contents "Random text")
+           (ssh-deploy-root-local directory-a)
+           (ssh-deploy-root-remote directory-b))
+
+      (when (and ssh-deploy-root-local
+                 ssh-deploy-root-remote)
+
+        ;; Create a new file and add it's contents
+        (find-file file-b)
+        (insert file-b-contents)
+        (save-buffer)
+
+        ;; Visit local root
+        (let ((default-directory directory-a))
+
+          ;; Download file
+          (ssh-deploy-download file-b file-a 0 nil 0)
+
+          ;; Verify that both files have equal contents
+          (should (equal t (ediff-same-file-contents file-a file-b)))
+
+          (delete-file file-b)
+          (delete-file file-a))))
+    
+    (delete-directory directory-a t)
+    (delete-directory directory-b t)))
+
 (defun ssh-deploy-test--get-revision-path ()
   "Test this function."
   (should (string= (expand-file-name "./_mydirectory_random-file.txt") (ssh-deploy--get-revision-path "/mydirectory/random-file.txt" (expand-file-name ".")))))
@@ -56,7 +102,8 @@
   "Run test for plug-in."
   (ssh-deploy-test--get-revision-path)
   (ssh-deploy-test--file-is-in-path)
-  (ssh-deploy-test--is-not-empty-string))
+  (ssh-deploy-test--is-not-empty-string)
+  (ssh-deploy-test--download))
 
 (ssh-deploy-test)
 
