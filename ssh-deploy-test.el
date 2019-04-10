@@ -45,7 +45,6 @@
 
 (defun ssh-deploy-test--download ()
   "Test downloads."
-
   (let ((directory-a (expand-file-name "test-a/"))
         (directory-b (expand-file-name "test-b/")))
 
@@ -90,6 +89,81 @@
 
         (delete-file file-b)
         (delete-file file-a)))
+
+    (delete-directory directory-a t)
+    (delete-directory directory-b t)))
+
+(defun ssh-deploy-test--rename-and-delete ()
+  "Test downloads."
+  (let ((directory-a (expand-file-name "test-a/"))
+        (directory-b (expand-file-name "test-b/"))
+        (filename-old "testfile.txt")
+        (filename-new "testfile-renamed.txt"))
+
+    ;; Delete directories if they already exists
+    (when (file-directory-p directory-a)
+      (delete-directory directory-a t))
+    (when (file-directory-p directory-b)
+      (delete-directory directory-b t))
+
+    (make-directory-internal directory-a)
+    (make-directory-internal directory-b)
+
+    (let* ((file-a-old (expand-file-name filename-old directory-a))
+           (file-a-new (expand-file-name filename-new directory-a))
+           (file-b-old (expand-file-name filename-old directory-b))
+           (file-b-new (expand-file-name filename-new directory-b))
+           (file-contents "Random text")
+           (ssh-deploy-root-local directory-a)
+           (ssh-deploy-root-remote directory-b)
+           (ssh-deploy-on-explicit-save 0)
+           (ssh-deploy-async 0)
+           (ssh-deploy-verbose 0)
+           (ssh-deploy-debug 0))
+
+      ;; Just bypass the linter here
+      (when (and ssh-deploy-root-local
+                 ssh-deploy-root-remote
+                 ssh-deploy-on-explicit-save
+                 ssh-deploy-async
+                 ssh-deploy-verbose
+                 ssh-deploy-debug)
+
+        ;; Create new files and add it's contents
+        (find-file file-a-old)
+        (insert file-contents)
+        (save-buffer)
+        (kill-buffer)
+
+        ;; Create new files and add it's contents
+        (find-file file-b-old)
+        (insert file-contents)
+        (save-buffer)
+        (kill-buffer)
+
+        ;; Both files should exist
+        (should (equal t (file-exists-p file-a-old)))
+        (should (equal t (file-exists-p file-b-old)))
+
+        ;; Rename filename
+        (find-file file-a-old)
+        (ssh-deploy-rename file-a-old file-a-new)
+
+        ;; Both old files should not exist anymore
+        (should (equal nil (file-exists-p file-a-old)))
+        (should (equal nil (file-exists-p file-b-old)))
+
+        ;; Both new files should exist anymore
+        (should (equal t (file-exists-p file-a-new)))
+        (should (equal t (file-exists-p file-b-new)))
+
+        ;; Delete file
+        (ssh-deploy-delete-both file-a-new)
+        (kill-buffer)
+
+        ;; Both new files should not exist anymore
+        (should (equal nil (file-exists-p file-a-new)))
+        (should (equal nil (file-exists-p file-b-new)))))
 
     (delete-directory directory-a t)
     (delete-directory directory-b t)))
@@ -184,7 +258,8 @@
   (ssh-deploy-test--file-is-in-path)
   (ssh-deploy-test--is-not-empty-string)
   (ssh-deploy-test--upload)
-  (ssh-deploy-test--download))
+  (ssh-deploy-test--download)
+  (ssh-deploy-test--rename-and-delete))
 
 (ssh-deploy-test)
 
