@@ -29,12 +29,19 @@
 
 (autoload 'should "ert")
 
+(autoload 'ediff-same-file-contents "ediff-util")
+
 (autoload 'ssh-deploy-diff-mode "ssh-deploy-diff-mode")
 
 (autoload 'ssh-deploy "ssh-deploy")
 (autoload 'ssh-deploy--get-revision-path "ssh-deploy")
 (autoload 'ssh-deploy--file-is-in-path-p "ssh-deploy")
 (autoload 'ssh-deploy--is-not-empty-string-p "ssh-deploy")
+(autoload 'ssh-deploy-download "ssh-deploy")
+(autoload 'ssh-deploy-upload "ssh-deploy")
+(autoload 'ssh-deploy-add-after-save-hook "ssh-deploy")
+(autoload 'ssh-deploy-add-after-save-hook "ssh-deploy")
+(autoload 'ssh-deploy-upload-handler "ssh-deploy")
 
 (defun ssh-deploy-test--download ()
   "Test downloads."
@@ -134,23 +141,25 @@
 
         ;; Turn of automatic uploads
         (let ((ssh-deploy-on-explicit-save 0))
+          ;; Bypass linter again
+          (when ssh-deploy-on-explicit-save
 
-          ;; Update should not trigger upload
-          (insert file-a-contents)
-          (save-buffer)
+            ;; Update should not trigger upload
+            (insert file-a-contents)
+            (save-buffer)
 
-          ;; Verify that both files have equal contents
-          (should (equal nil (ediff-same-file-contents file-a file-b)))
+            ;; Verify that both files have equal contents
+            (should (equal nil (ediff-same-file-contents file-a file-b)))
 
-          (ssh-deploy-upload-handler)
-          (kill-buffer)
+            (ssh-deploy-upload-handler)
+            (kill-buffer)
 
-          ;; Verify that both files have equal contents
-          (should (equal t (ediff-same-file-contents file-a file-b)))
+            ;; Verify that both files have equal contents
+            (should (equal t (ediff-same-file-contents file-a file-b)))
 
-          ;; Delete both test files
-          (delete-file file-b)
-          (delete-file file-a))))
+            ;; Delete both test files
+            (delete-file file-b)
+            (delete-file file-a)))))
 
     (delete-directory directory-a t)
     (delete-directory directory-b t)))
