@@ -39,6 +39,8 @@
 (autoload 'ssh-deploy--is-not-empty-string-p "ssh-deploy")
 (autoload 'ssh-deploy-download "ssh-deploy")
 (autoload 'ssh-deploy-upload "ssh-deploy")
+(autoload 'ssh-deploy-rename "ssh-deploy")
+(autoload 'ssh-deploy-delete-both "ssh-deploy")
 (autoload 'ssh-deploy-add-after-save-hook "ssh-deploy")
 (autoload 'ssh-deploy-add-after-save-hook "ssh-deploy")
 (autoload 'ssh-deploy-upload-handler "ssh-deploy")
