@@ -178,7 +178,7 @@ By combining a `~/.authinfo.gpg` setup and a `public-key` setup you should be ab
 
 If you want to use the pre-defined hydra you can use this key-binding instead:
 ``` elisp
-(global-set-key (kbd "C-c C-z") 'ssh-deploy-hydra/body)
+(ssh-deploy-hydra "C-c C-z")
 ```
 
 * Or use the `use-package` and `hydra-script` I'm using:
@@ -187,13 +187,12 @@ If you want to use the pre-defined hydra you can use this key-binding instead:
       (use-package ssh-deploy
         :ensure t
         :demand
-        :after hydra
-        :bind (("C-c C-z" . ssh-deploy-hydra/body))
         :hook ((after-save . ssh-deploy-after-save)
                (find-file . ssh-deploy-find-file))
         :config
         (ssh-deploy-line-mode) ;; If you want mode-line feature
         (ssh-deploy-add-menu) ;; If you want menu-bar feature
+        (ssh-deploy-hydra "C-c C-z") ;; If you want the hydra feature
       )
 ```
 

@@ -1,12 +1,12 @@
 ;;; ssh-deploy.el --- Deployment via Tramp, global or per directory.  -*- lexical-binding:t -*-
 
-;; Copyright (C) 2017-2018  Free Software Foundation, Inc.
+;; Copyright (C) 2017-2019  Free Software Foundation, Inc.
 
 ;; Author: Christian Johansson <christian@cvj.se>
 ;; Maintainer: Christian Johansson <christian@cvj.se>
 ;; Created: 5 Jul 2016
-;; Modified: 8 Apr 2019
-;; Version: 3.0.4
+;; Modified: 10 Apr 2019
+;; Version: 3.0.5
 ;; Keywords: tools, convenience
 ;; URL: https://github.com/cjohansson/emacs-ssh-deploy
 
@@ -68,19 +68,18 @@
 ;;     (global-set-key (kbd "C-c C-z") 'ssh-deploy-prefix-map)
 ;;
 ;; - To set global key-bindings for the pre-defined hydra do something like this:
-;;     (global-set-key (kbd "C-c C-z") 'ssh-deploy-hydra/body)
+;;     (ssh-deploy-hydra "C-c C-z")
 ;;
 ;; - To install and set-up using use-package and hydra do this:
 ;;   (use-package ssh-deploy
 ;;     :ensure t
 ;;     :demand
-;;     :after hydra
-;;     :bind (("C-c C-z" . ssh-deploy-hydra/body))
 ;;     :hook ((after-save . ssh-deploy-after-save)
 ;;            (find-file . ssh-deploy-find-file))
 ;;     :config
 ;;     (ssh-deploy-line-mode) ;; If you want mode-line feature
 ;;     (ssh-deploy-add-menu) ;; If you want menu-bar feature
+;;     (ssh-deploy-hydra "C-c C-z") ;; If you the hydra feature
 ;;    )
 ;;
 ;;
@@ -136,6 +135,7 @@
 
 
 (autoload 'ssh-deploy-diff-mode "ssh-deploy-diff-mode")
+(autoload 'ssh-deploy-hydra "ssh-deploy-hydra")
 
 (defgroup ssh-deploy nil
   "Upload, download, difference, browse and terminal handler for files and directories on remote hosts via Tramp."
@@ -1379,45 +1379,6 @@
 ;;;###autoload
 (defun ssh-deploy-add-find-file-hook () "Add the `find-file-hook'."
        (when (fboundp 'ssh-deploy-find-file) (add-hook 'find-file-hook 'ssh-deploy-find-file)))
-
-;;;###autoload
-(defun ssh-deploy-set-hydra (shortcut)
-  "Attach hydra at SHORTCUT."
-  (when (fboundp 'defhydra)
-    (defhydra ssh-deploy-hydra (:color red :hint nil)
-      "
-    SSH Deploy Menu
-    
-    _u_: Upload                              _f_: Force Upload
-    _d_: Download
-    _D_: Delete
-    _x_: Difference
-    _t_: Eshell Base Terminal                _T_: Eshell Relative Terminal
-    _h_: Shell Base Terminal                 _H_: Shell Relative Terminal
-    _e_: Detect Remote Changes
-    _R_: Rename
-    _b_: Browse Base                         _B_: Browse Relative
-    _o_: Open current file on remote         _m_: Open sql-mysql on remote
-    _s_: Run deploy script
-    "
-      ("f" #'ssh-deploy-upload-handler-forced)
-      ("u" #'ssh-deploy-upload-handler)
-      ("d" #'ssh-deploy-download-handler)
-      ("D" #'ssh-deploy-delete-handler)
-      ("x" #'ssh-deploy-diff-handler)
-      ("t" #'ssh-deploy-remote-terminal-eshell-base-handler)
-      ("T" #'ssh-deploy-remote-terminal-eshell-handler)
-      ("h" #'ssh-deploy-remote-terminal-shell-base-handler)
-      ("H" #'ssh-deploy-remote-terminal-shell-handler)
-      ("e" #'ssh-deploy-remote-changes-handler)
-      ("R" #'ssh-deploy-rename-handler)
-      ("b" #'ssh-deploy-browse-remote-base-handler)
-      ("B" #'ssh-deploy-browse-remote-handler)
-      ("o" #'ssh-deploy-open-remote-file-handler)
-      ("m" #'ssh-deploy-remote-sql-mysql-handler)
-      ("s" #'ssh-deploy-run-deploy-script-handler))
-    (when (fboundp 'ssh-deploy-hydra/body)
-      (global-set-key (kbd shortcut) #'ssh-deploy-hydra/body))))
 
 (defvar ssh-deploy-prefix-map
   (let ((map (make-sparse-keymap)))
