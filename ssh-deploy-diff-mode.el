@@ -170,7 +170,6 @@
 
 (defun ssh-deploy-diff-mode--copy-b (parts)
   "Perform an download of remote-path to local-path based on PARTS from section B or section BOTH."
-  (require 'ssh-deploy)
   (let* ((section (nth 1 parts))
          (file-name (nth 0 parts))
          (root-local (file-truename (nth 2 parts)))
@@ -214,7 +213,6 @@
 
 (defun ssh-deploy-diff-mode--open (parts)
   "Perform a open file action based on PARTS from section A or section B."
-  (require 'ssh-deploy)
   (let* ((section (nth 1 parts))
          (file-name (nth 0 parts))
          (root-local (file-truename (nth 2 parts)))

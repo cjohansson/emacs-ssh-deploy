@@ -133,9 +133,14 @@
 
 ;;; Code:
 
+(autoload 'ediff-same-file-contents "ediff-util")
+(autoload 'string-remove-prefix "subr-x")
+(autoload 'eshell "eshell")
+(autoload 'shell "shell")
 
 (autoload 'ssh-deploy-diff-mode "ssh-deploy-diff-mode")
 (autoload 'ssh-deploy-hydra "ssh-deploy-hydra")
+
 
 (defgroup ssh-deploy nil
   "Upload, download, difference, browse and terminal handler for files and directories on remote hosts via Tramp."
@@ -287,18 +292,19 @@
 
 (defun ssh-deploy--async-process (start &optional finish async-with-threads)
   "Asynchronously do START and then optionally do FINISH, use multi-treading if ASYNC-WITH-THREADS is above 0 otherwise use multi processes via async.el."
-  (if (and (fboundp 'make-thread)
-           async-with-threads
+  (if (and async-with-threads
            (> async-with-threads 0))
-      (make-thread (lambda()
-                     (let ((ssh-deploy-async 0)
-                           (ssh-deploy-async-with-threads 0)
-                           (ssh-deploy-on-explicit-save 0)
-                           (ssh-deploy-automatically-detect-remote-changes 0))
-                       (if start
-                           (let ((result (funcall start)))
-                             (if finish
-                                 (funcall finish result)))))))
+      (if (fboundp 'make-thread)
+          (make-thread (lambda()
+                         (let ((ssh-deploy-async 0)
+                               (ssh-deploy-async-with-threads 0)
+                               (ssh-deploy-on-explicit-save 0)
+                               (ssh-deploy-automatically-detect-remote-changes 0))
+                           (if start
+                               (let ((result (funcall start)))
+                                 (if finish
+                                     (funcall finish result)))))))
+        (display-warning 'ssh-deploy "make-thread function are not available!"))
     (if (fboundp 'async-start)
         (when start
           (let ((ftp-netrc nil))
@@ -311,10 +317,11 @@
                      (ssh-deploy-on-explicit-save 0)
                      (ssh-deploy-automatically-detect-remote-changes 0))
                  (if ftp-netrc
+                     ;; Pass ange-ftp setting to asynchronous process
                      (defvar ange-ftp-netrc-filename ftp-netrc))
                  (funcall start)))
              finish)))
-      (display-warning 'ssh-deploy "Neither make-thread nor async-start functions are available!"))))
+      (display-warning 'ssh-deploy "async-start functions are not available!"))))
 
 (defun ssh-deploy--mode-line-set-status-and-update (status &optional filename)
   "Set the mode line STATUS in optionally in buffer visiting FILENAME."
@@ -416,7 +423,6 @@
           (when (> ssh-deploy-verbose 0) (message "Uploading file '%s' to '%s'.. (asynchronously)" path-local path-remote))
           (ssh-deploy--async-process
            (lambda()
-             (require 'ediff-util)
              (if (fboundp 'ediff-same-file-contents)
                  (if (or (> force 0) (not (file-exists-p path-remote)) (and (file-exists-p revision-path) (ediff-same-file-contents revision-path path-remote)))
                      (progn
@@ -449,7 +455,6 @@
     (ssh-deploy--mode-line-set-status-and-update ssh-deploy--status-uploading)
     (if file-or-directory
         (progn
-          (require 'ediff-util)
           (if (fboundp 'ediff-same-file-contents)
               (if (or (> force 0)
                       (not (file-exists-p path-remote))
@@ -515,7 +520,6 @@
 (defun ssh-deploy--diff-directories-data (directory-a directory-b exclude-list)
   "Find difference between DIRECTORY-A and DIRECTORY-B but exclude paths matching EXCLUDE-LIST."
   ;; (message "Comparing a: %s to b: %s" directory-a directory-b)
-  (require 'subr-x)
   (if (fboundp 'string-remove-prefix)
       (if (and (file-directory-p directory-a)
                (file-directory-p directory-b))
@@ -596,7 +600,6 @@
              files-b-relative-list)
 
             ;; Collect files that differ in contents and have equal contents
-            (require 'ediff-util)
             (when (fboundp 'ediff-same-file-contents)
               (mapc
                (lambda (file)
@@ -679,7 +682,6 @@
 ;;;###autoload
 (defun ssh-deploy-diff-files (file-a file-b)
   "Find difference between FILE-A and FILE-B."
-  (require 'ediff-util)
   (if (fboundp 'ediff-same-file-contents)
       (progn
         (message "Comparing file '%s' to '%s'.." file-a file-b)
@@ -750,7 +752,6 @@
                            (lambda()
                              (if (file-exists-p path-remote)
                                  (progn
-                                   (require 'ediff-util)
                                    (if (fboundp 'ediff-same-file-contents)
                                        (if (ediff-same-file-contents revision-path path-remote)
                                            (list 0 (format "Remote file '%s' has not changed. (asynchronously)" path-remote) path-local)
@@ -779,7 +780,6 @@
                       ;; Does remote file exist?
                       (if (file-exists-p path-remote)
                           (progn
-                            (require 'ediff-util)
                             (if (fboundp 'ediff-same-file-contents)
                                 (if (ediff-same-file-contents revision-path path-remote)
                                     (when (> ssh-deploy-verbose 0) (message "Remote file '%s' has not changed. (synchronously)" path-remote))
@@ -804,7 +804,6 @@
                            ;; Does remote file exist?
                            (if (file-exists-p path-remote)
                                (progn
-                                 (require 'ediff-util)
                                  (if (fboundp 'ediff-same-file-contents)
                                      (if (ediff-same-file-contents path-local path-remote)
                                          (progn
@@ -831,7 +830,6 @@
                     ;; Does remote file exist?
                     (if (file-exists-p path-remote)
                         (progn
-                          (require 'ediff-util)
                           (if (fboundp 'ediff-same-file-contents)
                               (if (ediff-same-file-contents path-local path-remote)
                                   (progn
@@ -989,7 +987,6 @@
     (when (and (ssh-deploy--file-is-in-path-p path-local root-local)
                (ssh-deploy--file-is-included-p path-local exclude-list))
       (let ((path-remote (expand-file-name (ssh-deploy--get-relative-path root-local path-local) root-remote)))
-        (require 'eshell)
         (message "Opening eshell on '%s'.." path-remote)
         (let ((default-directory path-remote))
           (defvar eshell-buffer-name)
@@ -1005,7 +1002,6 @@
     (when (and (ssh-deploy--file-is-in-path-p path-local root-local)
                (ssh-deploy--file-is-included-p path-local exclude-list))
       (let ((path-remote (expand-file-name (ssh-deploy--get-relative-path root-local path-local) root-remote)))
-        (require 'shell)
         (message "Opening eshell on '%s'.." path-remote)
         (let ((default-directory path-remote)
               (explicit-shell-file-name ssh-deploy-remote-shell-executable))

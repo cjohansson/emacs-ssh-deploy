@@ -46,8 +46,6 @@
 (defun ssh-deploy-test--download ()
   "Test downloads."
 
-  (require 'ediff-util)
-
   (let ((directory-a (expand-file-name "test-a/"))
         (directory-b (expand-file-name "test-b/")))
 
