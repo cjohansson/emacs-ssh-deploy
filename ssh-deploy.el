@@ -423,16 +423,16 @@
           (when (> ssh-deploy-verbose 0) (message "Uploading file '%s' to '%s'.. (asynchronously)" path-local path-remote))
           (ssh-deploy--async-process
            (lambda()
-             (if (fboundp 'ediff-same-file-contents)
-                 (if (or (> force 0) (not (file-exists-p path-remote)) (and (file-exists-p revision-path) (ediff-same-file-contents revision-path path-remote)))
-                     (progn
-                       (unless (file-directory-p (file-name-directory path-remote))
-                         (make-directory (file-name-directory path-remote) t))
-                       (copy-file path-local path-remote t t t t)
-                       (copy-file path-local revision-path t t t t)
-                       (list 0 (format "Completed upload of file '%s'. (asynchronously)" path-remote) path-local))
-                   (list 1 (format "Remote file '%s' has changed please download or diff. (asynchronously)" path-remote) path-local))
-               (list 1 "Function 'ediff-same-file-contents' is missing. (asynchronously)" path-local)))
+             (if (or (> force 0) (not (file-exists-p path-remote))
+                     (and (file-exists-p revision-path)
+                          (ediff-same-file-contents revision-path path-remote)))
+                 (progn
+                   (unless (file-directory-p (file-name-directory path-remote))
+                     (make-directory (file-name-directory path-remote) t))
+                   (copy-file path-local path-remote t t t t)
+                   (copy-file path-local revision-path t t t t)
+                   (list 0 (format "Completed upload of file '%s'. (asynchronously)" path-remote) path-local))
+               (list 1 (format "Remote file '%s' has changed please download or diff. (asynchronously)" path-remote) path-local)))
            (lambda(return)
              (ssh-deploy--mode-line-set-status-and-update ssh-deploy--status-idle (nth 2 return))
              (if (= (nth 0 return) 0)
@@ -455,19 +455,18 @@
     (ssh-deploy--mode-line-set-status-and-update ssh-deploy--status-uploading)
     (if file-or-directory
         (progn
-          (if (fboundp 'ediff-same-file-contents)
-              (if (or (> force 0)
-                      (not (file-exists-p path-remote))
-                      (and (file-exists-p revision-path) (ediff-same-file-contents revision-path path-remote)))
-                  (progn
-                    (when (> ssh-deploy-verbose 0) (message "Uploading file '%s' to '%s'.. (synchronously)" path-local path-remote))
-                    (unless (file-directory-p (file-name-directory path-remote))
-                      (make-directory (file-name-directory path-remote) t))
-                    (copy-file path-local path-remote t t t t)
-                    (ssh-deploy-store-revision path-local revision-folder)
-                    (when (> ssh-deploy-verbose 0) (message "Completed upload of '%s'. (synchronously)" path-local)))
-                (display-warning 'ssh-deploy (format "Remote file '%s' has changed, please download or diff. (synchronously)" path-remote) :warning))
-            (display-warning 'ssh-deploy "Function 'ediff-same-file-contents' is missing." :warning))
+          (if (or (> force 0)
+                  (not (file-exists-p path-remote))
+                  (and (file-exists-p revision-path)
+                       (ediff-same-file-contents revision-path path-remote)))
+              (progn
+                (when (> ssh-deploy-verbose 0) (message "Uploading file '%s' to '%s'.. (synchronously)" path-local path-remote))
+                (unless (file-directory-p (file-name-directory path-remote))
+                  (make-directory (file-name-directory path-remote) t))
+                (copy-file path-local path-remote t t t t)
+                (ssh-deploy-store-revision path-local revision-folder)
+                (when (> ssh-deploy-verbose 0) (message "Completed upload of '%s'. (synchronously)" path-local)))
+            (display-warning 'ssh-deploy (format "Remote file '%s' has changed, please download or diff. (synchronously)" path-remote) :warning))
           (ssh-deploy--mode-line-set-status-and-update ssh-deploy--status-idle))
       (when (> ssh-deploy-verbose 0) (message "Uploading directory '%s' to '%s'.. (synchronously)" path-local path-remote))
       (copy-directory path-local path-remote t t t)
@@ -600,19 +599,18 @@
              files-b-relative-list)
 
             ;; Collect files that differ in contents and have equal contents
-            (when (fboundp 'ediff-same-file-contents)
-              (mapc
-               (lambda (file)
-                 (let ((file-a (gethash file files-a-relative-hash))
-                       (file-b (gethash file files-b-relative-hash)))
-                   (if (ediff-same-file-contents file-a file-b)
-                       (if (equal files-both-equals nil)
-                           (setq files-both-equals (list file))
-                         (push file files-both-equals))
-                     (if (equal files-both-differs nil)
-                         (setq files-both-differs (list file))
-                       (push file files-both-differs)))))
-               files-both))
+            (mapc
+             (lambda (file)
+               (let ((file-a (gethash file files-a-relative-hash))
+                     (file-b (gethash file files-b-relative-hash)))
+                 (if (ediff-same-file-contents file-a file-b)
+                     (if (equal files-both-equals nil)
+                         (setq files-both-equals (list file))
+                       (push file files-both-equals))
+                   (if (equal files-both-differs nil)
+                       (setq files-both-differs (list file))
+                     (push file files-both-differs)))))
+             files-both)
 
             (list directory-a directory-b exclude-list files-both files-a-only files-b-only files-both-equals files-both-differs))
         (display-warning 'ssh-deploy "Both directories need to exist to perform difference generation." :warning))
@@ -682,13 +680,10 @@
 ;;;###autoload
 (defun ssh-deploy-diff-files (file-a file-b)
   "Find difference between FILE-A and FILE-B."
-  (if (fboundp 'ediff-same-file-contents)
-      (progn
-        (message "Comparing file '%s' to '%s'.." file-a file-b)
-        (if (ediff-same-file-contents file-a file-b)
-            (message "Files have identical contents.")
-          (ediff file-a file-b)))
-    (display-warning 'ssh-deploy "Function 'ediff-same-file-contents' is missing." :warning)))
+  (message "Comparing file '%s' to '%s'.." file-a file-b)
+  (if (ediff-same-file-contents file-a file-b)
+      (message "Files have identical contents.")
+    (ediff file-a file-b)))
 
 ;;;###autoload
 (defun ssh-deploy-diff-directories (directory-a directory-b &optional on-explicit-save debug async async-with-threads revision-folder remote-changes exclude-list)
@@ -751,16 +746,13 @@
                           (ssh-deploy--async-process
                            (lambda()
                              (if (file-exists-p path-remote)
-                                 (progn
-                                   (if (fboundp 'ediff-same-file-contents)
-                                       (if (ediff-same-file-contents revision-path path-remote)
-                                           (list 0 (format "Remote file '%s' has not changed. (asynchronously)" path-remote) path-local)
-                                         (if (ediff-same-file-contents path-local path-remote)
-                                             (progn
-                                               (copy-file path-local revision-path t t t t)
-                                               (list 0 (format "Remote file '%s' is identical to local file '%s' but different to local revision. Updated local revision. (asynchronously)" path-remote path-local) path-local))
-                                           (list 1 (format "Remote file '%s' has changed please download or diff. (asynchronously)" path-remote) path-local)))
-                                     (list 1 "Function 'ediff-same-file-contents' is missing. (asynchronously)" path-local)))
+                                 (if (ediff-same-file-contents revision-path path-remote)
+                                     (list 0 (format "Remote file '%s' has not changed. (asynchronously)" path-remote) path-local)
+                                   (if (ediff-same-file-contents path-local path-remote)
+                                       (progn
+                                         (copy-file path-local revision-path t t t t)
+                                         (list 0 (format "Remote file '%s' is identical to local file '%s' but different to local revision. Updated local revision. (asynchronously)" path-remote path-local) path-local))
+                                     (list 1 (format "Remote file '%s' has changed please download or diff. (asynchronously)" path-remote) path-local)))
                                (list 0 (format "Remote file '%s' doesn't exist. (asynchronously)" path-remote) path-local)))
                            (lambda(return)
 
@@ -779,12 +771,9 @@
 
                       ;; Does remote file exist?
                       (if (file-exists-p path-remote)
-                          (progn
-                            (if (fboundp 'ediff-same-file-contents)
-                                (if (ediff-same-file-contents revision-path path-remote)
-                                    (when (> ssh-deploy-verbose 0) (message "Remote file '%s' has not changed. (synchronously)" path-remote))
-                                  (display-warning 'ssh-deploy (format "Remote file '%s' has changed, please download or diff. (synchronously)" path-remote) :warning))
-                              (display-warning 'ssh-deploy "Function 'ediff-same-file-contents' is missing. (synchronously)" :warning)))
+                          (if (ediff-same-file-contents revision-path path-remote)
+                              (when (> ssh-deploy-verbose 0) (message "Remote file '%s' has not changed. (synchronously)" path-remote))
+                            (display-warning 'ssh-deploy (format "Remote file '%s' has changed, please download or diff. (synchronously)" path-remote) :warning))
                         (when (> ssh-deploy-verbose 0) (message "Remote file '%s' doesn't exist. (synchronously)" path-remote)))
 
                       ;; Update buffer status to idle
@@ -803,14 +792,11 @@
 
                            ;; Does remote file exist?
                            (if (file-exists-p path-remote)
-                               (progn
-                                 (if (fboundp 'ediff-same-file-contents)
-                                     (if (ediff-same-file-contents path-local path-remote)
-                                         (progn
-                                           (copy-file path-local revision-path t t t t)
-                                           (list 0 (format "Remote file '%s' has not changed, created base revision. (asynchronously)" path-remote) path-local))
-                                       (list 1 (format "Remote file '%s' has changed please download or diff. (asynchronously)" path-remote) path-local))
-                                   (list 1 "Function ediff-file-same-contents is missing. (asynchronously)" path-local)))
+                               (if (ediff-same-file-contents path-local path-remote)
+                                   (progn
+                                     (copy-file path-local revision-path t t t t)
+                                     (list 0 (format "Remote file '%s' has not changed, created base revision. (asynchronously)" path-remote) path-local))
+                                 (list 1 (format "Remote file '%s' has changed please download or diff. (asynchronously)" path-remote) path-local))
                              (list 0 (format "Remote file '%s' doesn't exist. (asynchronously)" path-remote) path-local)))
                          (lambda(return)
 
@@ -829,14 +815,11 @@
 
                     ;; Does remote file exist?
                     (if (file-exists-p path-remote)
-                        (progn
-                          (if (fboundp 'ediff-same-file-contents)
-                              (if (ediff-same-file-contents path-local path-remote)
-                                  (progn
-                                    (copy-file path-local revision-path t t t t)
-                                    (when (> ssh-deploy-verbose 0) (message "Remote file '%s' has not changed, created base revision. (synchronously)" path-remote)))
-                                (display-warning 'ssh-deploy (format "Remote file '%s' has changed, please download or diff. (synchronously)" path-remote) :warning))
-                            (display-warning 'ssh-deploy "Function 'ediff-same-file-contents' is missing. (synchronously)" :warning)))
+                        (if (ediff-same-file-contents path-local path-remote)
+                            (progn
+                              (copy-file path-local revision-path t t t t)
+                              (when (> ssh-deploy-verbose 0) (message "Remote file '%s' has not changed, created base revision. (synchronously)" path-remote)))
+                          (display-warning 'ssh-deploy (format "Remote file '%s' has changed, please download or diff. (synchronously)" path-remote) :warning))
                       (when (> ssh-deploy-verbose 0) (message "Remote file '%s' does not exist. (synchronously)" path-remote)))
 
                     ;; Update buffer status to idle
