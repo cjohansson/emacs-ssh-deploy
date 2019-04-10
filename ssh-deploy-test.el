@@ -71,24 +71,20 @@
                  ssh-deploy-verbose
                  ssh-deploy-debug)
 
-        (let ((old-default-directory default-directory))
+        ;; Create a new file and add it's contents
+        (find-file file-b)
+        (insert file-b-contents)
+        (save-buffer)
+        (kill-buffer)
 
-          ;; Create a new file and add it's contents
-          (find-file file-b)
-          (insert file-b-contents)
-          (save-buffer)
+        ;; Download file
+        (ssh-deploy-download file-b file-a 0 nil 0)
 
-          ;; Download file
-          (ssh-deploy-download file-b file-a 0 nil 0)
+        ;; Verify that both files have equal contents
+        (should (equal t (ediff-same-file-contents file-a file-b)))
 
-          ;; Verify that both files have equal contents
-          (should (equal t (ediff-same-file-contents file-a file-b)))
-
-          (delete-file file-b)
-          (delete-file file-a)
-
-          ;; (find-file) changes default-directory so we revert it here
-          (setq default-directory old-default-directory))))
+        (delete-file file-b)
+        (delete-file file-a)))
 
     (delete-directory directory-a t)
     (delete-directory directory-b t)))
@@ -128,38 +124,33 @@
                  ssh-deploy-verbose
                  ssh-deploy-debug)
 
-        ;; Create a new file and add it's contents
-        (let ((old-default-directory default-directory))
+        (ssh-deploy-add-after-save-hook)
+        (find-file file-a)
+        (insert file-a-contents)
+        (save-buffer) ;; NOTE Should trigger upload action
 
-          (ssh-deploy-add-after-save-hook)
-          (find-file file-a)
+        ;; Verify that both files have equal contents
+        (should (equal t (ediff-same-file-contents file-a file-b)))
+
+        ;; Turn of automatic uploads
+        (let ((ssh-deploy-on-explicit-save 0))
+
+          ;; Update should not trigger upload
           (insert file-a-contents)
-          (save-buffer) ;; NOTE Should trigger upload action
+          (save-buffer)
+
+          ;; Verify that both files have equal contents
+          (should (equal nil (ediff-same-file-contents file-a file-b)))
+
+          (ssh-deploy-upload-handler)
+          (kill-buffer)
 
           ;; Verify that both files have equal contents
           (should (equal t (ediff-same-file-contents file-a file-b)))
 
-          ;; Turn of automatic uploads
-          (let ((ssh-deploy-on-explicit-save 0))
-
-            ;; Update should not trigger upload
-            (insert file-a-contents)
-            (save-buffer)
-
-            ;; Verify that both files have equal contents
-            (should (equal nil (ediff-same-file-contents file-a file-b)))
-
-            (ssh-deploy-upload-handler)
-
-            ;; Verify that both files have equal contents
-            (should (equal t (ediff-same-file-contents file-a file-b)))
-
-            ;; Delete both test files
-            (delete-file file-b)
-            (delete-file file-a))
-
-          ;; (find-file) changes default-directory so we revert it here
-          (setq default-directory old-default-directory))))
+          ;; Delete both test files
+          (delete-file file-b)
+          (delete-file file-a))))
 
     (delete-directory directory-a t)
     (delete-directory directory-b t)))
