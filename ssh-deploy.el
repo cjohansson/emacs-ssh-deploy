@@ -316,9 +316,11 @@
                      (ssh-deploy-async-with-threads 0)
                      (ssh-deploy-on-explicit-save 0)
                      (ssh-deploy-automatically-detect-remote-changes 0))
-                 (if ftp-netrc
-                     ;; Pass ange-ftp setting to asynchronous process
-                     (defvar ange-ftp-netrc-filename ftp-netrc))
+                 (when ftp-netrc
+                   ;; Pass ange-ftp setting to asynchronous process
+                   (defvar ange-ftp-netrc-filename ftp-netrc))
+                 (autoload 'ediff-same-file-contents "ediff-util")
+                 (autoload 'string-remove-prefix "subr-x")
                  (funcall start)))
              finish)))
       (display-warning 'ssh-deploy "async-start functions are not available!"))))
@@ -739,7 +741,7 @@
                     (if (> async 0)
                         (progn
 
-                          ;; Update buffer status
+                          ;; Update mode-line status
                           (ssh-deploy--mode-line-set-status-and-update ssh-deploy--status-detecting-remote-changes)
 
                           ;; Asynchronous logic here
