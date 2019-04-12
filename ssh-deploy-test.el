@@ -45,8 +45,8 @@
 (autoload 'ssh-deploy-add-after-save-hook "ssh-deploy")
 (autoload 'ssh-deploy-upload-handler "ssh-deploy")
 
-(defun ssh-deploy-test--download ()
-  "Test downloads."
+(defun ssh-deploy-test--download (async async-with-threads)
+  "Test downloads asynchronously if ASYNC is above zero, with threads if ASYNC-WITH-THREADS is above zero"
   (let ((directory-a (expand-file-name "test-a/"))
         (directory-b (expand-file-name "test-b/")))
 
@@ -65,17 +65,19 @@
            (ssh-deploy-root-local directory-a)
            (ssh-deploy-root-remote directory-b)
            (ssh-deploy-on-explicit-save 0)
-           (ssh-deploy-async 0)
            (ssh-deploy-verbose 0)
-           (ssh-deploy-debug 0))
+           (ssh-deploy-debug 0)
+           (ssh-deploy-async async)
+           (ssh-deploy-async-with-threads async-with-threads))
 
       ;; Just bypass the linter here
       (when (and ssh-deploy-root-local
                  ssh-deploy-root-remote
                  ssh-deploy-on-explicit-save
-                 ssh-deploy-async
                  ssh-deploy-verbose
-                 ssh-deploy-debug)
+                 ssh-deploy-debug
+                 ssh-deploy-async
+                 ssh-deploy-async-with-threads)
 
         ;; Create a new file and add it's contents
         (find-file file-b)
@@ -95,8 +97,8 @@
     (delete-directory directory-a t)
     (delete-directory directory-b t)))
 
-(defun ssh-deploy-test--rename-and-delete ()
-  "Test downloads."
+(defun ssh-deploy-test--rename-and-delete (async async-with-threads)
+  "Test downloads asynchronous if ASYNC is above zero, with threads if ASYNC-WITH-THREADS is above zero."
   (let ((directory-a (expand-file-name "test-a/"))
         (directory-b (expand-file-name "test-b/"))
         (filename-old "testfile.txt")
@@ -119,17 +121,19 @@
            (ssh-deploy-root-local directory-a)
            (ssh-deploy-root-remote directory-b)
            (ssh-deploy-on-explicit-save 0)
-           (ssh-deploy-async 0)
            (ssh-deploy-verbose 0)
-           (ssh-deploy-debug 0))
+           (ssh-deploy-debug 0)
+           (ssh-deploy-async async)
+           (ssh-deploy-async-with-threads async-with-threads))
 
       ;; Just bypass the linter here
       (when (and ssh-deploy-root-local
                  ssh-deploy-root-remote
                  ssh-deploy-on-explicit-save
-                 ssh-deploy-async
                  ssh-deploy-verbose
-                 ssh-deploy-debug)
+                 ssh-deploy-debug
+                 ssh-deploy-async
+                 ssh-deploy-async-with-threads)
 
         ;; Create new files and add it's contents
         (find-file file-a-old)
@@ -170,8 +174,8 @@
     (delete-directory directory-a t)
     (delete-directory directory-b t)))
 
-(defun ssh-deploy-test--upload ()
-  "Test uploads."
+(defun ssh-deploy-test--upload (async async-with-threads)
+  "Test uploads asynchronously if ASYNC is above zero, with threads if ASYNC-WITH-THREADS is above zero"
 
   (require 'ediff-util)
 
@@ -193,17 +197,19 @@
            (ssh-deploy-root-local directory-a)
            (ssh-deploy-root-remote directory-b)
            (ssh-deploy-on-explicit-save 1)
-           (ssh-deploy-async 0)
            (ssh-deploy-verbose 0)
-           (ssh-deploy-debug 0))
+           (ssh-deploy-debug 0)
+           (ssh-deploy-async async)
+           (ssh-deploy-async-with-threads async-with-threads))
 
       ;; Just bypass the linter here
       (when (and ssh-deploy-root-local
                  ssh-deploy-root-remote
                  ssh-deploy-on-explicit-save
-                 ssh-deploy-async
                  ssh-deploy-verbose
-                 ssh-deploy-debug)
+                 ssh-deploy-debug
+                 ssh-deploy-async
+                 ssh-deploy-async-with-threads)
 
         (ssh-deploy-add-after-save-hook)
         (find-file file-a)
@@ -259,9 +265,12 @@
   (ssh-deploy-test--get-revision-path)
   (ssh-deploy-test--file-is-in-path)
   (ssh-deploy-test--is-not-empty-string)
-  (ssh-deploy-test--upload)
-  (ssh-deploy-test--download)
-  (ssh-deploy-test--rename-and-delete))
+  (ssh-deploy-test--upload 0 1)
+  (ssh-deploy-test--upload 1 1)
+  (ssh-deploy-test--download 0 1)
+  (ssh-deploy-test--download 1 1)
+  (ssh-deploy-test--rename-and-delete 0 1)
+  (ssh-deploy-test--rename-and-delete 1 1))
 
 (ssh-deploy-test)
 
