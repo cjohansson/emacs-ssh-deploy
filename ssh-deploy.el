@@ -320,7 +320,7 @@
                    (when ftp-netrc
                      ;; Pass ange-ftp setting to asynchronous process
                      (defvar ange-ftp-netrc-filename ftp-netrc))
-                   (add-to-list 'load-path ,script-filename)
+                   (add-to-list 'load-path script-filename)
                    (autoload 'ediff-same-file-contents "ediff-util")
                    (autoload 'string-remove-prefix "subr-x")
 

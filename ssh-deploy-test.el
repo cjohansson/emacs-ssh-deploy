@@ -87,6 +87,8 @@
 
         ;; Download file
         (ssh-deploy-download file-b file-a 0 nil 0)
+        (when (> async 0)
+          (sleep-for 1))
 
         ;; Verify that both files have equal contents
         (should (equal t (ediff-same-file-contents file-a file-b)))
@@ -154,6 +156,8 @@
         ;; Rename filename
         (find-file file-a-old)
         (ssh-deploy-rename file-a-old file-a-new)
+        (when (> async 0)
+          (sleep-for 1))
 
         ;; Both old files should not exist anymore
         (should (equal nil (file-exists-p file-a-old)))
@@ -165,6 +169,8 @@
 
         ;; Delete file
         (ssh-deploy-delete-both file-a-new)
+        (when (> async 0)
+          (sleep-for 1))
         (kill-buffer)
 
         ;; Both new files should not exist anymore
@@ -213,6 +219,8 @@
         (find-file file-a)
         (insert file-a-contents)
         (save-buffer) ;; NOTE Should trigger upload action
+        (when (> async 0)
+          (sleep-for 1))
 
         ;; Verify that both files have equal contents
         (should (equal t (ediff-same-file-contents file-a file-b)))
@@ -225,11 +233,15 @@
             ;; Update should not trigger upload
             (insert file-a-contents)
             (save-buffer)
+            (when (> async 0)
+              (sleep-for 1))
 
             ;; Verify that both files have equal contents
             (should (equal nil (ediff-same-file-contents file-a file-b)))
 
             (ssh-deploy-upload-handler)
+            (when (> async 0)
+              (sleep-for 1))
             (kill-buffer)
 
             ;; Verify that both files have equal contents
