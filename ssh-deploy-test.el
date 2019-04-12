@@ -177,8 +177,6 @@
 (defun ssh-deploy-test--upload (async async-with-threads)
   "Test uploads asynchronously if ASYNC is above zero, with threads if ASYNC-WITH-THREADS is above zero"
 
-  (require 'ediff-util)
-
   (let ((directory-a (expand-file-name "test-a/"))
         (directory-b (expand-file-name "test-b/")))
 
