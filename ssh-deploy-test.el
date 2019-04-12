@@ -46,7 +46,7 @@
 (autoload 'ssh-deploy-upload-handler "ssh-deploy")
 
 (defun ssh-deploy-test--download (async async-with-threads)
-  "Test downloads asynchronously if ASYNC is above zero, with threads if ASYNC-WITH-THREADS is above zero"
+  "Test downloads asynchronously if ASYNC is above zero, with threads if ASYNC-WITH-THREADS is above zero."
   (let ((directory-a (expand-file-name "test-a/"))
         (directory-b (expand-file-name "test-b/")))
 
@@ -181,7 +181,7 @@
     (delete-directory directory-b t)))
 
 (defun ssh-deploy-test--upload (async async-with-threads)
-  "Test uploads asynchronously if ASYNC is above zero, with threads if ASYNC-WITH-THREADS is above zero"
+  "Test uploads asynchronously if ASYNC is above zero, with threads if ASYNC-WITH-THREADS is above zero."
 
   (let ((directory-a (expand-file-name "test-a/"))
         (directory-b (expand-file-name "test-b/")))
@@ -272,14 +272,26 @@
 
 (defun ssh-deploy-test ()
   "Run test for plug-in."
+  (if (fboundp 'async-start)
+      (message "Running tests for async.el as well since it's loaded'")
+    (message "Skipping tests for async.el since it's not loaded"))
   (ssh-deploy-test--get-revision-path)
   (ssh-deploy-test--file-is-in-path)
   (ssh-deploy-test--is-not-empty-string)
-  (ssh-deploy-test--upload 0 1)
+
+  (ssh-deploy-test--upload 0 0)
+  (when (fboundp 'async-start)
+    (ssh-deploy-test--upload 1 0))
   (ssh-deploy-test--upload 1 1)
-  (ssh-deploy-test--download 0 1)
+
+  (ssh-deploy-test--download 0 0)
+  (when (fboundp 'async-start)
+    (ssh-deploy-test--download 1 0))
   (ssh-deploy-test--download 1 1)
-  (ssh-deploy-test--rename-and-delete 0 1)
+
+  (ssh-deploy-test--rename-and-delete 0 0)
+  (when (fboundp 'async-start)
+    (ssh-deploy-test--rename-and-delete 1 0))
   (ssh-deploy-test--rename-and-delete 1 1))
 
 (ssh-deploy-test)
