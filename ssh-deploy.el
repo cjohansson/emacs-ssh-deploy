@@ -310,21 +310,36 @@
           (let ((ftp-netrc nil))
             (when (boundp 'ange-ftp-netrc-filename)
               (setq ftp-netrc ange-ftp-netrc-filename))
-            (async-start
-             (lambda()
-               (let ((ssh-deploy-async 0)
-                     (ssh-deploy-async-with-threads 0)
-                     (ssh-deploy-on-explicit-save 0)
-                     (ssh-deploy-automatically-detect-remote-changes 0))
-                 (when ftp-netrc
-                   ;; Pass ange-ftp setting to asynchronous process
-                   (defvar ange-ftp-netrc-filename ftp-netrc))
-                 (autoload 'ediff-same-file-contents "ediff-util")
-                 (autoload 'string-remove-prefix "subr-x")
-                 (autoload 'ssh-deploy--diff-directories-data "ssh-deploy")
-                 (autoload 'ssh-deploy--diff-directories-present "ssh-deploy")
-                 (funcall start)))
-             finish)))
+            (let ((script-filename (file-name-directory (symbol-file 'ssh-deploy-diff-directories))))
+              (async-start
+               (lambda()
+                 (let ((ssh-deploy-async 0)
+                       (ssh-deploy-async-with-threads 0)
+                       (ssh-deploy-on-explicit-save 0)
+                       (ssh-deploy-automatically-detect-remote-changes 0))
+                   (when ftp-netrc
+                     ;; Pass ange-ftp setting to asynchronous process
+                     (defvar ange-ftp-netrc-filename ftp-netrc))
+                   (add-to-list 'load-path ,script-filename)
+                   (autoload 'ediff-same-file-contents "ediff-util")
+                   (autoload 'string-remove-prefix "subr-x")
+
+                   ;; TODO Add all public functions as autoload here
+                   (autoload 'ssh-deploy-download "ssh-deploy")
+                   (autoload 'ssh-deploy-download-handler "ssh-deploy")
+                   (autoload 'ssh-deploy-upload "ssh-deploy")
+                   (autoload 'ssh-deploy-upload-handler "ssh-deploy")
+                   (autoload 'ssh-deploy-rename "ssh-deploy")
+                   (autoload 'ssh-deploy-rename-handler "ssh-deploy")
+                   (autoload 'ssh-deploy-delete "ssh-deploy")
+                   (autoload 'ssh-deploy-delete-both "ssh-deploy")
+                   (autoload 'ssh-deploy-delete-handler "ssh-deploy")
+                   (autoload 'ssh-deploy-diff "ssh-deploy")
+                   (autoload 'ssh-deploy-diff-handler "ssh-deploy")
+                   (autoload 'ssh-deploy--diff-directories-data "ssh-deploy")
+                   (autoload 'ssh-deploy--diff-directories-present "ssh-deploy")
+                   (funcall start)))
+               finish))))
       (display-warning 'ssh-deploy "async-start functions are not available!"))))
 
 (defun ssh-deploy--mode-line-set-status-and-update (status &optional filename)
@@ -700,11 +715,10 @@
         (remote-changes (or remote-changes ssh-deploy-automatically-detect-remote-changes))
         (exclude-list (or exclude-list ssh-deploy-exclude-list)))
     (if (> async 0)
-        (let ((script-filename (file-name-directory (symbol-file 'ssh-deploy-diff-directories))))
+        (progn
           (message "Calculating differences between directory '%s' and '%s'.. (asynchronously)" directory-a directory-b)
           (ssh-deploy--async-process
            (lambda()
-             (add-to-list 'load-path script-filename)
              (ssh-deploy--diff-directories-data directory-a directory-b exclude-list))
            (lambda(diff)
              (message "Completed calculation of differences between directory '%s' and '%s'. Result: %s only in A %s only in B %s differs. (asynchronously)" (nth 0 diff) (nth 1 diff) (length (nth 4 diff)) (length (nth 5 diff)) (length (nth 7 diff)))
@@ -1269,15 +1283,13 @@
   (interactive)
   (if ssh-deploy-script
       (if (> ssh-deploy-async 0)
-          (let ((script-filename (file-name-directory (symbol-file 'ssh-deploy-diff-directories))))
-            (message "Executing of deployment-script starting... (asynchronously)")
-            (ssh-deploy--async-process
-             `(lambda() (let ((ssh-deploy-root-local ,ssh-deploy-root-local)
-                              (ssh-deploy-root-remote ,ssh-deploy-root-remote))
-                          (add-to-list 'load-path ,script-filename)
-                          (funcall ,ssh-deploy-script)))
-             (lambda(result) (message "Completed execution of deployment-script. Return: '%s' (asynchronously)" result))
-             ssh-deploy-async-with-threads))
+          (message "Executing of deployment-script starting... (asynchronously)")
+        (ssh-deploy--async-process
+         `(lambda() (let ((ssh-deploy-root-local ,ssh-deploy-root-local)
+                          (ssh-deploy-root-remote ,ssh-deploy-root-remote))
+                      (funcall ,ssh-deploy-script)))
+         (lambda(result) (message "Completed execution of deployment-script. Return: '%s' (asynchronously)" result))
+         ssh-deploy-async-with-threads)
         (message "Executing of deployment-script starting... (synchronously)")
         (let ((ret (funcall ssh-deploy-script)))
           (message "Completed execution of deployment-script. Return: '%s' (synchronously)" ret)))
