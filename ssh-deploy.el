@@ -731,6 +731,47 @@
         (when (or (> (length (nth 4 diff)) 0) (> (length (nth 5 diff)) 0) (> (length (nth 7 diff)) 0))
           (ssh-deploy--diff-directories-present diff directory-a directory-b on-explicit-save debug async async-with-threads revision-folder remote-changes exclude-list))))))
 
+;; TODO Should optimize and unit-test this function
+(defun ssh-deploy--remote-changes-data (path-local &optional root-local root-remote revision-folder exclude-list)
+  "Check if a local revision for PATH-LOCAL on ROOT-LOCAL and if remote file has changed on ROOT-REMOTE, check for copies in REVISION-FOLDER and skip if path is in EXCLUDE-LIST.  Should only return status-code and message."
+  (let ((root-local (or root-local ssh-deploy-root-local))
+        (root-remote (or root-remote ssh-deploy-root-remote))
+        (exclude-list (or exclude-list ssh-deploy-exclude-list)))
+
+    ;; Is the file inside the local-root and should it not be excluded?
+    (if (and (ssh-deploy--file-is-in-path-p path-local root-local)
+             (ssh-deploy--file-is-included-p path-local exclude-list))
+        (let* ((revision-folder (or revision-folder ssh-deploy-revision-folder))
+               (revision-path (ssh-deploy--get-revision-path path-local revision-folder))
+               (path-remote (expand-file-name (ssh-deploy--get-relative-path root-local path-local) root-remote)))
+
+          ;; Is the file a regular file?
+          (if (not (file-directory-p path-local))
+
+              ;; Does a local revision of the file exist?
+              (if (file-exists-p revision-path)
+
+                  ;; Local revision exist
+
+                  (if (file-exists-p path-remote)
+                      (if (ediff-same-file-contents revision-path path-remote)
+                          (list 0 (format "Remote file '%s' has not changed." path-remote) path-local)
+                        (list 1 (format "Remote file '%s' has changed please download or diff." path-remote) path-local))
+                    (list 0 (format "Remote file '%s' doesn't exist." path-remote) path-local))
+
+                ;; Does remote file exist?
+                (if (file-exists-p path-remote)
+                    (if (ediff-same-file-contents path-local path-remote)
+                        (list 0 (format "Remote file '%s' has not changed. SHOULD create base revision." path-remote) path-local)
+                      (list 1 (format "Remote file '%s' has changed please download or diff." path-remote) path-local))
+                  (list 0 (format "Remote file '%s' doesn't exist." path-remote) path-local)))
+
+            ;; File is a directory
+            (list 0 (format "File %s is a directory, ignoring remote changes check." path-local) path-local)))
+
+      ;; File is not inside root or is excluded from it
+      (list 0 (format "File %s is not in root or is excluded from it." path-local)))))
+
 ;;;###autoload
 (defun ssh-deploy-remote-changes (path-local &optional root-local root-remote async revision-folder exclude-list async-with-threads)
   "Check if a local revision for PATH-LOCAL on ROOT-LOCAL and if remote file has changed on ROOT-REMOTE, do it optionally asynchronously if ASYNC is true, check for copies in REVISION-FOLDER and skip if path is in EXCLUDE-LIST.  Use multi-threading if ASYNC-WITH-THREADS is above zero."

@@ -65,7 +65,6 @@
            (ssh-deploy-root-local directory-a)
            (ssh-deploy-root-remote directory-b)
            (ssh-deploy-on-explicit-save 0)
-           (ssh-deploy-verbose 0)
            (ssh-deploy-debug 0)
            (ssh-deploy-async async)
            (ssh-deploy-async-with-threads async-with-threads))
@@ -74,7 +73,6 @@
       (when (and ssh-deploy-root-local
                  ssh-deploy-root-remote
                  ssh-deploy-on-explicit-save
-                 ssh-deploy-verbose
                  ssh-deploy-debug
                  ssh-deploy-async
                  ssh-deploy-async-with-threads)
@@ -123,7 +121,6 @@
            (ssh-deploy-root-local directory-a)
            (ssh-deploy-root-remote directory-b)
            (ssh-deploy-on-explicit-save 0)
-           (ssh-deploy-verbose 0)
            (ssh-deploy-debug 0)
            (ssh-deploy-async async)
            (ssh-deploy-async-with-threads async-with-threads))
@@ -132,7 +129,6 @@
       (when (and ssh-deploy-root-local
                  ssh-deploy-root-remote
                  ssh-deploy-on-explicit-save
-                 ssh-deploy-verbose
                  ssh-deploy-debug
                  ssh-deploy-async
                  ssh-deploy-async-with-threads)
@@ -201,7 +197,6 @@
            (ssh-deploy-root-local directory-a)
            (ssh-deploy-root-remote directory-b)
            (ssh-deploy-on-explicit-save 1)
-           (ssh-deploy-verbose 0)
            (ssh-deploy-debug 0)
            (ssh-deploy-async async)
            (ssh-deploy-async-with-threads async-with-threads))
@@ -210,7 +205,6 @@
       (when (and ssh-deploy-root-local
                  ssh-deploy-root-remote
                  ssh-deploy-on-explicit-save
-                 ssh-deploy-verbose
                  ssh-deploy-debug
                  ssh-deploy-async
                  ssh-deploy-async-with-threads)
@@ -272,27 +266,31 @@
 
 (defun ssh-deploy-test ()
   "Run test for plug-in."
-  (if (fboundp 'async-start)
-      (message "\nNOTE: Running tests for async.el as well since it's loaded\n")
-    (message "\nNOTE: Skipping tests for async.el since it's not loaded\n"))
-  (ssh-deploy-test--get-revision-path)
-  (ssh-deploy-test--file-is-in-path)
-  (ssh-deploy-test--is-not-empty-string)
+  (let ((ssh-deploy-verbose 1)
+        (ssh-deploy-debug 1))
+    (when (and ssh-deploy-verbose
+               ssh-deploy-debug)
+      (if (fboundp 'async-start)
+          (message "\nNOTE: Running tests for async.el as well since it's loaded\n")
+        (message "\nNOTE: Skipping tests for async.el since it's not loaded\n"))
+      (ssh-deploy-test--get-revision-path)
+      (ssh-deploy-test--file-is-in-path)
+      (ssh-deploy-test--is-not-empty-string)
 
-  (ssh-deploy-test--upload 0 0)
-  (when (fboundp 'async-start)
-    (ssh-deploy-test--upload 1 0))
-  (ssh-deploy-test--upload 1 1)
+      (ssh-deploy-test--upload 0 0)
+      (when (fboundp 'async-start)
+        (ssh-deploy-test--upload 1 0))
+      (ssh-deploy-test--upload 1 1)
 
-  (ssh-deploy-test--download 0 0)
-  (when (fboundp 'async-start)
-    (ssh-deploy-test--download 1 0))
-  (ssh-deploy-test--download 1 1)
+      (ssh-deploy-test--download 0 0)
+      (when (fboundp 'async-start)
+        (ssh-deploy-test--download 1 0))
+      (ssh-deploy-test--download 1 1)
 
-  (ssh-deploy-test--rename-and-delete 0 0)
-  (when (fboundp 'async-start)
-    (ssh-deploy-test--rename-and-delete 1 0))
-  (ssh-deploy-test--rename-and-delete 1 1))
+      (ssh-deploy-test--rename-and-delete 0 0)
+      (when (fboundp 'async-start)
+        (ssh-deploy-test--rename-and-delete 1 0))
+      (ssh-deploy-test--rename-and-delete 1 1))))
 
 (ssh-deploy-test)
 
