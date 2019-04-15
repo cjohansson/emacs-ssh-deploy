@@ -273,8 +273,8 @@
 (defun ssh-deploy-test ()
   "Run test for plug-in."
   (if (fboundp 'async-start)
-      (message "Running tests for async.el as well since it's loaded'")
-    (message "Skipping tests for async.el since it's not loaded"))
+      (message "\nNOTE: Running tests for async.el as well since it's loaded\n")
+    (message "\nNOTE: Skipping tests for async.el since it's not loaded\n"))
   (ssh-deploy-test--get-revision-path)
   (ssh-deploy-test--file-is-in-path)
   (ssh-deploy-test--is-not-empty-string)
