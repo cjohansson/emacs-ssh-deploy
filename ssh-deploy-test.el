@@ -46,9 +46,11 @@
 (autoload 'ssh-deploy-upload-handler "ssh-deploy")
 (autoload 'ssh-deploy--remote-changes-data "ssh-deploy")
 (autoload 'ssh-deploy-download-handler "ssh-deploy")
+(autoload 'ssh-deploy--async-process "ssh-deploy")
 
 (defun ssh-deploy-test--download (async async-with-threads)
   "Test downloads asynchronously if ASYNC is above zero, with threads if ASYNC-WITH-THREADS is above zero."
+  (message "\nTest Download\n")
   (let ((directory-a (expand-file-name "test-a/"))
         (directory-b (expand-file-name "test-b/")))
 
@@ -101,6 +103,7 @@
 
 (defun ssh-deploy-test--rename-and-delete (async async-with-threads)
   "Test downloads asynchronous if ASYNC is above zero, with threads if ASYNC-WITH-THREADS is above zero."
+  (message "\nTest Rename and delete\n")
   (let ((directory-a (expand-file-name "test-a/"))
         (directory-b (expand-file-name "test-b/"))
         (filename-old "testfile.txt")
@@ -180,7 +183,7 @@
 
 (defun ssh-deploy-test--upload (async async-with-threads)
   "Test uploads asynchronously if ASYNC is above zero, with threads if ASYNC-WITH-THREADS is above zero."
-
+  (message "\nTest Upload\n")
   (let ((directory-a (expand-file-name "test-a/"))
         (directory-b (expand-file-name "test-b/")))
 
@@ -253,6 +256,7 @@
 (defun ssh-deploy-test--detect-remote-changes (async async-with-threads)
   "Test uploads asynchronously if ASYNC is above zero, with threads if ASYNC-WITH-THREADS is above zero."
 
+  (message "\nTest Detect Remote Changes\n")
   (let ((directory-a (expand-file-name "test-a/"))
         (directory-b (expand-file-name "test-b/")))
 
@@ -304,7 +308,14 @@
         (should (equal nil (ediff-same-file-contents file-a file-b)))
 
         ;; Remote file should signal change now
-        (should (equal 5 (nth 0 (ssh-deploy--remote-changes-data file-a))))
+        (if (> async 0)
+            (progn
+              (ssh-deploy--async-process
+               (lambda() (ssh-deploy--remote-changes-data file-a))
+               (lambda(response) (should (equal 5 (nth 0 response))))
+               async-with-threads)
+              (sleep-for 1))
+          (should (equal 5 (nth 0 (ssh-deploy--remote-changes-data file-a)))))
 
         ;; Open file-a and download remote
         (find-file file-a)
@@ -314,7 +325,14 @@
         (kill-buffer)
 
         ;; Remote file should not signal change now
-        (should (equal 4 (nth 0 (ssh-deploy--remote-changes-data file-a))))
+        (if (> async 0)
+            (progn
+              (ssh-deploy--async-process
+               (lambda() (ssh-deploy--remote-changes-data file-a))
+               (lambda(response) (should (equal 4 (nth 0 response))))
+               async-with-threads)
+              (sleep-for 1))
+          (should (equal 4 (nth 0 (ssh-deploy--remote-changes-data file-a)))))
 
         ;; Delete both test files
         (delete-file file-b)
@@ -343,10 +361,15 @@
   "Run test for plug-in."
   (let ((ssh-deploy-verbose 1)
         (ssh-deploy-debug 1)
-        (debug-on-error t))
+        (debug-on-error t)
+        (async-el (fboundp 'async-start))
+        (revision-folder (expand-file-name "revisions")))
     (when (and ssh-deploy-verbose
                ssh-deploy-debug)
-      (if (fboundp 'async-start)
+
+      (setq ssh-deploy-revision-folder revision-folder)
+      
+      (if async-el
           (message "\nNOTE: Running tests for async.el as well since it's loaded\n")
         (message "\nNOTE: Skipping tests for async.el since it's not loaded\n"))
 
@@ -354,25 +377,30 @@
       (ssh-deploy-test--file-is-in-path)
       (ssh-deploy-test--is-not-empty-string)
 
+      (ssh-deploy-test--detect-remote-changes 0 0)
+      (when async-el
+        (ssh-deploy-test--detect-remote-changes 1 0))
+      (ssh-deploy-test--detect-remote-changes 1 1)
+
       (ssh-deploy-test--upload 0 0)
-      (when (fboundp 'async-start)
+      (when async-el
         (ssh-deploy-test--upload 1 0))
       (ssh-deploy-test--upload 1 1)
 
       (ssh-deploy-test--download 0 0)
-      (when (fboundp 'async-start)
+      (when async-el
         (ssh-deploy-test--download 1 0))
       (ssh-deploy-test--download 1 1)
 
       (ssh-deploy-test--rename-and-delete 0 0)
-      (when (fboundp 'async-start)
+      (when async-el
         (ssh-deploy-test--rename-and-delete 1 0))
       (ssh-deploy-test--rename-and-delete 1 1)
 
-      (ssh-deploy-test--detect-remote-changes 0 0)
-      (when (fboundp 'async-start)
-        (ssh-deploy-test--detect-remote-changes 1 0))
-      (ssh-deploy-test--detect-remote-changes 1 1))))
+      (delete-directory revision-folder t)
+
+
+      )))
 
 (ssh-deploy-test)
 

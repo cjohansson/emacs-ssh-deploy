@@ -315,7 +315,9 @@
                  (let ((ssh-deploy-async 0)
                        (ssh-deploy-async-with-threads 0)
                        (ssh-deploy-on-explicit-save 0)
-                       (ssh-deploy-automatically-detect-remote-changes 0))
+                       (ssh-deploy-automatically-detect-remote-changes 0)
+                       (ssh-deploy-revision-folder ssh-deploy-revision-folder)
+                       (ssh-deploy-exclude-list ssh-deploy-exclude-list))
                    (when ftp-netrc
                      ;; Pass ange-ftp setting to asynchronous process
                      (defvar ange-ftp-netrc-filename ftp-netrc))
@@ -741,8 +743,8 @@
      ;; File is a directory ignore
      (when (> verbose 0) (message (nth 1 response))))
     (3
-     ;; Remote file doesn't exist)
-     (when (> verbose 0) (message (nth 1 response))))
+     ;; Remote file does not exist
+     (when (message (nth 1 response))))
     (4
      ;; Remote file has not changed
      (when (> verbose 0) (message (nth 1 response))))
@@ -750,7 +752,7 @@
      ;; Remote file has changed in comparison with local revision
      (display-warning 'ssh-deploy (nth 1 response) :warning))
     (6
-     ;; Remote file has changed not in comparison with local file
+     ;; Remote file has not changed in comparison with local file
      (copy-file (nth 2 response) (nth 3 response) t t t t)
      (when (> verbose 0) (message (nth 1 response))))
     (7
