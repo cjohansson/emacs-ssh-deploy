@@ -5,8 +5,8 @@
 ;; Author: Christian Johansson <christian@cvj.se>
 ;; Maintainer: Christian Johansson <christian@cvj.se>
 ;; Created: 5 Jul 2016
-;; Modified: 10 Apr 2019
-;; Version: 3.0.5
+;; Modified: 16 Apr 2019
+;; Version: 3.0.6
 ;; Keywords: tools, convenience
 ;; URL: https://github.com/cjohansson/emacs-ssh-deploy
 
@@ -336,6 +336,8 @@
                    (autoload 'ssh-deploy-diff-handler "ssh-deploy")
                    (autoload 'ssh-deploy--diff-directories-data "ssh-deploy")
                    (autoload 'ssh-deploy--diff-directories-present "ssh-deploy")
+                   (autoload 'ssh-deploy--remote-changes-data "ssh-deploy")
+                   (autoload 'ssh-deploy--remote-changes-post-executor "ssh-deploy")
                    (funcall start)))
                finish))))
       (display-warning 'ssh-deploy "async-start functions are not available!"))))
