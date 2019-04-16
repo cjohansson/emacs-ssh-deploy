@@ -44,6 +44,8 @@
 (autoload 'ssh-deploy-add-after-save-hook "ssh-deploy")
 (autoload 'ssh-deploy-add-after-save-hook "ssh-deploy")
 (autoload 'ssh-deploy-upload-handler "ssh-deploy")
+(autoload 'ssh-deploy--remote-changes-data "ssh-deploy")
+(autoload 'ssh-deploy-download-handler "ssh-deploy")
 
 (defun ssh-deploy-test--download (async async-with-threads)
   "Test downloads asynchronously if ASYNC is above zero, with threads if ASYNC-WITH-THREADS is above zero."
@@ -155,11 +157,11 @@
         (when (> async 0)
           (sleep-for 1))
 
-        ;; Both old files should not exist anymore
+        ;; Both old files should not exist any more
         (should (equal nil (file-exists-p file-a-old)))
         (should (equal nil (file-exists-p file-b-old)))
 
-        ;; Both new files should exist anymore
+        ;; Both new files should exist any more
         (should (equal t (file-exists-p file-a-new)))
         (should (equal t (file-exists-p file-b-new)))
 
@@ -248,6 +250,79 @@
     (delete-directory directory-a t)
     (delete-directory directory-b t)))
 
+(defun ssh-deploy-test--detect-remote-changes (async async-with-threads)
+  "Test uploads asynchronously if ASYNC is above zero, with threads if ASYNC-WITH-THREADS is above zero."
+
+  (let ((directory-a (expand-file-name "test-a/"))
+        (directory-b (expand-file-name "test-b/")))
+
+    ;; Delete directories if they already exists
+    (when (file-directory-p directory-a)
+      (delete-directory directory-a t))
+    (when (file-directory-p directory-b)
+      (delete-directory directory-b t))
+
+    (make-directory-internal directory-a)
+    (make-directory-internal directory-b)
+
+    (let* ((file-a (expand-file-name "test.txt" directory-a))
+           (file-b (expand-file-name "test.txt" directory-b))
+           (file-a-contents "Random text")
+           (ssh-deploy-root-local directory-a)
+           (ssh-deploy-root-remote directory-b)
+           (ssh-deploy-on-explicit-save 1)
+           (ssh-deploy-debug 0)
+           (ssh-deploy-async async)
+           (ssh-deploy-async-with-threads async-with-threads))
+
+      ;; Just bypass the linter here
+      (when (and ssh-deploy-root-local
+                 ssh-deploy-root-remote
+                 ssh-deploy-on-explicit-save
+                 ssh-deploy-debug
+                 ssh-deploy-async
+                 ssh-deploy-async-with-threads)
+
+        (ssh-deploy-add-after-save-hook)
+        (find-file file-a)
+        (insert file-a-contents)
+        (save-buffer) ;; NOTE Should trigger upload action
+        (when (> async 0)
+          (sleep-for 1))
+        (kill-buffer)
+
+        ;; Verify that both files have equal contents
+        (should (equal t (ediff-same-file-contents file-a file-b)))
+
+        ;; Update should not trigger upload
+        (find-file file-b)
+        (insert "Random blbob")
+        (save-buffer)
+        (kill-buffer)
+
+        ;; Verify that both files don't have equal contents
+        (should (equal nil (ediff-same-file-contents file-a file-b)))
+
+        ;; Remote file should signal change now
+        (should (equal 5 (nth 0 (ssh-deploy--remote-changes-data file-a))))
+
+        ;; Open file-a and download remote
+        (find-file file-a)
+        (ssh-deploy-download-handler)
+        (when (> async 0)
+          (sleep-for 1))
+        (kill-buffer)
+
+        ;; Remote file should not signal change now
+        (should (equal 4 (nth 0 (ssh-deploy--remote-changes-data file-a))))
+
+        ;; Delete both test files
+        (delete-file file-b)
+        (delete-file file-a)))
+
+    (delete-directory directory-a t)
+    (delete-directory directory-b t)))
+
 (defun ssh-deploy-test--get-revision-path ()
   "Test this function."
   (should (string= (expand-file-name "./_mydirectory_random-file.txt") (ssh-deploy--get-revision-path "/mydirectory/random-file.txt" (expand-file-name ".")))))
@@ -267,12 +342,14 @@
 (defun ssh-deploy-test ()
   "Run test for plug-in."
   (let ((ssh-deploy-verbose 1)
-        (ssh-deploy-debug 1))
+        (ssh-deploy-debug 1)
+        (debug-on-error t))
     (when (and ssh-deploy-verbose
                ssh-deploy-debug)
       (if (fboundp 'async-start)
           (message "\nNOTE: Running tests for async.el as well since it's loaded\n")
         (message "\nNOTE: Skipping tests for async.el since it's not loaded\n"))
+
       (ssh-deploy-test--get-revision-path)
       (ssh-deploy-test--file-is-in-path)
       (ssh-deploy-test--is-not-empty-string)
@@ -290,7 +367,12 @@
       (ssh-deploy-test--rename-and-delete 0 0)
       (when (fboundp 'async-start)
         (ssh-deploy-test--rename-and-delete 1 0))
-      (ssh-deploy-test--rename-and-delete 1 1))))
+      (ssh-deploy-test--rename-and-delete 1 1)
+
+      (ssh-deploy-test--detect-remote-changes 0 0)
+      (when (fboundp 'async-start)
+        (ssh-deploy-test--detect-remote-changes 1 0))
+      (ssh-deploy-test--detect-remote-changes 1 1))))
 
 (ssh-deploy-test)
 
