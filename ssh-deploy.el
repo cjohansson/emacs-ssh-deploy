@@ -161,38 +161,38 @@
 
 (defcustom ssh-deploy-on-explicit-save 1
   "Boolean variable if deploy should be made on explicit save, 1 by default."
-  :type 'boolean)
+  :type 'integer)
 (put 'ssh-deploy-on-explicit-save 'permanent-local t)
 (put 'ssh-deploy-on-explicit-save 'safe-local-variable 'integerp)
 
 (defcustom ssh-deploy-debug 0
   "Boolean variable if debug messages should be shown, 0 by default."
-  :type 'boolean)
+  :type 'integer)
 (put 'ssh-deploy-debug 'permanent-local t)
 (put 'ssh-deploy-debug 'safe-local-variable 'integerp)
 
 ;; TODO This flag needs to work better, you should not miss any useful notifications when this is on
 (defcustom ssh-deploy-verbose 1
   "Boolean variable if debug messages should be shown, 1 by default."
-  :type 'boolean)
+  :type 'integer)
 (put 'ssh-deploy-verbose 'permanent-local t)
 (put 'ssh-deploy-verbose 'safe-local-variable 'integerp)
 
 (defcustom ssh-deploy-async 0
   "Boolean variable if asynchronous method for transfers should be used, 0 by default."
-  :type 'boolean)
+  :type 'integer)
 (put 'ssh-deploy-async 'permanent-local t)
 (put 'ssh-deploy-async 'safe-local-variable 'integerp)
 
 (defcustom ssh-deploy-async-with-threads 0
   "Boolean variable if asynchronous method should use threads if available, 0 by default."
-  :type 'boolean)
+  :type 'integer)
 (put 'ssh-deploy-async-with-threads 'permanent-local t)
 (put 'ssh-deploy-async-with-threads 'safe-local-variable 'integerp)
 
 (defcustom ssh-deploy-async-with-threads 0
   "Boolean variable if asynchronous method should use threads if available, 0 by default."
-  :type 'boolean)
+  :type 'integer)
 (put 'ssh-deploy-async-with-threads 'permanent-local t)
 (put 'ssh-deploy-async-with-threads 'safe-local-variable 'integerp)
 
@@ -204,7 +204,7 @@
 
 (defcustom ssh-deploy-automatically-detect-remote-changes 1
   "Detect remote changes and store base revisions automatically, 1 by default."
-  :type 'boolean)
+  :type 'integer)
 (put 'ssh-deploy-automatically-detect-remote-changes 'permanent-local t)
 (put 'ssh-deploy-automatically-detect-remote-changes 'safe-local-variable 'integerp)
 
@@ -731,7 +731,32 @@
         (when (or (> (length (nth 4 diff)) 0) (> (length (nth 5 diff)) 0) (> (length (nth 7 diff)) 0))
           (ssh-deploy--diff-directories-present diff directory-a directory-b on-explicit-save debug async async-with-threads revision-folder remote-changes exclude-list))))))
 
-;; TODO Should optimize and unit-test this function
+(defun ssh-deploy--remote-changes-post-executor (response verbose)
+  "Process RESPONSE from `ssh-deploy--remote-changes-data' with flags: VERBOSE."
+  (pcase (nth 0 response)
+    (1
+     ;; File is outside root or excluded from it
+     (when (> verbose 0) (message (nth 1 response))))
+    (2
+     ;; File is a directory ignore
+     (when (> verbose 0) (message (nth 1 response))))
+    (3
+     ;; Remote file doesn't exist)
+     (when (> verbose 0) (message (nth 1 response))))
+    (4
+     ;; Remote file has not changed
+     (when (> verbose 0) (message (nth 1 response))))
+    (5
+     ;; Remote file has changed in comparison with local revision
+     (display-warning 'ssh-deploy (nth 1 response) :warning))
+    (6
+     ;; Remote file has changed not in comparison with local file
+     (copy-file (nth 2 response) (nth 3 response) t t t t)
+     (when (> verbose 0) (message (nth 1 response))))
+    (7
+     ;; Remote file has changed in comparison with local file
+     (display-warning 'ssh-deploy (nth 1 response) :warning))))
+
 (defun ssh-deploy--remote-changes-data (path-local &optional root-local root-remote revision-folder exclude-list)
   "Check if a local revision for PATH-LOCAL on ROOT-LOCAL and if remote file has changed on ROOT-REMOTE, check for copies in REVISION-FOLDER and skip if path is in EXCLUDE-LIST.  Should only return status-code and message."
   (let ((root-local (or root-local ssh-deploy-root-local))
@@ -748,29 +773,27 @@
           ;; Is the file a regular file?
           (if (not (file-directory-p path-local))
 
-              ;; Does a local revision of the file exist?
-              (if (file-exists-p revision-path)
+              ;; Does remote file exists?
+              (if (file-exists-p path-remote)
 
-                  ;; Local revision exist
+                  ;; Does a local revision of the file exist?
+                  (if (file-exists-p revision-path)
 
-                  (if (file-exists-p path-remote)
                       (if (ediff-same-file-contents revision-path path-remote)
-                          (list 0 (format "Remote file '%s' has not changed." path-remote) path-local)
-                        (list 1 (format "Remote file '%s' has changed please download or diff." path-remote) path-local))
-                    (list 0 (format "Remote file '%s' doesn't exist." path-remote) path-local))
+                          (list 4 (format "Remote file '%s' has not changed." path-remote) path-local)
+                        (list 5 (format "Remote file '%s' has changed compared to local revision, please download or diff." path-remote) path-local revision-path))
 
-                ;; Does remote file exist?
-                (if (file-exists-p path-remote)
                     (if (ediff-same-file-contents path-local path-remote)
-                        (list 0 (format "Remote file '%s' has not changed. SHOULD create base revision." path-remote) path-local)
-                      (list 1 (format "Remote file '%s' has changed please download or diff." path-remote) path-local))
-                  (list 0 (format "Remote file '%s' doesn't exist." path-remote) path-local)))
+                        (list 6 (format "Remote file '%s' has not changed compared to local file, created local revision." path-remote) path-local revision-path)
+                      (list 7 (format "Remote file '%s' has changed compared to local file, please download or diff." path-remote) path-local path-remote)))
+
+                (list 3 (format "Remote file '%s' doesn't exist." path-remote) path-local))
 
             ;; File is a directory
-            (list 0 (format "File %s is a directory, ignoring remote changes check." path-local) path-local)))
+            (list 2 (format "File '%s' is a directory, ignoring remote changes check." path-local) path-local)))
 
       ;; File is not inside root or is excluded from it
-      (list 0 (format "File %s is not in root or is excluded from it." path-local)))))
+      (list 1 (format "File '%s' is not in root or is excluded from it." path-local) path-local))))
 
 ;;;###autoload
 (defun ssh-deploy-remote-changes (path-local &optional root-local root-remote async revision-folder exclude-list async-with-threads)
