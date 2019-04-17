@@ -306,7 +306,11 @@
         (display-warning 'ssh-deploy "make-thread function are not available!"))
     (if (fboundp 'async-start)
         (when start
-          (let ((ftp-netrc nil))
+          (let ((ftp-netrc nil)
+                (root-local ssh-deploy-root-local)
+                (root-remote ssh-deploy-root-remote)
+                (revision-folder ssh-deploy-revision-folder)
+                (exclude-list ssh-deploy-exclude-list))
             (when (boundp 'ange-ftp-netrc-filename)
               (setq ftp-netrc ange-ftp-netrc-filename))
             (let ((script-filename (file-name-directory (symbol-file 'ssh-deploy-diff-directories))))
@@ -316,11 +320,14 @@
                        (ssh-deploy-async-with-threads 0)
                        (ssh-deploy-on-explicit-save 0)
                        (ssh-deploy-automatically-detect-remote-changes 0)
-                       (ssh-deploy-revision-folder ssh-deploy-revision-folder)
-                       (ssh-deploy-exclude-list ssh-deploy-exclude-list))
+                       (ssh-deploy-root-local root-local)
+                       (ssh-deploy-root-remote root-remote)
+                       (ssh-deploy-revision-folder revision-folder)
+                       (ssh-deploy-exclude-list exclude-list))
                    (when ftp-netrc
                      ;; Pass ange-ftp setting to asynchronous process
                      (defvar ange-ftp-netrc-filename ftp-netrc))
+
                    (add-to-list 'load-path script-filename)
                    (autoload 'ediff-same-file-contents "ediff-util")
                    (autoload 'string-remove-prefix "subr-x")

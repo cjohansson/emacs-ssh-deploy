@@ -300,7 +300,7 @@
 
         ;; Update should not trigger upload
         (find-file file-b)
-        (insert "Random blbob")
+        (insert "Random blob")
         (save-buffer)
         (kill-buffer)
 
@@ -311,8 +311,13 @@
         (if (> async 0)
             (progn
               (ssh-deploy--async-process
-               (lambda() (ssh-deploy--remote-changes-data file-a))
-               (lambda(response) (should (equal 5 (nth 0 response))))
+               `(lambda()
+                 ;; (format "root local 2: %s, root remote: %s, revision-folder: %s, exclude-list: %s" ,ssh-deploy-root-local ,ssh-deploy-root-remote ,ssh-deploy-revision-folder ,ssh-deploy-exclude-list)
+                 (ssh-deploy--remote-changes-data ,file-a ,ssh-deploy-root-local ,ssh-deploy-root-remote ,ssh-deploy-revision-folder)
+                 )
+               (lambda(response)
+                 ;;(message "Response: %s" response)
+                 (should (equal 5 (nth 0 response))))
                async-with-threads)
               (sleep-for 1))
           (should (equal 5 (nth 0 (ssh-deploy--remote-changes-data file-a)))))
@@ -328,8 +333,9 @@
         (if (> async 0)
             (progn
               (ssh-deploy--async-process
-               (lambda() (ssh-deploy--remote-changes-data file-a))
-               (lambda(response) (should (equal 4 (nth 0 response))))
+               `(lambda()
+                 (ssh-deploy--remote-changes-data ,file-a ,ssh-deploy-root-local ,ssh-deploy-root-remote ,ssh-deploy-revision-folder))
+               (lambda(response)(should (equal 4 (nth 0 response))))
                async-with-threads)
               (sleep-for 1))
           (should (equal 4 (nth 0 (ssh-deploy--remote-changes-data file-a)))))
@@ -377,11 +383,6 @@
       (ssh-deploy-test--file-is-in-path)
       (ssh-deploy-test--is-not-empty-string)
 
-      (ssh-deploy-test--detect-remote-changes 0 0)
-      (when async-el
-        (ssh-deploy-test--detect-remote-changes 1 0))
-      (ssh-deploy-test--detect-remote-changes 1 1)
-
       (ssh-deploy-test--upload 0 0)
       (when async-el
         (ssh-deploy-test--upload 1 0))
@@ -396,6 +397,11 @@
       (when async-el
         (ssh-deploy-test--rename-and-delete 1 0))
       (ssh-deploy-test--rename-and-delete 1 1)
+
+      (ssh-deploy-test--detect-remote-changes 0 0)
+      (when async-el
+        (ssh-deploy-test--detect-remote-changes 1 0))
+      (ssh-deploy-test--detect-remote-changes 1 1)
 
       (delete-directory revision-folder t)
 
