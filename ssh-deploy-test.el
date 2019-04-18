@@ -269,11 +269,11 @@
     (make-directory-internal directory-a)
     (make-directory-internal directory-b)
 
-    (let* ((file-a (expand-file-name "test.txt" directory-a))
-           (file-b (expand-file-name "test.txt" directory-b))
+    (let* ((file-a (file-truename (expand-file-name "test.txt" directory-a)))
+           (file-b (file-truename (expand-file-name "test.txt" directory-b)))
            (file-a-contents "Random text")
-           (ssh-deploy-root-local directory-a)
-           (ssh-deploy-root-remote directory-b)
+           (ssh-deploy-root-local (file-truename directory-a))
+           (ssh-deploy-root-remote (file-truename directory-b))
            (ssh-deploy-on-explicit-save 1)
            (ssh-deploy-debug 0)
            (ssh-deploy-async async)
@@ -311,13 +311,8 @@
         (if (> async 0)
             (progn
               (ssh-deploy--async-process
-               `(lambda()
-                 ;; (format "root local 2: %s, root remote: %s, revision-folder: %s, exclude-list: %s" ,ssh-deploy-root-local ,ssh-deploy-root-remote ,ssh-deploy-revision-folder ,ssh-deploy-exclude-list)
-                 (ssh-deploy--remote-changes-data ,file-a ,ssh-deploy-root-local ,ssh-deploy-root-remote ,ssh-deploy-revision-folder)
-                 )
-               (lambda(response)
-                 ;;(message "Response: %s" response)
-                 (should (equal 5 (nth 0 response))))
+               (lambda() (ssh-deploy--remote-changes-data file-a))
+               (lambda(response) (should (equal 5 (nth 0 response))))
                async-with-threads)
               (sleep-for 1))
           (should (equal 5 (nth 0 (ssh-deploy--remote-changes-data file-a)))))
@@ -333,9 +328,8 @@
         (if (> async 0)
             (progn
               (ssh-deploy--async-process
-               `(lambda()
-                 (ssh-deploy--remote-changes-data ,file-a ,ssh-deploy-root-local ,ssh-deploy-root-remote ,ssh-deploy-revision-folder))
-               (lambda(response)(should (equal 4 (nth 0 response))))
+               (lambda() (ssh-deploy--remote-changes-data file-a))
+               (lambda(response) (should (equal 4 (nth 0 response))))
                async-with-threads)
               (sleep-for 1))
           (should (equal 4 (nth 0 (ssh-deploy--remote-changes-data file-a)))))
@@ -365,15 +359,14 @@
 
 (defun ssh-deploy-test ()
   "Run test for plug-in."
+  (require 'ssh-deploy)
   (let ((ssh-deploy-verbose 1)
         (ssh-deploy-debug 1)
-        (debug-on-error t)
+        ;; (debug-on-error t)
         (async-el (fboundp 'async-start))
-        (revision-folder (expand-file-name "revisions")))
+        (ssh-deploy-revision-folder (file-truename (expand-file-name "revisions"))))
     (when (and ssh-deploy-verbose
                ssh-deploy-debug)
-
-      (setq ssh-deploy-revision-folder revision-folder)
       
       (if async-el
           (message "\nNOTE: Running tests for async.el as well since it's loaded\n")
@@ -383,27 +376,31 @@
       (ssh-deploy-test--file-is-in-path)
       (ssh-deploy-test--is-not-empty-string)
 
-      (ssh-deploy-test--upload 0 0)
-      (when async-el
-        (ssh-deploy-test--upload 1 0))
-      (ssh-deploy-test--upload 1 1)
-
-      (ssh-deploy-test--download 0 0)
-      (when async-el
-        (ssh-deploy-test--download 1 0))
-      (ssh-deploy-test--download 1 1)
-
-      (ssh-deploy-test--rename-and-delete 0 0)
-      (when async-el
-        (ssh-deploy-test--rename-and-delete 1 0))
-      (ssh-deploy-test--rename-and-delete 1 1)
-
+      ;; Detect Remote Changes
       (ssh-deploy-test--detect-remote-changes 0 0)
       (when async-el
         (ssh-deploy-test--detect-remote-changes 1 0))
       (ssh-deploy-test--detect-remote-changes 1 1)
 
-      (delete-directory revision-folder t)
+      ;; Upload
+      (ssh-deploy-test--upload 0 0)
+      (when async-el
+        (ssh-deploy-test--upload 1 0))
+      (ssh-deploy-test--upload 1 1)
+
+      ;; Download
+      (ssh-deploy-test--download 0 0)
+      (when async-el
+        (ssh-deploy-test--download 1 0))
+      (ssh-deploy-test--download 1 1)
+
+      ;; Rename And Delete
+      (ssh-deploy-test--rename-and-delete 0 0)
+      (when async-el
+        (ssh-deploy-test--rename-and-delete 1 0))
+      (ssh-deploy-test--rename-and-delete 1 1)
+
+      (delete-directory ssh-deploy-revision-folder t)
 
 
       )))

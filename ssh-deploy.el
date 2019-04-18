@@ -316,6 +316,8 @@
             (let ((script-filename (file-name-directory (symbol-file 'ssh-deploy-diff-directories))))
               (async-start
                (lambda()
+                 (add-to-list 'load-path script-filename)
+                 (require 'ssh-deploy)
                  (let ((ssh-deploy-async 0)
                        (ssh-deploy-async-with-threads 0)
                        (ssh-deploy-on-explicit-save 0)
@@ -328,7 +330,6 @@
                      ;; Pass ange-ftp setting to asynchronous process
                      (defvar ange-ftp-netrc-filename ftp-netrc))
 
-                   (add-to-list 'load-path script-filename)
                    (autoload 'ediff-same-file-contents "ediff-util")
                    (autoload 'string-remove-prefix "subr-x")
 
@@ -743,8 +744,11 @@
 (defun ssh-deploy--remote-changes-post-executor (response verbose)
   "Process RESPONSE from `ssh-deploy--remote-changes-data' with flags: VERBOSE."
   (pcase (nth 0 response)
+    (0
+     ;; File is outside of root
+     (when (> verbose 0) (message (nth 1 response))))
     (1
-     ;; File is outside root or excluded from it
+     ;; File is excluded from deployment
      (when (> verbose 0) (message (nth 1 response))))
     (2
      ;; File is a directory ignore
@@ -773,36 +777,39 @@
         (exclude-list (or exclude-list ssh-deploy-exclude-list)))
 
     ;; Is the file inside the local-root and should it not be excluded?
-    (if (and (ssh-deploy--file-is-in-path-p path-local root-local)
-             (ssh-deploy--file-is-included-p path-local exclude-list))
-        (let* ((revision-folder (or revision-folder ssh-deploy-revision-folder))
-               (revision-path (ssh-deploy--get-revision-path path-local revision-folder))
-               (path-remote (expand-file-name (ssh-deploy--get-relative-path root-local path-local) root-remote)))
+    (if (ssh-deploy--file-is-in-path-p path-local root-local)
+        (if (ssh-deploy--file-is-included-p path-local exclude-list)
+            (let* ((revision-folder (or revision-folder ssh-deploy-revision-folder))
+                   (revision-path (ssh-deploy--get-revision-path path-local revision-folder))
+                   (path-remote (expand-file-name (ssh-deploy--get-relative-path root-local path-local) root-remote)))
 
-          ;; Is the file a regular file?
-          (if (not (file-directory-p path-local))
+              ;; Is the file a regular file?
+              (if (not (file-directory-p path-local))
 
-              ;; Does remote file exists?
-              (if (file-exists-p path-remote)
+                  ;; Does remote file exists?
+                  (if (file-exists-p path-remote)
 
-                  ;; Does a local revision of the file exist?
-                  (if (file-exists-p revision-path)
+                      ;; Does a local revision of the file exist?
+                      (if (file-exists-p revision-path)
 
-                      (if (ediff-same-file-contents revision-path path-remote)
-                          (list 4 (format "Remote file '%s' has not changed." path-remote) path-local)
-                        (list 5 (format "Remote file '%s' has changed compared to local revision, please download or diff." path-remote) path-local revision-path))
+                          (if (ediff-same-file-contents revision-path path-remote)
+                              (list 4 (format "Remote file '%s' has not changed." path-remote) path-local)
+                            (list 5 (format "Remote file '%s' has changed compared to local revision, please download or diff." path-remote) path-local revision-path))
 
-                    (if (ediff-same-file-contents path-local path-remote)
-                        (list 6 (format "Remote file '%s' has not changed compared to local file, created local revision." path-remote) path-local revision-path)
-                      (list 7 (format "Remote file '%s' has changed compared to local file, please download or diff." path-remote) path-local path-remote)))
+                        (if (ediff-same-file-contents path-local path-remote)
+                            (list 6 (format "Remote file '%s' has not changed compared to local file, created local revision." path-remote) path-local revision-path)
+                          (list 7 (format "Remote file '%s' has changed compared to local file, please download or diff." path-remote) path-local path-remote)))
 
-                (list 3 (format "Remote file '%s' doesn't exist." path-remote) path-local))
+                    (list 3 (format "Remote file '%s' doesn't exist." path-remote) path-local))
 
-            ;; File is a directory
-            (list 2 (format "File '%s' is a directory, ignoring remote changes check." path-local) path-local)))
+                ;; File is a directory
+                (list 2 (format "File '%s' is a directory, ignoring remote changes check." path-local) path-local)))
 
-      ;; File is not inside root or is excluded from it
-      (list 1 (format "File '%s' is not in root or is excluded from it." path-local) path-local))))
+          ;; File is excluded from root
+          (list 1 (format "File '%s' is excluded from deployment." path-local) path-local))
+
+      ;; File is not inside root
+      (list 0 (format "File '%s' is not in root '%s'" path-local root-local) path-local))))
 
 ;;;###autoload
 (defun ssh-deploy-remote-changes (path-local &optional root-local root-remote async revision-folder exclude-list async-with-threads verbose)
@@ -1271,13 +1278,16 @@
   (interactive)
   (if ssh-deploy-script
       (if (> ssh-deploy-async 0)
-          (message "Executing of deployment-script starting... (asynchronously)")
-        (ssh-deploy--async-process
-         `(lambda() (let ((ssh-deploy-root-local ,ssh-deploy-root-local)
-                          (ssh-deploy-root-remote ,ssh-deploy-root-remote))
-                      (funcall ,ssh-deploy-script)))
-         (lambda(result) (message "Completed execution of deployment-script. Return: '%s' (asynchronously)" result))
-         ssh-deploy-async-with-threads)
+          (let ((root-local ssh-deploy-root-local)
+                (root-remote ssh-deploy-root-remote)
+                (script ssh-deploy-script))
+            (message "Executing of deployment-script starting... (asynchronously)")
+            (ssh-deploy--async-process
+             (lambda() (let ((ssh-deploy-root-local root-local)
+                             (ssh-deploy-root-remote root-remote))
+                         (funcall script)))
+             (lambda(result) (message "Completed execution of deployment-script. Return: '%s' (asynchronously)" result))
+             ssh-deploy-async-with-threads))
         (message "Executing of deployment-script starting... (synchronously)")
         (let ((ret (funcall ssh-deploy-script)))
           (message "Completed execution of deployment-script. Return: '%s' (synchronously)" ret)))
