@@ -1,27 +1,22 @@
 language: emacs-lisp
-# Emacs fails to build in container-based builds on Travis
-# See https://github.com/travis-ci/travis-ci/issues/9061
-# and https://github.com/moby/moby/issues/22801
-sudo: required
+
 dist: trusty
-cache:
-  - directories:
-      # Cache stable Emacs binaries (saves 1min per job)
-      - "$HOME/emacs/"
-# Allow Emacs snapshot builds to fail and don’t wait for these as they can take
-# a looooong time
-matrix:
-  fast_finish: true
-  allow_failures:
-    - env: EMACS_VERSION=snapshot
-env:
-  - EMACS_VERSION=25.3
-  - EMACS_VERSION=snapshot
 before_install:
-  - curl -fsSkL https://gist.github.com/rejeep/ebcd57c3af83b049833b/raw > x.sh && source ./x.sh
-  - evm install $EMACS_VERSION --use || true
+  - git clone https://github.com/rejeep/evm.git $HOME/.evm
+  - export PATH=$HOME/.evm/bin:$PATH
+  - evm config path /tmp
+  - evm install $EVM_EMACS --use --skip
+
+env:
+  - EVM_EMACS=emacs-25.1-travis
+  - EVM_EMACS=emacs-26.1-travis
+  - EVM_EMACS=emacs-git-snapshot-travis
+
+matrix:
+  allow_failures:
+    - env: EVM_EMACS=emacs-git-snapshot-travis
+
 script:
-  # Make sure the exact emacs version can be found in the build output.
   - emacs -Q --batch --eval '(message (emacs-version))'
   - make test
 
