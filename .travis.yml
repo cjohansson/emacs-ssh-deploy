@@ -1,0 +1,11 @@
+language: emacs-lisp
+sudo: required
+env:
+  matrix:
+    - EMACS_VERSION=emacs-25
+
+script:
+  # Make sure the exact emacs version can be found in the build output.
+  - emacs -Q --batch --eval '(message (emacs-version))'
+  - make test
+
