@@ -2,7 +2,7 @@
 [![License GPL 3](https://img.shields.io/badge/license-GPL_3-green.svg)](https://www.gnu.org/licenses/gpl-3.0.txt)
 [![MELPA](https://melpa.org/packages/ssh-deploy-badge.svg)](https://melpa.org/#/ssh-deploy)
 [![MELPA Stable](https://stable.melpa.org/packages/ssh-deploy-badge.svg)](https://stable.melpa.org/#/ssh-deploy)
-[![Build Status](https://travis-ci.org/remacs/remacs.svg?branch=master)](https://travis-ci.org/cjohansson/emacs-ssh-deploy)
+[![Build Status](https://travis-ci.org/cjohansson/emacs-ssh-deploy.svg?branch=master)](https://travis-ci.org/cjohansson/emacs-ssh-deploy)
 
 The `ssh-deploy` plug-in for Emacs makes it possible to effortlessly deploy local files and directories to remote hosts via Tramp (including but not limited to SSH, SFTP, FTP). It tries to provide functions that can be easily used by custom scripts.
 
