@@ -363,6 +363,7 @@
   (let ((ssh-deploy-verbose 1)
         (ssh-deploy-debug 1)
         ;; (debug-on-error t)
+        (async-threads (fboundp 'make-thread'))
         (async-el (fboundp 'async-start))
         (ssh-deploy-revision-folder (file-truename (expand-file-name "revisions"))))
     (when (and ssh-deploy-verbose
@@ -380,28 +381,31 @@
       (ssh-deploy-test--detect-remote-changes 0 0)
       (when async-el
         (ssh-deploy-test--detect-remote-changes 1 0))
-      (ssh-deploy-test--detect-remote-changes 1 1)
+      (when async-threads
+        (ssh-deploy-test--detect-remote-changes 1 1))
 
       ;; Upload
       (ssh-deploy-test--upload 0 0)
       (when async-el
         (ssh-deploy-test--upload 1 0))
-      (ssh-deploy-test--upload 1 1)
+      (when async-threads
+        (ssh-deploy-test--upload 1 1))
 
       ;; Download
       (ssh-deploy-test--download 0 0)
       (when async-el
         (ssh-deploy-test--download 1 0))
-      (ssh-deploy-test--download 1 1)
+      (when async-threads
+        (ssh-deploy-test--download 1 1))
 
       ;; Rename And Delete
       (ssh-deploy-test--rename-and-delete 0 0)
       (when async-el
         (ssh-deploy-test--rename-and-delete 1 0))
-      (ssh-deploy-test--rename-and-delete 1 1)
+      (when async-threads
+        (ssh-deploy-test--rename-and-delete 1 1))
 
       (delete-directory ssh-deploy-revision-folder t)
-
 
       )))
 
