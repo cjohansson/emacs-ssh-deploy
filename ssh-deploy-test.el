@@ -363,11 +363,15 @@
   (let ((ssh-deploy-verbose 1)
         (ssh-deploy-debug 1)
         ;; (debug-on-error t)
-        (async-threads (fboundp 'make-thread'))
+        (async-threads (fboundp 'make-thread))
         (async-el (fboundp 'async-start))
         (ssh-deploy-revision-folder (file-truename (expand-file-name "revisions"))))
     (when (and ssh-deploy-verbose
                ssh-deploy-debug)
+
+      (if async-threads
+          (message "\nNOTE: Running tests for asynchronous threads as well since it's loaded\n")
+        (message "\nNOTE: Skipping tests for asynchronous threads since it's not loaded\n"))
       
       (if async-el
           (message "\nNOTE: Running tests for async.el as well since it's loaded\n")
