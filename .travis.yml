@@ -6,6 +6,7 @@ before_install:
   - export PATH=$HOME/.evm/bin:$PATH
   - evm config path /tmp
   - evm install $EVM_EMACS --use --skip
+  - git clone https://github.com/jwiegley/emacs-async.git $HOME/.async-el
 
 env:
   - EVM_EMACS=emacs-25.1-travis
@@ -17,6 +18,6 @@ matrix:
     - env: EVM_EMACS=emacs-git-snapshot-travis
 
 script:
-  - emacs -Q --batch --eval '(message (emacs-version))'
-  - make test
+  - emacs -Q -batch --eval '(message (emacs-version))'
+  - emacs -Q -batch -L $HOME/.async-el -L . -l $HOME/.async-el/async.el -l ssh-deploy-test.el
 
