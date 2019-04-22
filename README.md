@@ -190,6 +190,7 @@ If you want to use the pre-defined hydra you can use this key-binding instead:
       (use-package ssh-deploy
         :ensure t
         :demand
+        :after hydra
         :hook ((after-save . ssh-deploy-after-save)
                (find-file . ssh-deploy-find-file))
         :config
