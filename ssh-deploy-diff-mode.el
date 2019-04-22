@@ -2,16 +2,6 @@
 
 ;; Copyright (C) 2017-2018  Free Software Foundation, Inc.
 
-;; Author: Christian Johansson <christian@cvj.se>
-;; Maintainer: Christian Johansson <christian@cvj.se>
-;; Created: 1 Feb 2018
-;; Modified: 28 Nov 2018
-;; Version: 2.0
-;; Keywords: tools, convenience
-;; URL: https://github.com/cjohansson/emacs-ssh-deploy
-
-;; Package-Requires: ((emacs "24"))
-
 ;; This file is not part of GNU Emacs.
 
 ;; This program is free software; you can redistribute it and/or
@@ -87,61 +77,61 @@
   (save-excursion
     (beginning-of-line)
     (let ((file nil))
-      (if (looking-at "^- ")
-          (let* ((start (+ 2 (line-beginning-position)))
-                 (end (line-end-position)))
-            (setq file (buffer-substring-no-properties start end))))
+      (when (looking-at "^- ")
+        (let* ((start (+ 2 (line-beginning-position)))
+               (end (line-end-position)))
+          (setq file (buffer-substring-no-properties start end))))
       (while (and (> (line-number-at-pos) 1)
                   (not (looking-at "^[A-Z]+")))
         (forward-line -1))
-      (if (looking-at "^[A-Z]")
-          (let* ((start (line-beginning-position))
-                 (end (line-end-position))
-                 (section (buffer-substring-no-properties start end)))
-            (setq section (replace-regexp-in-string ": ([0-9]+)\\'" "" section))
-            (setq section
-                  (pcase section
-                    ("DIRECTORY A" 'directory-a)
-                    ("DIRECTORY B" 'directory-b)
-                    ("EXCLUDE-LIST" 'exclude-list)
-                    ("FILES ONLY IN A" 'only-in-a)
-                    ("FILES ONLY IN B" 'only-in-b)
-                    ("FILES IN BOTH BUT DIFFERS" 'in-both)
-                    (_ (message "Could not find section %s" section)
-                       section)))
-            (while (and (> (line-number-at-pos) 1)
-                        (not (looking-at "^DIRECTORY B:")))
-              (forward-line -1))
-            (if (looking-at "^DIRECTORY B:")
+      (when (looking-at "^[A-Z]")
+        (let* ((start (line-beginning-position))
+               (end (line-end-position))
+               (section (buffer-substring-no-properties start end)))
+          (setq section (replace-regexp-in-string ": ([0-9]+)\\'" "" section))
+          (setq section
+                (pcase section
+                  ("DIRECTORY A" 'directory-a)
+                  ("DIRECTORY B" 'directory-b)
+                  ("EXCLUDE-LIST" 'exclude-list)
+                  ("FILES ONLY IN A" 'only-in-a)
+                  ("FILES ONLY IN B" 'only-in-b)
+                  ("FILES IN BOTH BUT DIFFERS" 'in-both)
+                  (_ (message "Could not find section %s" section)
+                     section)))
+          (while (and (> (line-number-at-pos) 1)
+                      (not (looking-at "^DIRECTORY B:")))
+            (forward-line -1))
+          (when (looking-at "^DIRECTORY B:")
+            (let* ((start (line-beginning-position))
+                   (end (line-end-position))
+                   (directory-b (buffer-substring-no-properties start end)))
+              (setq directory-b (replace-regexp-in-string "DIRECTORY B: " "" directory-b))
+
+              (while (and (> (line-number-at-pos) 1)
+                          (not (looking-at "^DIRECTORY A:")))
+                (forward-line -1))
+              (when (looking-at "^DIRECTORY A:")
                 (let* ((start (line-beginning-position))
                        (end (line-end-position))
-                       (directory-b (buffer-substring-no-properties start end)))
-                  (setq directory-b (replace-regexp-in-string "DIRECTORY B: " "" directory-b))
-
-                  (while (and (> (line-number-at-pos) 1)
-                              (not (looking-at "^DIRECTORY A:")))
-                    (forward-line -1))
-                  (if (looking-at "^DIRECTORY A:")
-                      (let* ((start (line-beginning-position))
-                             (end (line-end-position))
-                             (directory-a (buffer-substring-no-properties start end)))
-                        (setq directory-a (replace-regexp-in-string "DIRECTORY A: " "" directory-a))
-                        (list file section directory-a directory-b))))))))))
+                       (directory-a (buffer-substring-no-properties start end)))
+                  (setq directory-a (replace-regexp-in-string "DIRECTORY A: " "" directory-a))
+                  (list file section directory-a directory-b))))))))))
 
 (defun ssh-deploy-diff-mode--action-handler (action)
   "Route valid ACTION to their functions."
   (interactive)
   (let ((parts (ssh-deploy-diff-mode--get-parts)))
-    (if (not (eq parts nil))
-        (cond
-         ((null parts) (message "Found nothing to do"))
-         ((not (or (nth 0 parts)
-                   ;; FIXME: Comparing equality of functions is bad karma!
-                   (eq action #'ssh-deploy-diff-mode--refresh)))
-          (message "Found nothing to do in the section for action %s"
-                   (replace-regexp-in-string "ssh-deploy-diff-mode--" ""
-                                             (format "%s" action))))
-         (t (funcall action parts))))))
+    (unless (eq parts nil)
+      (cond
+       ((null parts) (message "Found nothing to do"))
+       ((not (or (nth 0 parts)
+                 ;; FIXME: Comparing equality of functions is bad karma!
+                 (eq action #'ssh-deploy-diff-mode--refresh)))
+        (message "Found nothing to do in the section for action %s"
+                 (replace-regexp-in-string "ssh-deploy-diff-mode--" ""
+                                           (format "%s" action))))
+       (t (funcall action parts))))))
 
 (defun ssh-deploy-diff-mode--refresh (parts)
   "Refresh current difference query based on PARTS."
@@ -180,7 +170,6 @@
 
 (defun ssh-deploy-diff-mode--copy-b (parts)
   "Perform an download of remote-path to local-path based on PARTS from section B or section BOTH."
-  (require 'ssh-deploy)
   (let* ((section (nth 1 parts))
          (file-name (nth 0 parts))
          (root-local (file-truename (nth 2 parts)))
@@ -202,8 +191,8 @@
     (pcase section
       ('in-both
        (let ((yes-no-prompt (read-string (format "Type 'yes' to confirm that you want to delete the file '%s': " file-name))))
-         (if (string= yes-no-prompt "yes")
-             (ssh-deploy-delete-both path-local))))
+         (when (string= yes-no-prompt "yes")
+           (ssh-deploy-delete-both path-local))))
       ('only-in-a
        (ssh-deploy-delete path-local))
       ('only-in-b
@@ -224,7 +213,6 @@
 
 (defun ssh-deploy-diff-mode--open (parts)
   "Perform a open file action based on PARTS from section A or section B."
-  (require 'ssh-deploy)
   (let* ((section (nth 1 parts))
          (file-name (nth 0 parts))
          (root-local (file-truename (nth 2 parts)))
