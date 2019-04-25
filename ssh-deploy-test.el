@@ -32,6 +32,7 @@
 (autoload 'ediff-same-file-contents "ediff-util")
 
 (autoload 'ssh-deploy-diff-mode "ssh-deploy-diff-mode")
+(autoload 'ssh-deploy--diff-directories-data "ssh-deploy-diff-mode")
 
 (autoload 'ssh-deploy "ssh-deploy")
 (autoload 'ssh-deploy--get-revision-path "ssh-deploy")
@@ -411,21 +412,19 @@
                  (ssh-deploy--diff-directories-data directory-a directory-b ssh-deploy-exclude-list)
                  (list directory-a directory-b ssh-deploy-exclude-list (list file-1-filename file-2-filename) nil nil (list file-1-filename file-2-filename) nil)))
 
-        ;; Create file 1
-        (find-file file-b-1)
+        ;; Modify file B
+        (find-file file-b-2)
         (insert file-a-1-contents)
-        (save-buffer) ;; NOTE Should trigger upload action
-        (when (> async 0)
-          (sleep-for 1))
+        (save-buffer)
         (kill-buffer)
 
         ;; Verify that both files have equal contents
-        (should (equal nil (ediff-same-file-contents file-a-1 file-b-1)))
+        (should (equal nil (ediff-same-file-contents file-a-2 file-b-2)))
 
         ;; Both files should equal
         (should (equal
                  (ssh-deploy--diff-directories-data directory-a directory-b ssh-deploy-exclude-list)
-                 (list directory-a directory-b ssh-deploy-exclude-list (list file-1-filename file-2-filename) nil nil (list file-1-filename) nil (list file-2-filename))))
+                 (list directory-a directory-b ssh-deploy-exclude-list (list file-1-filename file-2-filename) nil nil (list file-1-filename) (list file-2-filename))))
 
         ;; Delete test files
         (delete-file file-b-2)
@@ -455,6 +454,7 @@
 (defun ssh-deploy-test ()
   "Run test for plug-in."
   (require 'ssh-deploy)
+  (setq make-backup-files nil)
 
   (let ((ssh-deploy-verbose 1)
         (ssh-deploy-debug 1)
