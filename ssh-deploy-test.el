@@ -406,9 +406,26 @@
         ;; Verify that both files have equal contents
         (should (equal t (ediff-same-file-contents file-a-2 file-b-2)))
 
+        ;; Both files should equal
         (should (equal
                  (ssh-deploy--diff-directories-data directory-a directory-b ssh-deploy-exclude-list)
                  (list directory-a directory-b ssh-deploy-exclude-list (list file-1-filename file-2-filename) nil nil (list file-1-filename file-2-filename) nil)))
+
+        ;; Create file 1
+        (find-file file-b-1)
+        (insert file-a-1-contents)
+        (save-buffer) ;; NOTE Should trigger upload action
+        (when (> async 0)
+          (sleep-for 1))
+        (kill-buffer)
+
+        ;; Verify that both files have equal contents
+        (should (equal nil (ediff-same-file-contents file-a-1 file-b-1)))
+
+        ;; Both files should equal
+        (should (equal
+                 (ssh-deploy--diff-directories-data directory-a directory-b ssh-deploy-exclude-list)
+                 (list directory-a directory-b ssh-deploy-exclude-list (list file-1-filename file-2-filename) nil nil (list file-1-filename) nil (list file-2-filename))))
 
         ;; Delete test files
         (delete-file file-b-2)
@@ -438,6 +455,7 @@
 (defun ssh-deploy-test ()
   "Run test for plug-in."
   (require 'ssh-deploy)
+
   (let ((ssh-deploy-verbose 1)
         (ssh-deploy-debug 1)
         ;; (debug-on-error t)
