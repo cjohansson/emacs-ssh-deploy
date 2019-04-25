@@ -647,6 +647,8 @@
             (setq files-both-equals (sort files-both-equals #'string<))
             (setq files-both-differs (sort files-both-differs #'string<))
 
+            ;; NOTE We sort lists to make result deterministic and testable
+
             (list directory-a directory-b exclude-list files-both files-a-only files-b-only files-both-equals files-both-differs))
         (display-warning 'ssh-deploy "Both directories need to exist to perform difference generation." :warning))
     (display-warning 'ssh-deploy "Function 'string-remove-prefix' is missing." :warning)))
