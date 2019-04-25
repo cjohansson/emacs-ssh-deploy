@@ -617,6 +617,7 @@
                      (setq files-a-only (list file-a))
                    (push file-a files-a-only))))
              files-a-relative-list)
+            (setq files-a-only (sort files-a-only #'string<))
 
             ;; Collect files that only exists in directory b
             (mapc
@@ -627,6 +628,7 @@
                      (setq files-b-only (list file-b))
                    (push file-b files-b-only))))
              files-b-relative-list)
+            (setq files-b-only (sort files-b-only #'string<))
 
             ;; Collect files that differ in contents and have equal contents
             (mapc
@@ -641,6 +643,9 @@
                        (setq files-both-differs (list file))
                      (push file files-both-differs)))))
              files-both)
+            (setq files-both (sort files-both #'string<))
+            (setq files-both-equals (sort files-both-equals #'string<))
+            (setq files-both-differs (sort files-both-differs #'string<))
 
             (list directory-a directory-b exclude-list files-both files-a-only files-b-only files-both-equals files-both-differs))
         (display-warning 'ssh-deploy "Both directories need to exist to perform difference generation." :warning))

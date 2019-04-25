@@ -408,7 +408,7 @@
 
         (should (equal
                  (ssh-deploy--diff-directories-data directory-a directory-b ssh-deploy-exclude-list)
-                 (list directory-a directory-b ssh-deploy-exclude-list (list file-1-filename file-2-filename) nil (list file-1-filename file-2-filename) nil)))
+                 (list directory-a directory-b ssh-deploy-exclude-list (list file-1-filename file-2-filename) nil nil (list file-1-filename file-2-filename) nil)))
 
         ;; Delete test files
         (delete-file file-b-2)
