@@ -13,10 +13,6 @@ env:
   - EVM_EMACS=emacs-26.1-travis
   - EVM_EMACS=emacs-git-snapshot-travis
 
-matrix:
-  allow_failures:
-    - env: EVM_EMACS=emacs-git-snapshot-travis
-
 script:
   - emacs -Q -batch --eval '(message (emacs-version))'
   - emacs -Q -batch -L $HOME/.async-el -L . -l $HOME/.async-el/async.el -l ssh-deploy-test.el
