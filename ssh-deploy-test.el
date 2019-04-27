@@ -477,20 +477,6 @@
       (ssh-deploy-test--file-is-in-path)
       (ssh-deploy-test--is-not-empty-string)
 
-      ;; Directory Differences
-      (ssh-deploy-test--directory-diff 0 0)
-      (when async-el
-        (ssh-deploy-test--directory-diff 1 0))
-      (when async-threads
-        (ssh-deploy-test--directory-diff 1 1))
-
-      ;; Detect Remote Changes
-      (ssh-deploy-test--detect-remote-changes 0 0)
-      (when async-el
-        (ssh-deploy-test--detect-remote-changes 1 0))
-      (when async-threads
-        (ssh-deploy-test--detect-remote-changes 1 1))
-
       ;; Upload
       (ssh-deploy-test--upload 0 0)
       (when async-el
@@ -511,6 +497,20 @@
         (ssh-deploy-test--rename-and-delete 1 0))
       (when async-threads
         (ssh-deploy-test--rename-and-delete 1 1))
+
+      ;; Directory Differences
+      (ssh-deploy-test--directory-diff 0 0)
+      (when async-el
+        (ssh-deploy-test--directory-diff 1 0))
+      (when async-threads
+        (ssh-deploy-test--directory-diff 1 1))
+
+      ;; Detect Remote Changes
+      (ssh-deploy-test--detect-remote-changes 0 0)
+      (when async-el
+        (ssh-deploy-test--detect-remote-changes 1 0))
+      (when async-threads
+        (ssh-deploy-test--detect-remote-changes 1 1))
 
       (delete-directory ssh-deploy-revision-folder t)
 

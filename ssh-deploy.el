@@ -5,8 +5,8 @@
 ;; Author: Christian Johansson <christian@cvj.se>
 ;; Maintainer: Christian Johansson <christian@cvj.se>
 ;; Created: 5 Jul 2016
-;; Modified: 25 Apr 2019
-;; Version: 3.1.1
+;; Modified: 27 Apr 2019
+;; Version: 3.1.2
 ;; Keywords: tools, convenience
 ;; URL: https://github.com/cjohansson/emacs-ssh-deploy
 
@@ -699,6 +699,7 @@
 ;; these functions MUST only use module variables as fall-backs for missing arguments.
 
 
+;; TODO Add support for async version of this function
 ;;;###autoload
 (defun ssh-deploy-diff-files (file-a file-b)
   "Find difference between FILE-A and FILE-B."
@@ -708,6 +709,7 @@
     (ediff file-a file-b)))
 
 ;;;###autoload
+
 (defun ssh-deploy-diff-directories (directory-a directory-b &optional on-explicit-save debug async async-with-threads revision-folder remote-changes exclude-list)
   "Find difference between DIRECTORY-A and DIRECTORY-B but exclude, ON-EXPLICIT-SAVE defines automatic uploads, DEBUG is the debug flag, ASYNC is for asynchronous, ASYNC-WITH-THREADS for threads instead of processes, REVISION-FOLDER is for revisions, REMOTE-CHANGES are whether to look for remote change, EXCLUDE-LIST is what files to exclude."
   (let ((on-explicit-save (or on-explicit-save ssh-deploy-on-explicit-save))
@@ -722,17 +724,19 @@
           (message "Calculating differences between directory '%s' and '%s'.. (asynchronously)" directory-a directory-b)
           (ssh-deploy--async-process
            (lambda()
-             (ssh-deploy--diff-directories-data directory-a directory-b exclude-list))
+             (let ((directory-b (file-truename directory-b)))
+               (ssh-deploy--diff-directories-data directory-a directory-b exclude-list)))
            (lambda(diff)
              (message "Completed calculation of differences between directory '%s' and '%s'. Result: %s only in A %s only in B %s differs. (asynchronously)" (nth 0 diff) (nth 1 diff) (length (nth 4 diff)) (length (nth 5 diff)) (length (nth 7 diff)))
              (when (or (> (length (nth 4 diff)) 0) (> (length (nth 5 diff)) 0) (> (length (nth 7 diff)) 0))
                (ssh-deploy--diff-directories-present diff directory-a directory-b on-explicit-save debug async async-with-threads revision-folder remote-changes exclude-list)))
            async-with-threads))
-      (message "Calculating differences between directory '%s' and '%s'.. (synchronously)" directory-a directory-b)
-      (let ((diff (ssh-deploy--diff-directories-data directory-a directory-b exclude-list)))
-        (message "Completed calculation of differences between directory '%s' and '%s'. Result: %s only in A, %s only in B, %s differs. (synchronously)" (nth 0 diff) (nth 1 diff) (length (nth 4 diff)) (length (nth 5 diff)) (length (nth 7 diff)))
-        (when (or (> (length (nth 4 diff)) 0) (> (length (nth 5 diff)) 0) (> (length (nth 7 diff)) 0))
-          (ssh-deploy--diff-directories-present diff directory-a directory-b on-explicit-save debug async async-with-threads revision-folder remote-changes exclude-list))))))
+      (let ((directory-b (file-truename directory-b)))
+        (message "Calculating differences between directory '%s' and '%s'.. (synchronously)" directory-a directory-b)
+        (let ((diff (ssh-deploy--diff-directories-data directory-a directory-b exclude-list)))
+          (message "Completed calculation of differences between directory '%s' and '%s'. Result: %s only in A, %s only in B, %s differs. (synchronously)" (nth 0 diff) (nth 1 diff) (length (nth 4 diff)) (length (nth 5 diff)) (length (nth 7 diff)))
+          (when (or (> (length (nth 4 diff)) 0) (> (length (nth 5 diff)) 0) (> (length (nth 7 diff)) 0))
+            (ssh-deploy--diff-directories-present diff directory-a directory-b on-explicit-save debug async async-with-threads revision-folder remote-changes exclude-list)))))))
 
 (defun ssh-deploy--remote-changes-post-executor (response verbose)
   "Process RESPONSE from `ssh-deploy--remote-changes-data' with flags: VERBOSE."
