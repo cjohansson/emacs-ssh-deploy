@@ -697,6 +697,7 @@
   (let ((result (ediff-same-file-contents file-a file-b)))
     (list result file-a file-b)))
 
+
 ;; PUBLIC functions
 ;;
 ;; handlers use these to do things and people SHOULD be able to use these as they please themselves
@@ -709,7 +710,7 @@
   (message "Comparing file '%s' to '%s'.." file-a file-b)
   (let ((async (or async ssh-deploy-async))
         (async-with-threads (or async-with-threads ssh-deploy-async-with-threads)))
-    (if (> async 1)
+    (if (> async 0)
         (ssh-deploy--async-process
          (lambda() (ssh-deploy--diff-files file-a file-b))
          (lambda(result)
