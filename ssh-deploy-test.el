@@ -1,6 +1,6 @@
 ;;; ssh-deploy-test.el --- Unit and integration tests for ssh-deploy.  -*- lexical-binding:t -*-
 
-;; Copyright (C) 2017-2018  Free Software Foundation, Inc.
+;; Copyright (C) 2017-2019  Free Software Foundation, Inc.
 
 ;; This file is not part of GNU Emacs.
 
@@ -29,11 +29,9 @@
 
 (autoload 'should "ert")
 
-(autoload 'ediff-same-file-contents "ediff-util")
-
 (autoload 'ssh-deploy-diff-mode "ssh-deploy-diff-mode")
 (autoload 'ssh-deploy--diff-directories-data "ssh-deploy-diff-mode")
-
+(autoload 'ssh-deploy--diff-files "ssh-deploy")
 (autoload 'ssh-deploy "ssh-deploy")
 (autoload 'ssh-deploy--get-revision-path "ssh-deploy")
 (autoload 'ssh-deploy--file-is-in-path-p "ssh-deploy")
@@ -94,7 +92,7 @@
           (sleep-for 1))
 
         ;; Verify that both files have equal contents
-        (should (equal t (ediff-same-file-contents file-a file-b)))
+        (should (equal t (nth 0 (ssh-deploy--diff-files file-a file-b))))
 
         (delete-file file-b)
         (delete-file file-a)))
@@ -223,7 +221,7 @@
           (sleep-for 1))
 
         ;; Verify that both files have equal contents
-        (should (equal t (ediff-same-file-contents file-a file-b)))
+        (should (equal t (nth 0 (ssh-deploy--diff-files file-a file-b))))
 
         ;; Turn of automatic uploads
         (let ((ssh-deploy-on-explicit-save 0))
@@ -237,7 +235,7 @@
               (sleep-for 1))
 
             ;; Verify that both files have equal contents
-            (should (equal nil (ediff-same-file-contents file-a file-b)))
+            (should (equal nil (nth 0 (ssh-deploy--diff-files file-a file-b))))
 
             (ssh-deploy-upload-handler)
             (when (> async 0)
@@ -245,7 +243,7 @@
             (kill-buffer)
 
             ;; Verify that both files have equal contents
-            (should (equal t (ediff-same-file-contents file-a file-b)))
+            (should (equal t (nth 0 (ssh-deploy--diff-files file-a file-b))))
 
             ;; Delete both test files
             (delete-file file-b)
@@ -297,7 +295,7 @@
         (kill-buffer)
 
         ;; Verify that both files have equal contents
-        (should (equal t (ediff-same-file-contents file-a file-b)))
+        (should (equal t (nth 0 (ssh-deploy--diff-files file-a file-b))))
 
         ;; Update should not trigger upload
         (find-file file-b)
@@ -306,7 +304,7 @@
         (kill-buffer)
 
         ;; Verify that both files don't have equal contents
-        (should (equal nil (ediff-same-file-contents file-a file-b)))
+        (should (equal nil (nth 0 (ssh-deploy--diff-files file-a file-b))))
 
         ;; Remote file should signal change now
         (if (> async 0)
@@ -394,7 +392,7 @@
         (kill-buffer)
 
         ;; Verify that both files have equal contents
-        (should (equal t (ediff-same-file-contents file-a-1 file-b-1)))
+        (should (equal t (nth 0 (ssh-deploy--diff-files file-a-1 file-b-1))))
 
         ;; Create file 2
         (find-file file-a-2)
@@ -405,7 +403,7 @@
         (kill-buffer)
 
         ;; Verify that both files have equal contents
-        (should (equal t (ediff-same-file-contents file-a-2 file-b-2)))
+        (should (equal t (nth 0 (ssh-deploy--diff-files file-a-2 file-b-2))))
 
         ;; Both files should equal
         (should (equal
@@ -419,7 +417,7 @@
         (kill-buffer)
 
         ;; Verify that both files have equal contents
-        (should (equal nil (ediff-same-file-contents file-a-2 file-b-2)))
+        (should (equal nil (nth 0 (ssh-deploy--diff-files file-a-2 file-b-2))))
 
         ;; Both files should equal
         (should (equal

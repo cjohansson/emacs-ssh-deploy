@@ -5,8 +5,8 @@
 ;; Author: Christian Johansson <christian@cvj.se>
 ;; Maintainer: Christian Johansson <christian@cvj.se>
 ;; Created: 5 Jul 2016
-;; Modified: 27 Apr 2019
-;; Version: 3.1.2
+;; Modified: 2 May 2019
+;; Version: 3.1.3
 ;; Keywords: tools, convenience
 ;; URL: https://github.com/cjohansson/emacs-ssh-deploy
 
@@ -692,6 +692,10 @@
     (set (make-local-variable 'ssh-deploy-automatically-detect-remote-changes) remote-changes)
     (set (make-local-variable 'ssh-deploy-exclude-list) exclude-list)))
 
+(defun ssh-deploy--diff-files (file-a file-b)
+  "Check difference between FILE-A and FILE-B."
+  (let ((result (ediff-same-file-contents file-a file-b)))
+    (list result file-a file-b)))
 
 ;; PUBLIC functions
 ;;
@@ -699,14 +703,26 @@
 ;; these functions MUST only use module variables as fall-backs for missing arguments.
 
 
-;; TODO Add support for async version of this function
 ;;;###autoload
-(defun ssh-deploy-diff-files (file-a file-b)
-  "Find difference between FILE-A and FILE-B."
+(defun ssh-deploy-diff-files (file-a file-b &optional async async-with-threads)
+  "Find difference between FILE-A and FILE-B, do it asynchronous if ASYNC is aboe zero and use threads if ASYNC-WITH-THREADS is above zero."
   (message "Comparing file '%s' to '%s'.." file-a file-b)
-  (if (ediff-same-file-contents file-a file-b)
-      (message "Files have identical contents.")
-    (ediff file-a file-b)))
+  (let ((async (or async ssh-deploy-async))
+        (async-with-threads (or async-with-threads ssh-deploy-async-with-threads)))
+    (if (> async 1)
+        (ssh-deploy--async-process
+         (lambda() (ssh-deploy--diff-files file-a file-b))
+         (lambda(result)
+           (if (nth 0 result)
+               (message "File '%s' and '%s' have identical contents. (asynchronously)" (nth 1 result) (nth 2 result))
+             (message "File '%s' and '%s' does not have identical contents, launching ediff.. (asynchronously)" file-a file-b)
+             (ediff file-a file-b)))
+         async-with-threads)
+      (let ((result (ssh-deploy--diff-files file-a file-b)))
+        (if (nth 0 result)
+            (message "File '%s' and '%s' have identical contents. (synchronously)" (nth 1 result) (nth 2 result))
+          (message "File '%s' and '%s' does not have identical contents, launching ediff.. (synchronously)" file-a file-b)
+          (ediff file-a file-b))))))
 
 ;;;###autoload
 
@@ -1024,7 +1040,7 @@
     (if (and (ssh-deploy--file-is-in-path-p path-local root-local)
              (ssh-deploy--file-is-included-p path-local exclude-list))
         (if file-or-directory
-            (ssh-deploy-diff-files path-local path-remote)
+            (ssh-deploy-diff-files path-local path-remote async async-with-threads)
           (ssh-deploy-diff-directories path-local path-remote on-explicit-save debug async async-with-threads revision-folder remote-changes exclude-list))
       (when debug (message "Path '%s' is not in the root '%s' or is excluded from it." path-local root-local)))))
 
