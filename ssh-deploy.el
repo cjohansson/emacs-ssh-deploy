@@ -439,7 +439,7 @@
            (lambda()
              (if (or (> force 0) (not (file-exists-p path-remote))
                      (and (file-exists-p revision-path)
-                          (ediff-same-file-contents revision-path path-remote)))
+                          (nth 0 (ssh-deploy--diff-files revision-path path-remote))))
                  (progn
                    (unless (file-directory-p (file-name-directory path-remote))
                      (make-directory (file-name-directory path-remote) t))
@@ -472,7 +472,7 @@
           (if (or (> force 0)
                   (not (file-exists-p path-remote))
                   (and (file-exists-p revision-path)
-                       (ediff-same-file-contents revision-path path-remote)))
+                       (nth 0 (ssh-deploy--diff-files revision-path path-remote))))
               (progn
                 (when (> ssh-deploy-verbose 0) (message "Uploading file '%s' to '%s'.. (synchronously)" path-local path-remote))
                 (unless (file-directory-p (file-name-directory path-remote))
@@ -620,7 +620,7 @@
              (lambda (file)
                (let ((file-a (gethash file files-a-relative-hash))
                      (file-b (gethash file files-b-relative-hash)))
-                 (if (ediff-same-file-contents file-a file-b)
+                 (if (nth 0 (ssh-deploy--diff-files file-a file-b))
                      (if (equal files-both-equals nil)
                          (setq files-both-equals (list file))
                        (push file files-both-equals))
@@ -806,11 +806,11 @@
                       ;; Does a local revision of the file exist?
                       (if (file-exists-p revision-path)
 
-                          (if (ediff-same-file-contents revision-path path-remote)
+                          (if (nth 0 (ssh-deploy--diff-files revision-path path-remote))
                               (list 4 (format "Remote file '%s' has not changed." path-remote) path-local)
                             (list 5 (format "Remote file '%s' has changed compared to local revision, please download or diff." path-remote) path-local revision-path))
 
-                        (if (ediff-same-file-contents path-local path-remote)
+                        (if (nth 0 (ssh-deploy--diff-files path-local path-remote))
                             (list 6 (format "Remote file '%s' has not changed compared to local file, created local revision." path-remote) path-local revision-path)
                           (list 7 (format "Remote file '%s' has changed compared to local file, please download or diff." path-remote) path-local path-remote)))
 
