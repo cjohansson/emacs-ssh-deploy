@@ -5,8 +5,8 @@
 ;; Author: Christian Johansson <christian@cvj.se>
 ;; Maintainer: Christian Johansson <christian@cvj.se>
 ;; Created: 5 Jul 2016
-;; Modified: 2 May 2019
-;; Version: 3.1.3
+;; Modified: 3 May 2019
+;; Version: 3.1.4
 ;; Keywords: tools, convenience
 ;; URL: https://github.com/cjohansson/emacs-ssh-deploy
 
@@ -274,6 +274,9 @@
 (defconst ssh-deploy--status-detecting-remote-changes 5
   "The mode-line status for detecting remote changes.")
 
+(defconst ssh-deploy--status-file-difference 6
+  "The mode-line status for checking file difference.")
+
 (defconst ssh-deploy--status-undefined 10
   "The mode-line undefined status.")
 
@@ -379,6 +382,9 @@
       (setq status-text "mv.."))
 
      ((= status ssh-deploy--status-detecting-remote-changes)
+      (setq status-text "chgs.."))
+
+     ((= status ssh-deploy--status-file-difference)
       (setq status-text "diff.."))
 
      ((and ssh-deploy-root-local ssh-deploy-root-remote)
@@ -710,16 +716,19 @@
   (message "Comparing file '%s' to '%s'.." file-a file-b)
   (let ((async (or async ssh-deploy-async))
         (async-with-threads (or async-with-threads ssh-deploy-async-with-threads)))
+    (ssh-deploy--mode-line-set-status-and-update ssh-deploy--status-file-difference file-a)
     (if (> async 0)
         (ssh-deploy--async-process
          (lambda() (ssh-deploy--diff-files file-a file-b))
          (lambda(result)
+           (ssh-deploy--mode-line-set-status-and-update ssh-deploy--status-idle (nth 1 result))
            (if (nth 0 result)
                (message "File '%s' and '%s' have identical contents. (asynchronously)" (nth 1 result) (nth 2 result))
              (message "File '%s' and '%s' does not have identical contents, launching ediff.. (asynchronously)" file-a file-b)
              (ediff file-a file-b)))
          async-with-threads)
       (let ((result (ssh-deploy--diff-files file-a file-b)))
+        (ssh-deploy--mode-line-set-status-and-update ssh-deploy--status-idle (nth 1 result))
         (if (nth 0 result)
             (message "File '%s' and '%s' have identical contents. (synchronously)" (nth 1 result) (nth 2 result))
           (message "File '%s' and '%s' does not have identical contents, launching ediff.. (synchronously)" file-a file-b)
