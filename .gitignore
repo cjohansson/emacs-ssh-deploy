@@ -1,1 +1,4 @@
 *.elc
+revisions/
+test-a/
+test-b/
