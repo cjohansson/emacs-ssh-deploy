@@ -711,11 +711,12 @@
 
 
 ;;;###autoload
-(defun ssh-deploy-diff-files (file-a file-b &optional async async-with-threads)
-  "Find difference between FILE-A and FILE-B, do it asynchronous if ASYNC is aboe zero and use threads if ASYNC-WITH-THREADS is above zero."
+(defun ssh-deploy-diff-files (file-a file-b &optional async async-with-threads verbose)
+  "Find difference between FILE-A and FILE-B, do it asynchronous if ASYNC is aboe zero and use threads if ASYNC-WITH-THREADS is above zero, if VERBOSE is above zero print messages."
   (message "Comparing file '%s' to '%s'.." file-a file-b)
   (let ((async (or async ssh-deploy-async))
-        (async-with-threads (or async-with-threads ssh-deploy-async-with-threads)))
+        (async-with-threads (or async-with-threads ssh-deploy-async-with-threads))
+        (verbose (or verbose ssh-deploy-verbose)))
     (ssh-deploy--mode-line-set-status-and-update ssh-deploy--status-file-difference file-a)
     (if (> async 0)
         (ssh-deploy--async-process
@@ -723,15 +724,19 @@
          (lambda(result)
            (ssh-deploy--mode-line-set-status-and-update ssh-deploy--status-idle (nth 1 result))
            (if (nth 0 result)
-               (message "File '%s' and '%s' have identical contents. (asynchronously)" (nth 1 result) (nth 2 result))
-             (message "File '%s' and '%s' does not have identical contents, launching ediff.. (asynchronously)" file-a file-b)
+               (when (> verbose 0)
+                 (message "File '%s' and '%s' have identical contents. (asynchronously)" (nth 1 result) (nth 2 result)))
+             (when (> verbose 0)
+               (message "File '%s' and '%s' does not have identical contents, launching ediff.. (asynchronously)" file-a file-b))
              (ediff file-a file-b)))
          async-with-threads)
       (let ((result (ssh-deploy--diff-files file-a file-b)))
         (ssh-deploy--mode-line-set-status-and-update ssh-deploy--status-idle (nth 1 result))
         (if (nth 0 result)
-            (message "File '%s' and '%s' have identical contents. (synchronously)" (nth 1 result) (nth 2 result))
-          (message "File '%s' and '%s' does not have identical contents, launching ediff.. (synchronously)" file-a file-b)
+            (when (> verbose 0)
+              (message "File '%s' and '%s' have identical contents. (synchronously)" (nth 1 result) (nth 2 result)))
+          (when (> verbose 0)
+            (message "File '%s' and '%s' does not have identical contents, launching ediff.. (synchronously)" file-a file-b))
           (ediff file-a file-b))))))
 
 ;;;###autoload
@@ -1036,8 +1041,8 @@
       (copy-file path revision-path t t t t))))
 
 ;;;###autoload
-(defun ssh-deploy-diff (path-local path-remote &optional root-local debug exclude-list async async-with-threads on-explicit-save revision-folder remote-changes)
-  "Find differences between PATH-LOCAL and PATH-REMOTE, where PATH-LOCAL is inside ROOT-LOCAL.  DEBUG enables feedback message, check if PATH-LOCAL is not in EXCLUDE-LIST.   ASYNC make the process work asynchronously, if ASYNC-WITH-THREADS is above zero use threads, ON-EXPLICIT-SAVE for automatic uploads, REVISION-FOLDER for revision-folder, REMOTE-CHANGES for automatic notification of remote change."
+(defun ssh-deploy-diff (path-local path-remote &optional root-local debug exclude-list async async-with-threads on-explicit-save revision-folder remote-changes verbose)
+  "Find differences between PATH-LOCAL and PATH-REMOTE, where PATH-LOCAL is inside ROOT-LOCAL.  DEBUG enables feedback message, check if PATH-LOCAL is not in EXCLUDE-LIST.   ASYNC make the process work asynchronously, if ASYNC-WITH-THREADS is above zero use threads, ON-EXPLICIT-SAVE for automatic uploads, REVISION-FOLDER for revision-folder, REMOTE-CHANGES for automatic notification of remote change, VERBOSE messaging if above zero."
   (let ((file-or-directory (not (file-directory-p path-local)))
         (root-local (or root-local ssh-deploy-root-local))
         (debug (or debug ssh-deploy-debug))
@@ -1046,11 +1051,12 @@
         (async-with-threads (or async-with-threads ssh-deploy-async-with-threads))
         (on-explicit-save (or on-explicit-save ssh-deploy-on-explicit-save))
         (revision-folder (or revision-folder ssh-deploy-revision-folder))
-        (remote-changes (or remote-changes ssh-deploy-automatically-detect-remote-changes)))
+        (remote-changes (or remote-changes ssh-deploy-automatically-detect-remote-changes))
+        (verbose (or verbose ssh-deploy-verbose)))
     (if (and (ssh-deploy--file-is-in-path-p path-local root-local)
              (ssh-deploy--file-is-included-p path-local exclude-list))
         (if file-or-directory
-            (ssh-deploy-diff-files path-local path-remote async async-with-threads)
+            (ssh-deploy-diff-files path-local path-remote async async-with-threads verbose)
           (ssh-deploy-diff-directories path-local path-remote on-explicit-save debug async async-with-threads revision-folder remote-changes exclude-list))
       (when debug (message "Path '%s' is not in the root '%s' or is excluded from it." path-local root-local)))))
 
