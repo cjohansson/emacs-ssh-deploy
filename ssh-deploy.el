@@ -5,8 +5,8 @@
 ;; Author: Christian Johansson <christian@cvj.se>
 ;; Maintainer: Christian Johansson <christian@cvj.se>
 ;; Created: 5 Jul 2016
-;; Modified: 3 May 2019
-;; Version: 3.1.4
+;; Modified: 10 Jun 2019
+;; Version: 3.1.5
 ;; Keywords: tools, convenience
 ;; URL: https://github.com/cjohansson/emacs-ssh-deploy
 
@@ -1119,7 +1119,7 @@
            (ssh-deploy--is-not-empty-string-p buffer-file-name))
       (progn
         (when (> ssh-deploy-debug 0) (message "Detecting remote-changes.."))
-        (ssh-deploy-remote-changes (file-truename buffer-file-name) (file-truename ssh-deploy-root-local) ssh-deploy-root-remote ssh-deploy-async ssh-deploy-revision-folder ssh-deploy-exclude-list ssh-deploy-async-with-threads))
+        (ssh-deploy-remote-changes (file-truename buffer-file-name) (file-truename ssh-deploy-root-local) ssh-deploy-root-remote ssh-deploy-async ssh-deploy-revision-folder ssh-deploy-exclude-list ssh-deploy-async-with-threads ssh-deploy-verbose))
     (when (> ssh-deploy-debug 0) (message "Ignoring remote-changes check since a root is empty or the current buffer lacks a file-name."))))
 
 ;;;###autoload
