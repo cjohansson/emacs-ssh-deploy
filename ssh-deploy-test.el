@@ -344,8 +344,8 @@
   "Test directory differences asynchronously if ASYNC is above zero, with threads if ASYNC-WITH-THREADS is above zero."
 
   (message "\nTest Directory Difference\n")
-  (let ((directory-a (expand-file-name "test-a/"))
-        (directory-b (expand-file-name "test-b/")))
+  (let ((directory-a (file-truename (expand-file-name "test-a/")))
+        (directory-b (file-truename (expand-file-name "test-b/"))))
 
     ;; Delete directories if they already exists
     (when (file-directory-p directory-a)
