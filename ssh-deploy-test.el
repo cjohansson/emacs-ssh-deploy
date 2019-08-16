@@ -272,6 +272,7 @@
                  ssh-deploy-async
                  ssh-deploy-async-with-threads)
 
+        ;; Modify local file, remote file should be automatically uploaded
         (ssh-deploy-add-after-save-hook)
         (find-file file-a)
         (insert file-a-contents)
@@ -281,17 +282,16 @@
         (kill-buffer)
 
         ;; Verify that both files have equal contents
+        (should (equal t (nth 0 (ssh-deploy--diff-files file-a revision-file))))
         (should (equal t (nth 0 (ssh-deploy--diff-files file-a file-b))))
 
-        ;; Modify local revision here
-
-        ;; Update should not trigger upload
+        ;; Modify only local revision
         (find-file revision-file)
         (insert "Random blob")
         (save-buffer)
         (kill-buffer)
 
-        ;; Verify that both files don't have equal contents
+        ;; Verify that both files don't have equal contents anymore
         (should (equal nil (nth 0 (ssh-deploy--diff-files file-a revision-file))))
 
         ;; Remote file should signal change now
@@ -299,13 +299,22 @@
             (progn
               (ssh-deploy--async-process
                (lambda() (ssh-deploy--remote-changes-data file-a))
-               (lambda(response) (should (equal 5 (nth 0 response))))
+               (lambda(response)
+                 (should (equal 8 (nth 0 response))))
                async-with-threads)
               (sleep-for 1))
-          (should (equal 5 (nth 0 (ssh-deploy--remote-changes-data file-a)))))
+          (let ((response (ssh-deploy--remote-changes-data file-a)))
+            (should (equal 8 (nth 0 response)))))
+
+        ;; Run post-executor that should copy local-file to revision-file
+        (ssh-deploy--remote-changes-post-executor (list 8 "" file-a revision-file) ssh-deploy-verbose)
+
+        ;; Verify that both files have equal contents again
+        (should (equal t (nth 0 (ssh-deploy--diff-files file-a revision-file))))
+        (should (equal t (nth 0 (ssh-deploy--diff-files file-a file-b))))
 
         ;; Update should now trigger upload
-        (find-file file-a)
+        (find-file file-b)
         (insert "Random blob")
         (save-buffer)
         (kill-buffer)
@@ -315,10 +324,10 @@
             (progn
               (ssh-deploy--async-process
                (lambda() (ssh-deploy--remote-changes-data file-a))
-               (lambda(response) (should (equal 8 (nth 0 response))))
+               (lambda(response) (should (equal 5 (nth 0 response))))
                async-with-threads)
               (sleep-for 1))
-          (should (equal 8 (nth 0 (ssh-deploy--remote-changes-data file-a)))))
+          (should (equal 5 (nth 0 (ssh-deploy--remote-changes-data file-a)))))
 
         ;; Open file-a and download remote
         (find-file file-a)
