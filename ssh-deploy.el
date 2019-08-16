@@ -796,7 +796,11 @@
      (when (> verbose 0) (message (nth 1 response))))
     (7
      ;; Remote file has changed in comparison with local file
-     (display-warning 'ssh-deploy (nth 1 response) :warning))))
+     (display-warning 'ssh-deploy (nth 1 response) :warning))
+    (8
+     ;; Remote file has changed in comparison with local revision but not local file
+     (copy-file (nth 2 response) (nth 3 response) t t t t)
+     (when (> verbose 0) (message (nth 1 response))))))
 
 (defun ssh-deploy--remote-changes-data (path-local &optional root-local root-remote revision-folder exclude-list)
   "Check if a local revision for PATH-LOCAL on ROOT-LOCAL and if remote file has changed on ROOT-REMOTE, check for copies in REVISION-FOLDER and skip if path is in EXCLUDE-LIST.  Should only return status-code and message."
@@ -822,7 +826,9 @@
 
                           (if (nth 0 (ssh-deploy--diff-files revision-path path-remote))
                               (list 4 (format "Remote file '%s' has not changed." path-remote) path-local)
-                            (list 5 (format "Remote file '%s' has changed compared to local revision, please download or diff." path-remote) path-local revision-path))
+                            (if (nth 0 (ssh-deploy--diff-files path-local path-remote))
+                                (list 5 (format "Remote file '%s' has changed compared to local revision and local file, please download or diff." path-remote) path-local revision-path)
+                              (list 8 (format "Remote file '%s' has changed compared to local revision but not local file, copied local file to local revision." path-remote) path-local revision-path)))
 
                         (if (nth 0 (ssh-deploy--diff-files path-local path-remote))
                             (list 6 (format "Remote file '%s' has not changed compared to local file, created local revision." path-remote) path-local revision-path)

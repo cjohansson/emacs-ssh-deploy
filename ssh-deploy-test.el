@@ -29,23 +29,8 @@
 
 (autoload 'should "ert")
 
-(autoload 'ssh-deploy-diff-mode "ssh-deploy-diff-mode")
-(autoload 'ssh-deploy--diff-directories-data "ssh-deploy-diff-mode")
-(autoload 'ssh-deploy--diff-files "ssh-deploy")
-(autoload 'ssh-deploy "ssh-deploy")
-(autoload 'ssh-deploy--get-revision-path "ssh-deploy")
-(autoload 'ssh-deploy--file-is-in-path-p "ssh-deploy")
-(autoload 'ssh-deploy--is-not-empty-string-p "ssh-deploy")
-(autoload 'ssh-deploy-download "ssh-deploy")
-(autoload 'ssh-deploy-upload "ssh-deploy")
-(autoload 'ssh-deploy-rename "ssh-deploy")
-(autoload 'ssh-deploy-delete-both "ssh-deploy")
-(autoload 'ssh-deploy-add-after-save-hook "ssh-deploy")
-(autoload 'ssh-deploy-add-after-save-hook "ssh-deploy")
-(autoload 'ssh-deploy-upload-handler "ssh-deploy")
-(autoload 'ssh-deploy--remote-changes-data "ssh-deploy")
-(autoload 'ssh-deploy-download-handler "ssh-deploy")
-(autoload 'ssh-deploy--async-process "ssh-deploy")
+(require 'ssh-deploy)
+(require 'ssh-deploy-diff-mode)
 
 (defun ssh-deploy-test--download (async async-with-threads)
   "Test downloads asynchronously if ASYNC is above zero, with threads if ASYNC-WITH-THREADS is above zero."
@@ -276,7 +261,8 @@
            (ssh-deploy-on-explicit-save 1)
            (ssh-deploy-debug 0)
            (ssh-deploy-async async)
-           (ssh-deploy-async-with-threads async-with-threads))
+           (ssh-deploy-async-with-threads async-with-threads)
+           (revision-file (ssh-deploy--get-revision-path file-a ssh-deploy-revision-folder)))
 
       ;; Just bypass the linter here
       (when (and ssh-deploy-root-local
@@ -297,14 +283,16 @@
         ;; Verify that both files have equal contents
         (should (equal t (nth 0 (ssh-deploy--diff-files file-a file-b))))
 
+        ;; Modify local revision here
+
         ;; Update should not trigger upload
-        (find-file file-b)
+        (find-file revision-file)
         (insert "Random blob")
         (save-buffer)
         (kill-buffer)
 
         ;; Verify that both files don't have equal contents
-        (should (equal nil (nth 0 (ssh-deploy--diff-files file-a file-b))))
+        (should (equal nil (nth 0 (ssh-deploy--diff-files file-a revision-file))))
 
         ;; Remote file should signal change now
         (if (> async 0)
@@ -315,6 +303,22 @@
                async-with-threads)
               (sleep-for 1))
           (should (equal 5 (nth 0 (ssh-deploy--remote-changes-data file-a)))))
+
+        ;; Update should now trigger upload
+        (find-file file-a)
+        (insert "Random blob")
+        (save-buffer)
+        (kill-buffer)
+        
+        ;; Remote file should signal change now
+        (if (> async 0)
+            (progn
+              (ssh-deploy--async-process
+               (lambda() (ssh-deploy--remote-changes-data file-a))
+               (lambda(response) (should (equal 8 (nth 0 response))))
+               async-with-threads)
+              (sleep-for 1))
+          (should (equal 8 (nth 0 (ssh-deploy--remote-changes-data file-a)))))
 
         ;; Open file-a and download remote
         (find-file file-a)
