@@ -5,8 +5,8 @@
 ;; Author: Christian Johansson <christian@cvj.se>
 ;; Maintainer: Christian Johansson <christian@cvj.se>
 ;; Created: 5 Jul 2016
-;; Modified: 17 Aug 2019
-;; Version: 3.1.6
+;; Modified: 4 Sep 2019
+;; Version: 3.1.7
 ;; Keywords: tools, convenience
 ;; URL: https://github.com/cjohansson/emacs-ssh-deploy
 
@@ -542,105 +542,107 @@
   (if (fboundp 'string-remove-prefix)
       (if (and (file-directory-p directory-a)
                (file-directory-p directory-b))
-          (let ((files-a (directory-files-recursively directory-a ""))
-                (files-b (directory-files-recursively directory-b ""))
-                (files-a-only (list))
-                (files-b-only (list))
-                (files-both (list))
-                (files-both-equals (list))
-                (files-both-differs (list))
-                (files-a-relative-list (list))
-                (files-b-relative-list (list))
-                (files-a-relative-hash (make-hash-table :test 'equal))
-                (files-b-relative-hash (make-hash-table :test 'equal)))
+          (let* ((old-directory-b directory-b)
+                 (directory-b (file-truename directory-b)))
+            (let ((files-a (directory-files-recursively directory-a ""))
+                  (files-b (directory-files-recursively directory-b ""))
+                  (files-a-only (list))
+                  (files-b-only (list))
+                  (files-both (list))
+                  (files-both-equals (list))
+                  (files-both-differs (list))
+                  (files-a-relative-list (list))
+                  (files-b-relative-list (list))
+                  (files-a-relative-hash (make-hash-table :test 'equal))
+                  (files-b-relative-hash (make-hash-table :test 'equal)))
 
-            ;; Collected included files in directory a with relative paths
-            (mapc
-             (lambda (file-a-tmp)
-               (let ((file-a (file-truename file-a-tmp)))
-                 (let ((relative-path (string-remove-prefix directory-a file-a))
-                       (included t))
+              ;; Collected included files in directory a with relative paths
+              (mapc
+               (lambda (file-a-tmp)
+                 (let ((file-a (file-truename file-a-tmp)))
+                   (let ((relative-path (string-remove-prefix directory-a file-a))
+                         (included t))
 
-                   ;; Check if file is excluded
-                   (dolist (element exclude-list)
-                     (when (and (not (null element))
-                                (not (null (string-match element relative-path))))
-                       (setq included nil)))
+                     ;; Check if file is excluded
+                     (dolist (element exclude-list)
+                       (when (and (not (null element))
+                                  (not (null (string-match element relative-path))))
+                         (setq included nil)))
 
-                   ;; Add relative path file a list
-                   (when included
-                     (puthash relative-path file-a files-a-relative-hash)
-                     (if (equal files-a-relative-list nil)
-                         (setq files-a-relative-list (list relative-path))
-                       (push relative-path files-a-relative-list))))))
-             files-a)
+                     ;; Add relative path file a list
+                     (when included
+                       (puthash relative-path file-a files-a-relative-hash)
+                       (if (equal files-a-relative-list nil)
+                           (setq files-a-relative-list (list relative-path))
+                         (push relative-path files-a-relative-list))))))
+               files-a)
 
-            ;; Collected included files in directory b with relative paths
-            (mapc
-             (lambda (file-b-tmp)
-               ;; (message "file-b-tmp: %s %s" file-b-tmp (file-truename file-b-tmp))
-               (let ((file-b (file-truename file-b-tmp)))
-                 (let ((relative-path (string-remove-prefix directory-b file-b))
-                       (included t))
+              ;; Collected included files in directory b with relative paths
+              (mapc
+               (lambda (file-b-tmp)
+                 ;; (message "file-b-tmp: %s %s" file-b-tmp (file-truename file-b-tmp))
+                 (let ((file-b (file-truename file-b-tmp)))
+                   (let ((relative-path (string-remove-prefix directory-b file-b))
+                         (included t))
 
-                   ;; Check if file is excluded
-                   (dolist (element exclude-list)
-                     (when (and (not (null element))
-                                (not (null (string-match element relative-path))))
-                       (setq included nil)))
+                     ;; Check if file is excluded
+                     (dolist (element exclude-list)
+                       (when (and (not (null element))
+                                  (not (null (string-match element relative-path))))
+                         (setq included nil)))
 
-                   ;; Add relative path file a list
-                   (when included
-                     (puthash relative-path file-b files-b-relative-hash)
-                     (if (equal files-b-relative-list nil)
-                         (setq files-b-relative-list (list relative-path))
-                       (push relative-path files-b-relative-list))))))
-             files-b)
+                     ;; Add relative path file a list
+                     (when included
+                       (puthash relative-path file-b files-b-relative-hash)
+                       (if (equal files-b-relative-list nil)
+                           (setq files-b-relative-list (list relative-path))
+                         (push relative-path files-b-relative-list))))))
+               files-b)
 
-            ;; Collect files that only exists in directory a and files that exist in both directory a and b
-            (mapc
-             (lambda (file-a)
-               (if (not (equal (gethash file-a files-b-relative-hash) nil))
-                   (if (equal files-both nil)
-                       (setq files-both (list file-a))
-                     (push file-a files-both))
-                 (if (equal files-a-only nil)
-                     (setq files-a-only (list file-a))
-                   (push file-a files-a-only))))
-             files-a-relative-list)
-            (setq files-a-only (sort files-a-only #'string<))
+              ;; Collect files that only exists in directory a and files that exist in both directory a and b
+              (mapc
+               (lambda (file-a)
+                 (if (not (equal (gethash file-a files-b-relative-hash) nil))
+                     (if (equal files-both nil)
+                         (setq files-both (list file-a))
+                       (push file-a files-both))
+                   (if (equal files-a-only nil)
+                       (setq files-a-only (list file-a))
+                     (push file-a files-a-only))))
+               files-a-relative-list)
+              (setq files-a-only (sort files-a-only #'string<))
 
-            ;; Collect files that only exists in directory b
-            (mapc
-             (lambda (file-b)
-               (when (equal (gethash file-b files-a-relative-hash) nil)
-                 ;; (message "%s did not exist in hash-a" file-b)
-                 (if (equal files-b-only nil)
-                     (setq files-b-only (list file-b))
-                   (push file-b files-b-only))))
-             files-b-relative-list)
-            (setq files-b-only (sort files-b-only #'string<))
+              ;; Collect files that only exists in directory b
+              (mapc
+               (lambda (file-b)
+                 (when (equal (gethash file-b files-a-relative-hash) nil)
+                   ;; (message "%s did not exist in hash-a" file-b)
+                   (if (equal files-b-only nil)
+                       (setq files-b-only (list file-b))
+                     (push file-b files-b-only))))
+               files-b-relative-list)
+              (setq files-b-only (sort files-b-only #'string<))
 
-            ;; Collect files that differ in contents and have equal contents
-            (mapc
-             (lambda (file)
-               (let ((file-a (gethash file files-a-relative-hash))
-                     (file-b (gethash file files-b-relative-hash)))
-                 (if (nth 0 (ssh-deploy--diff-files file-a file-b))
-                     (if (equal files-both-equals nil)
-                         (setq files-both-equals (list file))
-                       (push file files-both-equals))
-                   (if (equal files-both-differs nil)
-                       (setq files-both-differs (list file))
-                     (push file files-both-differs)))))
-             files-both)
-            (setq files-both (sort files-both #'string<))
-            (setq files-both-equals (sort files-both-equals #'string<))
-            (setq files-both-differs (sort files-both-differs #'string<))
+              ;; Collect files that differ in contents and have equal contents
+              (mapc
+               (lambda (file)
+                 (let ((file-a (gethash file files-a-relative-hash))
+                       (file-b (gethash file files-b-relative-hash)))
+                   (if (nth 0 (ssh-deploy--diff-files file-a file-b))
+                       (if (equal files-both-equals nil)
+                           (setq files-both-equals (list file))
+                         (push file files-both-equals))
+                     (if (equal files-both-differs nil)
+                         (setq files-both-differs (list file))
+                       (push file files-both-differs)))))
+               files-both)
+              (setq files-both (sort files-both #'string<))
+              (setq files-both-equals (sort files-both-equals #'string<))
+              (setq files-both-differs (sort files-both-differs #'string<))
 
-            ;; NOTE We sort lists to make result deterministic and testable
+              ;; NOTE We sort lists to make result deterministic and testable
 
-            (list directory-a directory-b exclude-list files-both files-a-only files-b-only files-both-equals files-both-differs))
+              (list directory-a old-directory-b exclude-list files-both files-a-only files-b-only files-both-equals files-both-differs)))
         (display-warning 'ssh-deploy "Both directories need to exist to perform difference generation." :warning))
     (display-warning 'ssh-deploy "Function 'string-remove-prefix' is missing." :warning)))
 
@@ -755,19 +757,17 @@
           (message "Calculating differences between directory '%s' and '%s'.. (asynchronously)" directory-a directory-b)
           (ssh-deploy--async-process
            (lambda()
-             (let ((directory-b (file-truename directory-b)))
-               (ssh-deploy--diff-directories-data directory-a directory-b exclude-list)))
+             (ssh-deploy--diff-directories-data directory-a directory-b exclude-list))
            (lambda(diff)
              (message "Completed calculation of differences between directory '%s' and '%s'. Result: %s only in A %s only in B %s differs. (asynchronously)" (nth 0 diff) (nth 1 diff) (length (nth 4 diff)) (length (nth 5 diff)) (length (nth 7 diff)))
              (when (or (> (length (nth 4 diff)) 0) (> (length (nth 5 diff)) 0) (> (length (nth 7 diff)) 0))
                (ssh-deploy--diff-directories-present diff directory-a directory-b on-explicit-save debug async async-with-threads revision-folder remote-changes exclude-list)))
            async-with-threads))
-      (let ((directory-b (file-truename directory-b)))
-        (message "Calculating differences between directory '%s' and '%s'.. (synchronously)" directory-a directory-b)
-        (let ((diff (ssh-deploy--diff-directories-data directory-a directory-b exclude-list)))
-          (message "Completed calculation of differences between directory '%s' and '%s'. Result: %s only in A, %s only in B, %s differs. (synchronously)" (nth 0 diff) (nth 1 diff) (length (nth 4 diff)) (length (nth 5 diff)) (length (nth 7 diff)))
-          (when (or (> (length (nth 4 diff)) 0) (> (length (nth 5 diff)) 0) (> (length (nth 7 diff)) 0))
-            (ssh-deploy--diff-directories-present diff directory-a directory-b on-explicit-save debug async async-with-threads revision-folder remote-changes exclude-list)))))))
+      (message "Calculating differences between directory '%s' and '%s'.. (synchronously)" directory-a directory-b)
+      (let ((diff (ssh-deploy--diff-directories-data directory-a directory-b exclude-list)))
+        (message "Completed calculation of differences between directory '%s' and '%s'. Result: %s only in A, %s only in B, %s differs. (synchronously)" (nth 0 diff) (nth 1 diff) (length (nth 4 diff)) (length (nth 5 diff)) (length (nth 7 diff)))
+        (when (or (> (length (nth 4 diff)) 0) (> (length (nth 5 diff)) 0) (> (length (nth 7 diff)) 0))
+          (ssh-deploy--diff-directories-present diff directory-a directory-b on-explicit-save debug async async-with-threads revision-folder remote-changes exclude-list))))))
 
 (defun ssh-deploy--remote-changes-post-executor (response verbose)
   "Process RESPONSE from `ssh-deploy--remote-changes-data' with flags: VERBOSE."
@@ -1198,7 +1198,7 @@
                  (file-exists-p default-directory))
         (let* ((path-local (file-truename default-directory))
                (root-local (file-truename ssh-deploy-root-local))
-               (path-remote (expand-file-name (ssh-deploy--get-relative-path root-local path-local) ssh-deploy-root-remote)))
+               (path-remote (concat (ssh-deploy--get-relative-path root-local path-local) ssh-deploy-root-remote)))
           (ssh-deploy-diff path-local path-remote root-local ssh-deploy-debug ssh-deploy-exclude-list ssh-deploy-async ssh-deploy-async-with-threads ssh-deploy-on-explicit-save ssh-deploy-revision-folder ssh-deploy-automatically-detect-remote-changes))))))
 
 ;;;###autoload
