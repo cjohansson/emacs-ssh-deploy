@@ -1198,7 +1198,7 @@
                  (file-exists-p default-directory))
         (let* ((path-local (file-truename default-directory))
                (root-local (file-truename ssh-deploy-root-local))
-               (path-remote (concat (ssh-deploy--get-relative-path root-local path-local) ssh-deploy-root-remote)))
+               (path-remote (concat ssh-deploy-root-remote (ssh-deploy--get-relative-path root-local path-local))))
           (ssh-deploy-diff path-local path-remote root-local ssh-deploy-debug ssh-deploy-exclude-list ssh-deploy-async ssh-deploy-async-with-threads ssh-deploy-on-explicit-save ssh-deploy-revision-folder ssh-deploy-automatically-detect-remote-changes))))))
 
 ;;;###autoload
