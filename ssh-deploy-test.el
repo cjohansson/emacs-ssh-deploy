@@ -1,6 +1,6 @@
 ;;; ssh-deploy-test.el --- Unit and integration tests for ssh-deploy.  -*- lexical-binding:t -*-
 
-;; Copyright (C) 2017-2018  Free Software Foundation, Inc.
+;; Copyright (C) 2017-2019  Free Software Foundation, Inc.
 
 ;; This file is not part of GNU Emacs.
 
@@ -29,24 +29,8 @@
 
 (autoload 'should "ert")
 
-(autoload 'ediff-same-file-contents "ediff-util")
-
-(autoload 'ssh-deploy-diff-mode "ssh-deploy-diff-mode")
-
-(autoload 'ssh-deploy "ssh-deploy")
-(autoload 'ssh-deploy--get-revision-path "ssh-deploy")
-(autoload 'ssh-deploy--file-is-in-path-p "ssh-deploy")
-(autoload 'ssh-deploy--is-not-empty-string-p "ssh-deploy")
-(autoload 'ssh-deploy-download "ssh-deploy")
-(autoload 'ssh-deploy-upload "ssh-deploy")
-(autoload 'ssh-deploy-rename "ssh-deploy")
-(autoload 'ssh-deploy-delete-both "ssh-deploy")
-(autoload 'ssh-deploy-add-after-save-hook "ssh-deploy")
-(autoload 'ssh-deploy-add-after-save-hook "ssh-deploy")
-(autoload 'ssh-deploy-upload-handler "ssh-deploy")
-(autoload 'ssh-deploy--remote-changes-data "ssh-deploy")
-(autoload 'ssh-deploy-download-handler "ssh-deploy")
-(autoload 'ssh-deploy--async-process "ssh-deploy")
+(require 'ssh-deploy)
+(require 'ssh-deploy-diff-mode)
 
 (defun ssh-deploy-test--download (async async-with-threads)
   "Test downloads asynchronously if ASYNC is above zero, with threads if ASYNC-WITH-THREADS is above zero."
@@ -93,7 +77,7 @@
           (sleep-for 1))
 
         ;; Verify that both files have equal contents
-        (should (equal t (ediff-same-file-contents file-a file-b)))
+        (should (equal t (nth 0 (ssh-deploy--diff-files file-a file-b))))
 
         (delete-file file-b)
         (delete-file file-a)))
@@ -222,7 +206,7 @@
           (sleep-for 1))
 
         ;; Verify that both files have equal contents
-        (should (equal t (ediff-same-file-contents file-a file-b)))
+        (should (equal t (nth 0 (ssh-deploy--diff-files file-a file-b))))
 
         ;; Turn of automatic uploads
         (let ((ssh-deploy-on-explicit-save 0))
@@ -236,7 +220,7 @@
               (sleep-for 1))
 
             ;; Verify that both files have equal contents
-            (should (equal nil (ediff-same-file-contents file-a file-b)))
+            (should (equal nil (nth 0 (ssh-deploy--diff-files file-a file-b))))
 
             (ssh-deploy-upload-handler)
             (when (> async 0)
@@ -244,7 +228,7 @@
             (kill-buffer)
 
             ;; Verify that both files have equal contents
-            (should (equal t (ediff-same-file-contents file-a file-b)))
+            (should (equal t (nth 0 (ssh-deploy--diff-files file-a file-b))))
 
             ;; Delete both test files
             (delete-file file-b)
@@ -277,7 +261,8 @@
            (ssh-deploy-on-explicit-save 1)
            (ssh-deploy-debug 0)
            (ssh-deploy-async async)
-           (ssh-deploy-async-with-threads async-with-threads))
+           (ssh-deploy-async-with-threads async-with-threads)
+           (revision-file (ssh-deploy--get-revision-path file-a ssh-deploy-revision-folder)))
 
       ;; Just bypass the linter here
       (when (and ssh-deploy-root-local
@@ -287,6 +272,7 @@
                  ssh-deploy-async
                  ssh-deploy-async-with-threads)
 
+        ;; Modify local file, remote file should be automatically uploaded
         (ssh-deploy-add-after-save-hook)
         (find-file file-a)
         (insert file-a-contents)
@@ -296,17 +282,43 @@
         (kill-buffer)
 
         ;; Verify that both files have equal contents
-        (should (equal t (ediff-same-file-contents file-a file-b)))
+        (should (equal t (nth 0 (ssh-deploy--diff-files file-a revision-file))))
+        (should (equal t (nth 0 (ssh-deploy--diff-files file-a file-b))))
 
-        ;; Update should not trigger upload
-        (find-file file-b)
+        ;; Modify only local revision
+        (find-file revision-file)
         (insert "Random blob")
         (save-buffer)
         (kill-buffer)
 
-        ;; Verify that both files don't have equal contents
-        (should (equal nil (ediff-same-file-contents file-a file-b)))
+        ;; Verify that both files don't have equal contents anymore
+        (should (equal nil (nth 0 (ssh-deploy--diff-files file-a revision-file))))
 
+        ;; Remote file should signal change now
+        (if (> async 0)
+            (progn
+              (ssh-deploy--async-process
+               (lambda() (ssh-deploy--remote-changes-data file-a))
+               (lambda(response)
+                 (should (equal 8 (nth 0 response))))
+               async-with-threads)
+              (sleep-for 1))
+          (let ((response (ssh-deploy--remote-changes-data file-a)))
+            (should (equal 8 (nth 0 response)))))
+
+        ;; Run post-executor that should copy local-file to revision-file
+        (ssh-deploy--remote-changes-post-executor (list 8 "" file-a revision-file) ssh-deploy-verbose)
+
+        ;; Verify that both files have equal contents again
+        (should (equal t (nth 0 (ssh-deploy--diff-files file-a revision-file))))
+        (should (equal t (nth 0 (ssh-deploy--diff-files file-a file-b))))
+
+        ;; Update should now trigger upload
+        (find-file file-b)
+        (insert "Random blob")
+        (save-buffer)
+        (kill-buffer)
+        
         ;; Remote file should signal change now
         (if (> async 0)
             (progn
@@ -341,6 +353,99 @@
     (delete-directory directory-a t)
     (delete-directory directory-b t)))
 
+(defun ssh-deploy-test--directory-diff (async async-with-threads)
+  "Test directory differences asynchronously if ASYNC is above zero, with threads if ASYNC-WITH-THREADS is above zero."
+
+  (message "\nTest Directory Difference\n")
+  (let ((directory-a (file-truename (expand-file-name "test-a/")))
+        (directory-b (file-truename (expand-file-name "test-b/"))))
+
+    ;; Delete directories if they already exists
+    (when (file-directory-p directory-a)
+      (delete-directory directory-a t))
+    (when (file-directory-p directory-b)
+      (delete-directory directory-b t))
+
+    ;; Make directories for test
+    (make-directory-internal directory-a)
+    (make-directory-internal directory-b)
+
+    (let* ((file-1-filename "test.txt")
+           (file-2-filename "test2.txt")
+           (file-a-1 (file-truename (expand-file-name file-1-filename directory-a)))
+           (file-a-2 (file-truename (expand-file-name file-2-filename directory-a)))
+           (file-b-1 (file-truename (expand-file-name file-1-filename directory-b)))
+           (file-b-2 (file-truename (expand-file-name file-2-filename directory-b)))
+           (file-a-1-contents "Random text")
+           (file-a-2-contents "Randomized text")
+           (ssh-deploy-root-local (file-truename directory-a))
+           (ssh-deploy-root-remote (file-truename directory-b))
+           (ssh-deploy-on-explicit-save 1)
+           (ssh-deploy-debug 0)
+           (ssh-deploy-async async)
+           (ssh-deploy-exclude-list nil)
+           (ssh-deploy-async-with-threads async-with-threads))
+
+      ;; Just bypass the linter here
+      (when (and ssh-deploy-root-local
+                 ssh-deploy-root-remote
+                 ssh-deploy-on-explicit-save
+                 ssh-deploy-debug
+                 ssh-deploy-async
+                 ssh-deploy-async-with-threads)
+
+        (ssh-deploy-add-after-save-hook)
+
+        ;; Create file 1
+        (find-file file-a-1)
+        (insert file-a-1-contents)
+        (save-buffer) ;; NOTE Should trigger upload action
+        (when (> async 0)
+          (sleep-for 1))
+        (kill-buffer)
+
+        ;; Verify that both files have equal contents
+        (should (equal t (nth 0 (ssh-deploy--diff-files file-a-1 file-b-1))))
+
+        ;; Create file 2
+        (find-file file-a-2)
+        (insert file-a-2-contents)
+        (save-buffer) ;; NOTE Should trigger upload action
+        (when (> async 0)
+          (sleep-for 1))
+        (kill-buffer)
+
+        ;; Verify that both files have equal contents
+        (should (equal t (nth 0 (ssh-deploy--diff-files file-a-2 file-b-2))))
+
+        ;; Both files should equal
+        (should (equal
+                 (ssh-deploy--diff-directories-data directory-a directory-b ssh-deploy-exclude-list)
+                 (list directory-a directory-b ssh-deploy-exclude-list (list file-1-filename file-2-filename) nil nil (list file-1-filename file-2-filename) nil)))
+
+        ;; Modify file B
+        (find-file file-b-2)
+        (insert file-a-1-contents)
+        (save-buffer)
+        (kill-buffer)
+
+        ;; Verify that both files have equal contents
+        (should (equal nil (nth 0 (ssh-deploy--diff-files file-a-2 file-b-2))))
+
+        ;; Both files should equal
+        (should (equal
+                 (ssh-deploy--diff-directories-data directory-a directory-b ssh-deploy-exclude-list)
+                 (list directory-a directory-b ssh-deploy-exclude-list (list file-1-filename file-2-filename) nil nil (list file-1-filename) (list file-2-filename))))
+
+        ;; Delete test files
+        (delete-file file-b-2)
+        (delete-file file-b-1)
+        (delete-file file-a-1)
+        (delete-file file-a-2)))
+
+    (delete-directory directory-a t)
+    (delete-directory directory-b t)))
+
 (defun ssh-deploy-test--get-revision-path ()
   "Test this function."
   (should (string= (expand-file-name "./_mydirectory_random-file.txt") (ssh-deploy--get-revision-path "/mydirectory/random-file.txt" (expand-file-name ".")))))
@@ -360,6 +465,8 @@
 (defun ssh-deploy-test ()
   "Run test for plug-in."
   (require 'ssh-deploy)
+  (setq make-backup-files nil)
+
   (let ((ssh-deploy-verbose 1)
         (ssh-deploy-debug 1)
         ;; (debug-on-error t)
@@ -381,13 +488,6 @@
       (ssh-deploy-test--file-is-in-path)
       (ssh-deploy-test--is-not-empty-string)
 
-      ;; Detect Remote Changes
-      (ssh-deploy-test--detect-remote-changes 0 0)
-      (when async-el
-        (ssh-deploy-test--detect-remote-changes 1 0))
-      (when async-threads
-        (ssh-deploy-test--detect-remote-changes 1 1))
-
       ;; Upload
       (ssh-deploy-test--upload 0 0)
       (when async-el
@@ -408,6 +508,20 @@
         (ssh-deploy-test--rename-and-delete 1 0))
       (when async-threads
         (ssh-deploy-test--rename-and-delete 1 1))
+
+      ;; Directory Differences
+      (ssh-deploy-test--directory-diff 0 0)
+      (when async-el
+        (ssh-deploy-test--directory-diff 1 0))
+      (when async-threads
+        (ssh-deploy-test--directory-diff 1 1))
+
+      ;; Detect Remote Changes
+      (ssh-deploy-test--detect-remote-changes 0 0)
+      (when async-el
+        (ssh-deploy-test--detect-remote-changes 1 0))
+      (when async-threads
+        (ssh-deploy-test--detect-remote-changes 1 1))
 
       (delete-directory ssh-deploy-revision-folder t)
 

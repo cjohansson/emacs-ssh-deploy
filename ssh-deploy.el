@@ -5,8 +5,8 @@
 ;; Author: Christian Johansson <christian@cvj.se>
 ;; Maintainer: Christian Johansson <christian@cvj.se>
 ;; Created: 5 Jul 2016
-;; Modified: 20 Apr 2019
-;; Version: 3.1
+;; Modified: 6 Sep 2019
+;; Version: 3.1.8
 ;; Keywords: tools, convenience
 ;; URL: https://github.com/cjohansson/emacs-ssh-deploy
 
@@ -208,8 +208,8 @@
 (put 'ssh-deploy-automatically-detect-remote-changes 'permanent-local t)
 (put 'ssh-deploy-automatically-detect-remote-changes 'safe-local-variable 'integerp)
 
-(defcustom ssh-deploy-exclude-list '(".git/" ".dir-locals.el")
-  "List of strings that if found in file name will exclude it from sync, '(\"/.git\"/' \".dir-locals.el\") by default."
+(defcustom ssh-deploy-exclude-list '("\\\.git/" "\\\.dir-locals\\\.el")
+  "List of strings that if found in file name will exclude it from sync."
   :type 'list)
 (put 'ssh-deploy-exclude-list 'permanent-local t)
 (put 'ssh-deploy-exclude-list 'safe-local-variable 'listp)
@@ -274,6 +274,9 @@
 (defconst ssh-deploy--status-detecting-remote-changes 5
   "The mode-line status for detecting remote changes.")
 
+(defconst ssh-deploy--status-file-difference 6
+  "The mode-line status for checking file difference.")
+
 (defconst ssh-deploy--status-undefined 10
   "The mode-line undefined status.")
 
@@ -327,28 +330,12 @@
                        (ssh-deploy-root-remote root-remote)
                        (ssh-deploy-revision-folder revision-folder)
                        (ssh-deploy-exclude-list exclude-list))
+
+                   ;; Pass ange-ftp setting to asynchronous process
                    (when ftp-netrc
-                     ;; Pass ange-ftp setting to asynchronous process
-                     (defvar ange-ftp-netrc-filename ftp-netrc))
+                     (defvar ange-ftp-netrc-filename)
+                     (setq ange-ftp-netrc-filename ftp-netrc))
 
-                   (autoload 'ediff-same-file-contents "ediff-util")
-                   (autoload 'string-remove-prefix "subr-x")
-
-                   (autoload 'ssh-deploy-download "ssh-deploy")
-                   (autoload 'ssh-deploy-download-handler "ssh-deploy")
-                   (autoload 'ssh-deploy-upload "ssh-deploy")
-                   (autoload 'ssh-deploy-upload-handler "ssh-deploy")
-                   (autoload 'ssh-deploy-rename "ssh-deploy")
-                   (autoload 'ssh-deploy-rename-handler "ssh-deploy")
-                   (autoload 'ssh-deploy-delete "ssh-deploy")
-                   (autoload 'ssh-deploy-delete-both "ssh-deploy")
-                   (autoload 'ssh-deploy-delete-handler "ssh-deploy")
-                   (autoload 'ssh-deploy-diff "ssh-deploy")
-                   (autoload 'ssh-deploy-diff-handler "ssh-deploy")
-                   (autoload 'ssh-deploy--diff-directories-data "ssh-deploy")
-                   (autoload 'ssh-deploy--diff-directories-present "ssh-deploy")
-                   (autoload 'ssh-deploy--remote-changes-data "ssh-deploy")
-                   (autoload 'ssh-deploy--remote-changes-post-executor "ssh-deploy")
                    (funcall start)))
                finish))))
       (display-warning 'ssh-deploy "async-start functions are not available!"))))
@@ -395,6 +382,9 @@
       (setq status-text "mv.."))
 
      ((= status ssh-deploy--status-detecting-remote-changes)
+      (setq status-text "chgs.."))
+
+     ((= status ssh-deploy--status-file-difference)
       (setq status-text "diff.."))
 
      ((and ssh-deploy-root-local ssh-deploy-root-remote)
@@ -455,7 +445,7 @@
            (lambda()
              (if (or (> force 0) (not (file-exists-p path-remote))
                      (and (file-exists-p revision-path)
-                          (ediff-same-file-contents revision-path path-remote)))
+                          (nth 0 (ssh-deploy--diff-files revision-path path-remote))))
                  (progn
                    (unless (file-directory-p (file-name-directory path-remote))
                      (make-directory (file-name-directory path-remote) t))
@@ -488,7 +478,7 @@
           (if (or (> force 0)
                   (not (file-exists-p path-remote))
                   (and (file-exists-p revision-path)
-                       (ediff-same-file-contents revision-path path-remote)))
+                       (nth 0 (ssh-deploy--diff-files revision-path path-remote))))
               (progn
                 (when (> ssh-deploy-verbose 0) (message "Uploading file '%s' to '%s'.. (synchronously)" path-local path-remote))
                 (unless (file-directory-p (file-name-directory path-remote))
@@ -552,97 +542,107 @@
   (if (fboundp 'string-remove-prefix)
       (if (and (file-directory-p directory-a)
                (file-directory-p directory-b))
-          (let ((files-a (directory-files-recursively directory-a ""))
-                (files-b (directory-files-recursively directory-b ""))
-                (files-a-only (list))
-                (files-b-only (list))
-                (files-both (list))
-                (files-both-equals (list))
-                (files-both-differs (list))
-                (files-a-relative-list (list))
-                (files-b-relative-list (list))
-                (files-a-relative-hash (make-hash-table :test 'equal))
-                (files-b-relative-hash (make-hash-table :test 'equal)))
+          (let* ((old-directory-b directory-b)
+                 (directory-b (file-truename directory-b)))
+            (let ((files-a (directory-files-recursively directory-a ""))
+                  (files-b (directory-files-recursively directory-b ""))
+                  (files-a-only (list))
+                  (files-b-only (list))
+                  (files-both (list))
+                  (files-both-equals (list))
+                  (files-both-differs (list))
+                  (files-a-relative-list (list))
+                  (files-b-relative-list (list))
+                  (files-a-relative-hash (make-hash-table :test 'equal))
+                  (files-b-relative-hash (make-hash-table :test 'equal)))
 
-            ;; Collected included files in directory a with relative paths
-            (mapc
-             (lambda (file-a-tmp)
-               (let ((file-a (file-truename file-a-tmp)))
-                 (let ((relative-path (string-remove-prefix directory-a file-a))
-                       (included t))
+              ;; Collected included files in directory a with relative paths
+              (mapc
+               (lambda (file-a-tmp)
+                 (let ((file-a (file-truename file-a-tmp)))
+                   (let ((relative-path (string-remove-prefix directory-a file-a))
+                         (included t))
 
-                   ;; Check if file is excluded
-                   (dolist (element exclude-list)
-                     (when (and (not (null element))
-                                (not (null (string-match element relative-path))))
-                       (setq included nil)))
+                     ;; Check if file is excluded
+                     (dolist (element exclude-list)
+                       (when (and (not (null element))
+                                  (not (null (string-match element relative-path))))
+                         (setq included nil)))
 
-                   (when included
-                     (progn
+                     ;; Add relative path file a list
+                     (when included
                        (puthash relative-path file-a files-a-relative-hash)
                        (if (equal files-a-relative-list nil)
                            (setq files-a-relative-list (list relative-path))
-                         (push relative-path files-a-relative-list)))))))
-             files-a)
+                         (push relative-path files-a-relative-list))))))
+               files-a)
 
-            ;; Collected included files in directory b with relative paths
-            (mapc
-             (lambda (file-b-tmp)
-               ;; (message "file-b-tmp: %s %s" file-b-tmp (file-truename file-b-tmp))
-               (let ((file-b (file-truename file-b-tmp)))
-                 (let ((relative-path (string-remove-prefix directory-b file-b))
-                       (included t))
+              ;; Collected included files in directory b with relative paths
+              (mapc
+               (lambda (file-b-tmp)
+                 ;; (message "file-b-tmp: %s %s" file-b-tmp (file-truename file-b-tmp))
+                 (let ((file-b (file-truename file-b-tmp)))
+                   (let ((relative-path (string-remove-prefix directory-b file-b))
+                         (included t))
 
-                   ;; Check if file is excluded
-                   (dolist (element exclude-list)
-                     (when (and (not (null element))
-                                (not (null (string-match element relative-path))))
-                       (setq included nil)))
+                     ;; Check if file is excluded
+                     (dolist (element exclude-list)
+                       (when (and (not (null element))
+                                  (not (null (string-match element relative-path))))
+                         (setq included nil)))
 
-                   (when included
-                     (puthash relative-path file-b files-b-relative-hash)
-                     (if (equal files-b-relative-list nil)
-                         (setq files-b-relative-list (list relative-path))
-                       (push relative-path files-b-relative-list))))))
-             files-b)
+                     ;; Add relative path file a list
+                     (when included
+                       (puthash relative-path file-b files-b-relative-hash)
+                       (if (equal files-b-relative-list nil)
+                           (setq files-b-relative-list (list relative-path))
+                         (push relative-path files-b-relative-list))))))
+               files-b)
 
-            ;; Collect files that only exists in directory a and files that exist in both directory a and b
-            (mapc
-             (lambda (file-a)
-               (if (not (equal (gethash file-a files-b-relative-hash) nil))
-                   (if (equal files-both nil)
-                       (setq files-both (list file-a))
-                     (push file-a files-both))
-                 (if (equal files-a-only nil)
-                     (setq files-a-only (list file-a))
-                   (push file-a files-a-only))))
-             files-a-relative-list)
+              ;; Collect files that only exists in directory a and files that exist in both directory a and b
+              (mapc
+               (lambda (file-a)
+                 (if (not (equal (gethash file-a files-b-relative-hash) nil))
+                     (if (equal files-both nil)
+                         (setq files-both (list file-a))
+                       (push file-a files-both))
+                   (if (equal files-a-only nil)
+                       (setq files-a-only (list file-a))
+                     (push file-a files-a-only))))
+               files-a-relative-list)
+              (setq files-a-only (sort files-a-only #'string<))
 
-            ;; Collect files that only exists in directory b
-            (mapc
-             (lambda (file-b)
-               (when (equal (gethash file-b files-a-relative-hash) nil)
-                 ;; (message "%s did not exist in hash-a" file-b)
-                 (if (equal files-b-only nil)
-                     (setq files-b-only (list file-b))
-                   (push file-b files-b-only))))
-             files-b-relative-list)
+              ;; Collect files that only exists in directory b
+              (mapc
+               (lambda (file-b)
+                 (when (equal (gethash file-b files-a-relative-hash) nil)
+                   ;; (message "%s did not exist in hash-a" file-b)
+                   (if (equal files-b-only nil)
+                       (setq files-b-only (list file-b))
+                     (push file-b files-b-only))))
+               files-b-relative-list)
+              (setq files-b-only (sort files-b-only #'string<))
 
-            ;; Collect files that differ in contents and have equal contents
-            (mapc
-             (lambda (file)
-               (let ((file-a (gethash file files-a-relative-hash))
-                     (file-b (gethash file files-b-relative-hash)))
-                 (if (ediff-same-file-contents file-a file-b)
-                     (if (equal files-both-equals nil)
-                         (setq files-both-equals (list file))
-                       (push file files-both-equals))
-                   (if (equal files-both-differs nil)
-                       (setq files-both-differs (list file))
-                     (push file files-both-differs)))))
-             files-both)
+              ;; Collect files that differ in contents and have equal contents
+              (mapc
+               (lambda (file)
+                 (let ((file-a (gethash file files-a-relative-hash))
+                       (file-b (gethash file files-b-relative-hash)))
+                   (if (nth 0 (ssh-deploy--diff-files file-a file-b))
+                       (if (equal files-both-equals nil)
+                           (setq files-both-equals (list file))
+                         (push file files-both-equals))
+                     (if (equal files-both-differs nil)
+                         (setq files-both-differs (list file))
+                       (push file files-both-differs)))))
+               files-both)
+              (setq files-both (sort files-both #'string<))
+              (setq files-both-equals (sort files-both-equals #'string<))
+              (setq files-both-differs (sort files-both-differs #'string<))
 
-            (list directory-a directory-b exclude-list files-both files-a-only files-b-only files-both-equals files-both-differs))
+              ;; NOTE We sort lists to make result deterministic and testable
+
+              (list directory-a old-directory-b exclude-list files-both files-a-only files-b-only files-both-equals files-both-differs)))
         (display-warning 'ssh-deploy "Both directories need to exist to perform difference generation." :warning))
     (display-warning 'ssh-deploy "Function 'string-remove-prefix' is missing." :warning)))
 
@@ -700,6 +700,11 @@
     (set (make-local-variable 'ssh-deploy-automatically-detect-remote-changes) remote-changes)
     (set (make-local-variable 'ssh-deploy-exclude-list) exclude-list)))
 
+(defun ssh-deploy--diff-files (file-a file-b)
+  "Check difference between FILE-A and FILE-B."
+  (let ((result (ediff-same-file-contents file-a file-b)))
+    (list result file-a file-b)))
+
 
 ;; PUBLIC functions
 ;;
@@ -708,14 +713,36 @@
 
 
 ;;;###autoload
-(defun ssh-deploy-diff-files (file-a file-b)
-  "Find difference between FILE-A and FILE-B."
+(defun ssh-deploy-diff-files (file-a file-b &optional async async-with-threads verbose)
+  "Find difference between FILE-A and FILE-B, do it asynchronous if ASYNC is aboe zero and use threads if ASYNC-WITH-THREADS is above zero, if VERBOSE is above zero print messages."
   (message "Comparing file '%s' to '%s'.." file-a file-b)
-  (if (ediff-same-file-contents file-a file-b)
-      (message "Files have identical contents.")
-    (ediff file-a file-b)))
+  (let ((async (or async ssh-deploy-async))
+        (async-with-threads (or async-with-threads ssh-deploy-async-with-threads))
+        (verbose (or verbose ssh-deploy-verbose)))
+    (ssh-deploy--mode-line-set-status-and-update ssh-deploy--status-file-difference file-a)
+    (if (> async 0)
+        (ssh-deploy--async-process
+         (lambda() (ssh-deploy--diff-files file-a file-b))
+         (lambda(result)
+           (ssh-deploy--mode-line-set-status-and-update ssh-deploy--status-idle (nth 1 result))
+           (if (nth 0 result)
+               (when (> verbose 0)
+                 (message "File '%s' and '%s' have identical contents. (asynchronously)" (nth 1 result) (nth 2 result)))
+             (when (> verbose 0)
+               (message "File '%s' and '%s' does not have identical contents, launching ediff.. (asynchronously)" file-a file-b))
+             (ediff file-a file-b)))
+         async-with-threads)
+      (let ((result (ssh-deploy--diff-files file-a file-b)))
+        (ssh-deploy--mode-line-set-status-and-update ssh-deploy--status-idle (nth 1 result))
+        (if (nth 0 result)
+            (when (> verbose 0)
+              (message "File '%s' and '%s' have identical contents. (synchronously)" (nth 1 result) (nth 2 result)))
+          (when (> verbose 0)
+            (message "File '%s' and '%s' does not have identical contents, launching ediff.. (synchronously)" file-a file-b))
+          (ediff file-a file-b))))))
 
 ;;;###autoload
+
 (defun ssh-deploy-diff-directories (directory-a directory-b &optional on-explicit-save debug async async-with-threads revision-folder remote-changes exclude-list)
   "Find difference between DIRECTORY-A and DIRECTORY-B but exclude, ON-EXPLICIT-SAVE defines automatic uploads, DEBUG is the debug flag, ASYNC is for asynchronous, ASYNC-WITH-THREADS for threads instead of processes, REVISION-FOLDER is for revisions, REMOTE-CHANGES are whether to look for remote change, EXCLUDE-LIST is what files to exclude."
   (let ((on-explicit-save (or on-explicit-save ssh-deploy-on-explicit-save))
@@ -761,7 +788,7 @@
      ;; Remote file has not changed
      (when (> verbose 0) (message (nth 1 response))))
     (5
-     ;; Remote file has changed in comparison with local revision
+     ;; Remote file has changed in comparison with local revision but also with local file
      (display-warning 'ssh-deploy (nth 1 response) :warning))
     (6
      ;; Remote file has not changed in comparison with local file
@@ -769,7 +796,11 @@
      (when (> verbose 0) (message (nth 1 response))))
     (7
      ;; Remote file has changed in comparison with local file
-     (display-warning 'ssh-deploy (nth 1 response) :warning))))
+     (display-warning 'ssh-deploy (nth 1 response) :warning))
+    (8
+     ;; Remote file has changed in comparison with local revision but not local file
+     (copy-file (nth 2 response) (nth 3 response) t t t t)
+     (when (> verbose 0) (message (nth 1 response))))))
 
 (defun ssh-deploy--remote-changes-data (path-local &optional root-local root-remote revision-folder exclude-list)
   "Check if a local revision for PATH-LOCAL on ROOT-LOCAL and if remote file has changed on ROOT-REMOTE, check for copies in REVISION-FOLDER and skip if path is in EXCLUDE-LIST.  Should only return status-code and message."
@@ -793,11 +824,13 @@
                       ;; Does a local revision of the file exist?
                       (if (file-exists-p revision-path)
 
-                          (if (ediff-same-file-contents revision-path path-remote)
+                          (if (nth 0 (ssh-deploy--diff-files revision-path path-remote))
                               (list 4 (format "Remote file '%s' has not changed." path-remote) path-local)
-                            (list 5 (format "Remote file '%s' has changed compared to local revision, please download or diff." path-remote) path-local revision-path))
+                            (if (nth 0 (ssh-deploy--diff-files path-local path-remote))
+                                (list 8 (format "Remote file '%s' has changed compared to local revision but not local file, copied local file to local revision." path-remote) path-local revision-path)
+                              (list 5 (format "Remote file '%s' has changed compared to local revision and local file, please download or diff." path-remote) path-local revision-path)))
 
-                        (if (ediff-same-file-contents path-local path-remote)
+                        (if (nth 0 (ssh-deploy--diff-files path-local path-remote))
                             (list 6 (format "Remote file '%s' has not changed compared to local file, created local revision." path-remote) path-local revision-path)
                           (list 7 (format "Remote file '%s' has changed compared to local file, please download or diff." path-remote) path-local path-remote)))
 
@@ -1014,8 +1047,8 @@
       (copy-file path revision-path t t t t))))
 
 ;;;###autoload
-(defun ssh-deploy-diff (path-local path-remote &optional root-local debug exclude-list async async-with-threads on-explicit-save revision-folder remote-changes)
-  "Find differences between PATH-LOCAL and PATH-REMOTE, where PATH-LOCAL is inside ROOT-LOCAL.  DEBUG enables feedback message, check if PATH-LOCAL is not in EXCLUDE-LIST.   ASYNC make the process work asynchronously, if ASYNC-WITH-THREADS is above zero use threads, ON-EXPLICIT-SAVE for automatic uploads, REVISION-FOLDER for revision-folder, REMOTE-CHANGES for automatic notification of remote change."
+(defun ssh-deploy-diff (path-local path-remote &optional root-local debug exclude-list async async-with-threads on-explicit-save revision-folder remote-changes verbose)
+  "Find differences between PATH-LOCAL and PATH-REMOTE, where PATH-LOCAL is inside ROOT-LOCAL.  DEBUG enables feedback message, check if PATH-LOCAL is not in EXCLUDE-LIST.   ASYNC make the process work asynchronously, if ASYNC-WITH-THREADS is above zero use threads, ON-EXPLICIT-SAVE for automatic uploads, REVISION-FOLDER for revision-folder, REMOTE-CHANGES for automatic notification of remote change, VERBOSE messaging if above zero."
   (let ((file-or-directory (not (file-directory-p path-local)))
         (root-local (or root-local ssh-deploy-root-local))
         (debug (or debug ssh-deploy-debug))
@@ -1024,11 +1057,12 @@
         (async-with-threads (or async-with-threads ssh-deploy-async-with-threads))
         (on-explicit-save (or on-explicit-save ssh-deploy-on-explicit-save))
         (revision-folder (or revision-folder ssh-deploy-revision-folder))
-        (remote-changes (or remote-changes ssh-deploy-automatically-detect-remote-changes)))
+        (remote-changes (or remote-changes ssh-deploy-automatically-detect-remote-changes))
+        (verbose (or verbose ssh-deploy-verbose)))
     (if (and (ssh-deploy--file-is-in-path-p path-local root-local)
              (ssh-deploy--file-is-included-p path-local exclude-list))
         (if file-or-directory
-            (ssh-deploy-diff-files path-local path-remote)
+            (ssh-deploy-diff-files path-local path-remote async async-with-threads verbose)
           (ssh-deploy-diff-directories path-local path-remote on-explicit-save debug async async-with-threads revision-folder remote-changes exclude-list))
       (when debug (message "Path '%s' is not in the root '%s' or is excluded from it." path-local root-local)))))
 
@@ -1097,7 +1131,7 @@
            (ssh-deploy--is-not-empty-string-p buffer-file-name))
       (progn
         (when (> ssh-deploy-debug 0) (message "Detecting remote-changes.."))
-        (ssh-deploy-remote-changes (file-truename buffer-file-name) (file-truename ssh-deploy-root-local) ssh-deploy-root-remote ssh-deploy-async ssh-deploy-revision-folder ssh-deploy-exclude-list ssh-deploy-async-with-threads))
+        (ssh-deploy-remote-changes (file-truename buffer-file-name) (file-truename ssh-deploy-root-local) ssh-deploy-root-remote ssh-deploy-async ssh-deploy-revision-folder ssh-deploy-exclude-list ssh-deploy-async-with-threads ssh-deploy-verbose))
     (when (> ssh-deploy-debug 0) (message "Ignoring remote-changes check since a root is empty or the current buffer lacks a file-name."))))
 
 ;;;###autoload
@@ -1158,13 +1192,13 @@
              (file-exists-p buffer-file-name))
         (let* ((path-local (file-truename buffer-file-name))
                (root-local (file-truename ssh-deploy-root-local))
-               (path-remote (file-truename (expand-file-name (ssh-deploy--get-relative-path root-local path-local) ssh-deploy-root-remote))))
+               (path-remote (expand-file-name (ssh-deploy--get-relative-path root-local path-local) ssh-deploy-root-remote)))
           (ssh-deploy-diff path-local path-remote root-local ssh-deploy-debug ssh-deploy-exclude-list ssh-deploy-async ssh-deploy-async-with-threads ssh-deploy-on-explicit-save ssh-deploy-revision-folder ssh-deploy-automatically-detect-remote-changes))
       (when (and (ssh-deploy--is-not-empty-string-p default-directory)
                  (file-exists-p default-directory))
         (let* ((path-local (file-truename default-directory))
                (root-local (file-truename ssh-deploy-root-local))
-               (path-remote (file-truename (expand-file-name (ssh-deploy--get-relative-path root-local path-local) ssh-deploy-root-remote))))
+               (path-remote (concat ssh-deploy-root-remote (ssh-deploy--get-relative-path root-local path-local))))
           (ssh-deploy-diff path-local path-remote root-local ssh-deploy-debug ssh-deploy-exclude-list ssh-deploy-async ssh-deploy-async-with-threads ssh-deploy-on-explicit-save ssh-deploy-revision-folder ssh-deploy-automatically-detect-remote-changes))))))
 
 ;;;###autoload

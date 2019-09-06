@@ -23,13 +23,7 @@
 
 ;;; Code:
 
-
-(autoload 'ssh-deploy-diff-directories "ssh-deploy")
-(autoload 'ssh-deploy-upload "ssh-deploy")
-(autoload 'ssh-deploy-download "ssh-deploy")
-(autoload 'ssh-deploy-delete-both "ssh-deploy")
-(autoload 'ssh-deploy-delete "ssh-deploy")
-(autoload 'ssh-deploy-diff-files "ssh-deploy")
+(require 'ssh-deploy)
 
 (defconst ssh-deploy-diff-mode--keywords
   '(

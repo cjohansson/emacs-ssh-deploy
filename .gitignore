@@ -1,3 +1,4 @@
 *.elc
-ssh-deploy-autoloads.el
-ssh-deploy-pkg.el
+revisions/
+test-a/
+test-b/
