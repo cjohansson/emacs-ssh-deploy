@@ -208,7 +208,7 @@
 (put 'ssh-deploy-automatically-detect-remote-changes 'permanent-local t)
 (put 'ssh-deploy-automatically-detect-remote-changes 'safe-local-variable 'integerp)
 
-(defcustom ssh-deploy-exclude-list '(".git/" ".dir-locals.el")
+(defcustom ssh-deploy-exclude-list '("\\\.git/" ".dir-locals.el")
   "List of strings that if found in file name will exclude it from sync, '(\"/.git\"/' \".dir-locals.el\") by default."
   :type 'list)
 (put 'ssh-deploy-exclude-list 'permanent-local t)
