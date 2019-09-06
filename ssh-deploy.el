@@ -5,8 +5,8 @@
 ;; Author: Christian Johansson <christian@cvj.se>
 ;; Maintainer: Christian Johansson <christian@cvj.se>
 ;; Created: 5 Jul 2016
-;; Modified: 4 Sep 2019
-;; Version: 3.1.7
+;; Modified: 6 Sep 2019
+;; Version: 3.1.8
 ;; Keywords: tools, convenience
 ;; URL: https://github.com/cjohansson/emacs-ssh-deploy
 
@@ -208,8 +208,8 @@
 (put 'ssh-deploy-automatically-detect-remote-changes 'permanent-local t)
 (put 'ssh-deploy-automatically-detect-remote-changes 'safe-local-variable 'integerp)
 
-(defcustom ssh-deploy-exclude-list '("\\\.git/" ".dir-locals.el")
-  "List of strings that if found in file name will exclude it from sync, '(\"/.git\"/' \".dir-locals.el\") by default."
+(defcustom ssh-deploy-exclude-list '("\\\.git/" "\\\.dir-locals\\\.el")
+  "List of strings that if found in file name will exclude it from sync."
   :type 'list)
 (put 'ssh-deploy-exclude-list 'permanent-local t)
 (put 'ssh-deploy-exclude-list 'safe-local-variable 'listp)
