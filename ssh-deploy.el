@@ -5,8 +5,8 @@
 ;; Author: Christian Johansson <christian@cvj.se>
 ;; Maintainer: Christian Johansson <christian@cvj.se>
 ;; Created: 5 Jul 2016
-;; Modified: 9 Sep 2019
-;; Version: 3.1.9
+;; Modified: 16 Sep 2019
+;; Version: 3.1.10
 ;; Keywords: tools, convenience
 ;; URL: https://github.com/cjohansson/emacs-ssh-deploy
 
@@ -373,7 +373,7 @@
 
 (defun ssh-deploy--file-is-in-path-p (file path)
   "Return non-nil if FILE is in the path PATH."
-  (not (null (string-match path file))))
+  (string-prefix-p path file))
 
 (defun ssh-deploy--file-is-included-p (path exclude-list)
   "Return non-nil if PATH is not in EXCLUDE-LIST."
