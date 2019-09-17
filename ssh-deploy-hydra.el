@@ -28,31 +28,21 @@
 ;;; Code:
 
 
-(autoload 'ssh-deploy-upload-handler-forced "ssh-deploy")
-(autoload 'ssh-deploy-upload-handler "ssh-deploy")
-(autoload 'ssh-deploy-download-handler "ssh-deploy")
-(autoload 'ssh-deploy-delete-handler "ssh-deploy")
-(autoload 'ssh-deploy-diff-handler "ssh-deploy")
-(autoload 'ssh-deploy-remote-terminal-eshell-base-handler "ssh-deploy")
-(autoload 'ssh-deploy-remote-terminal-eshell-handler "ssh-deploy")
-(autoload 'ssh-deploy-remote-terminal-shell-base-handler "ssh-deploy")
-(autoload 'ssh-deploy-remote-terminal-shell-handler "ssh-deploy")
-(autoload 'ssh-deploy-remote-changes-handler "ssh-deploy")
-(autoload 'ssh-deploy-rename-handler "ssh-deploy")
-(autoload 'ssh-deploy-browse-remote-base-handler "ssh-deploy")
-(autoload 'ssh-deploy-browse-remote-handler "ssh-deploy")
-(autoload 'ssh-deploy-open-remote-file-handler "ssh-deploy")
-(autoload 'ssh-deploy-remote-sql-mysql-handler "ssh-deploy")
-(autoload 'ssh-deploy-run-deploy-script-handler "ssh-deploy")
+(require 'ssh-deploy)
 
-(require 'hydra)
+(defmacro ssh-deploy--fboundp-macro (name body)
+  "Expand to BODY if NAME is bound.
+Takes care of byte-compilation issues where the `byte-code' for the latter could signal an error if it has been compiled with Emacs 24.1 and is then later run by Emacs 24.5."
+  (declare (indent 2) (debug (symbolp form &rest form)))
+  (if (fboundp name)
+      body
+    `(when (fboundp ',name)
+       (eval ',body))))
 
-;;;###autoload
-(defun ssh-deploy-hydra (shortcut)
-  "Attach hydra at SHORTCUT."
-  (when (fboundp 'defhydra)
-    (defhydra ssh-deploy-hydra (:color red :hint nil)
-      "
+(ssh-deploy--fboundp-macro
+ defhydra
+ (defhydra ssh-deploy-hydra (:color red :hint nil)
+   "
     SSH Deploy Menu
     
     _u_: Upload                              _f_: Force Upload
@@ -67,24 +57,28 @@
     _o_: Open current file on remote         _m_: Open sql-mysql on remote
     _s_: Run deploy script
     "
-      ("f" #'ssh-deploy-upload-handler-forced)
-      ("u" #'ssh-deploy-upload-handler)
-      ("d" #'ssh-deploy-download-handler)
-      ("D" #'ssh-deploy-delete-handler)
-      ("x" #'ssh-deploy-diff-handler)
-      ("t" #'ssh-deploy-remote-terminal-eshell-base-handler)
-      ("T" #'ssh-deploy-remote-terminal-eshell-handler)
-      ("h" #'ssh-deploy-remote-terminal-shell-base-handler)
-      ("H" #'ssh-deploy-remote-terminal-shell-handler)
-      ("e" #'ssh-deploy-remote-changes-handler)
-      ("R" #'ssh-deploy-rename-handler)
-      ("b" #'ssh-deploy-browse-remote-base-handler)
-      ("B" #'ssh-deploy-browse-remote-handler)
-      ("o" #'ssh-deploy-open-remote-file-handler)
-      ("m" #'ssh-deploy-remote-sql-mysql-handler)
-      ("s" #'ssh-deploy-run-deploy-script-handler))
-    (when (fboundp 'ssh-deploy-hydra/body)
-      (global-set-key (kbd shortcut) #'ssh-deploy-hydra/body))))
+   ("f" #'ssh-deploy-upload-handler-forced)
+   ("u" #'ssh-deploy-upload-handler)
+   ("d" #'ssh-deploy-download-handler)
+   ("D" #'ssh-deploy-delete-handler)
+   ("x" #'ssh-deploy-diff-handler)
+   ("t" #'ssh-deploy-remote-terminal-eshell-base-handler)
+   ("T" #'ssh-deploy-remote-terminal-eshell-handler)
+   ("h" #'ssh-deploy-remote-terminal-shell-base-handler)
+   ("H" #'ssh-deploy-remote-terminal-shell-handler)
+   ("e" #'ssh-deploy-remote-changes-handler)
+   ("R" #'ssh-deploy-rename-handler)
+   ("b" #'ssh-deploy-browse-remote-base-handler)
+   ("B" #'ssh-deploy-browse-remote-handler)
+   ("o" #'ssh-deploy-open-remote-file-handler)
+   ("m" #'ssh-deploy-remote-sql-mysql-handler)
+   ("s" #'ssh-deploy-run-deploy-script-handler)))
+
+;;;###autoload
+(defun ssh-deploy-hydra (shortcut)
+  "Attach hydra at SHORTCUT."
+  (when (fboundp 'ssh-deploy-hydra/body)
+    (global-set-key (kbd shortcut) #'ssh-deploy-hydra/body)))
 
 (provide 'ssh-deploy-hydra)
 ;;; ssh-deploy-hydra.el ends here
