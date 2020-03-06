@@ -5,8 +5,8 @@
 ;; Author: Christian Johansson <christian@cvj.se>
 ;; Maintainer: Christian Johansson <christian@cvj.se>
 ;; Created: 5 Jul 2016
-;; Modified: 17 Sep 2019
-;; Version: 3.1.10
+;; Modified: 6 Mar 2020
+;; Version: 3.1.11
 ;; Keywords: tools, convenience
 ;; URL: https://github.com/cjohansson/emacs-ssh-deploy
 
@@ -37,7 +37,7 @@
 ;; For asynchronous operations it uses package '`make-thread' or if not available '`async.el'.
 ;;
 ;; By setting the variables (globally, per directory or per file):
-;; ssh-deploy-root-local,ssh-deploy-root-remote, ssh-deploy-on-explicit-save
+;; ssh-deploy-root-local,ssh-deploy-root-remote
 ;; you can setup a directory for Tramp deployment.
 ;;
 ;; For asynchronous transfers you need to setup ~/.authinfo.gpg or key-based authorization or equivalent for automatic authentication.
@@ -84,11 +84,12 @@
 ;;    )
 ;;
 ;;
-;; Here is an example for SSH deployment, /Users/Chris/Web/Site1/.dir-locals.el:
+;; Here is an example for SSH deployment, /Users/Chris/Web/Site1/.dir-locals.el, with forced explicit uploads:
 ;; ((nil . (
 ;;   (ssh-deploy-root-local . "/Users/Chris/Web/Site1/")
 ;;   (ssh-deploy-root-remote . "/ssh:myuser@myserver.com:/var/www/site1/")
 ;;   (ssh-deploy-on-explicit-save . 1)
+;;   (ssh-deploy-force-on-explicit-save . 1)
 ;;   (ssh-deploy-async . 1)
 ;; )))
 ;;
@@ -170,6 +171,12 @@
 (put 'ssh-deploy-on-explicit-save 'permanent-local t)
 (put 'ssh-deploy-on-explicit-save 'safe-local-variable 'integerp)
 
+(defcustom ssh-deploy-force-on-explicit-save 0
+  "Boolean variable if deploy on explicit save should be forced or not, 0 by default."
+  :type 'integer)
+(put 'ssh-deploy-force-on-explicit-save 'permanent-local t)
+(put 'ssh-deploy-force-on-explicit-save 'safe-local-variable 'integerp)
+
 (defcustom ssh-deploy-debug 0
   "Boolean variable if debug messages should be shown, 0 by default."
   :type 'integer)
@@ -187,12 +194,6 @@
   :type 'integer)
 (put 'ssh-deploy-async 'permanent-local t)
 (put 'ssh-deploy-async 'safe-local-variable 'integerp)
-
-(defcustom ssh-deploy-async-with-threads 0
-  "Boolean variable if asynchronous method should use threads if available, 0 by default."
-  :type 'integer)
-(put 'ssh-deploy-async-with-threads 'permanent-local t)
-(put 'ssh-deploy-async-with-threads 'safe-local-variable 'integerp)
 
 (defcustom ssh-deploy-async-with-threads 0
   "Boolean variable if asynchronous method should use threads if available, 0 by default."
@@ -282,6 +283,7 @@
                          (let ((ssh-deploy-async 0)
                                (ssh-deploy-async-with-threads 0)
                                (ssh-deploy-on-explicit-save 0)
+                               (ssh-deploy-force-on-explicit-save 0)
                                (ssh-deploy-automatically-detect-remote-changes 0))
                            (if start
                                (let ((result (funcall start)))
@@ -305,6 +307,7 @@
                  (let ((ssh-deploy-async 0)
                        (ssh-deploy-async-with-threads 0)
                        (ssh-deploy-on-explicit-save 0)
+                       (ssh-deploy-force-on-explicit-save 0)
                        (ssh-deploy-automatically-detect-remote-changes 0)
                        (ssh-deploy-root-local root-local)
                        (ssh-deploy-root-remote root-remote)
@@ -593,8 +596,8 @@
         (display-warning 'ssh-deploy "Both directories need to exist to perform difference generation." :warning))
     (display-warning 'ssh-deploy "Function 'string-remove-prefix' is missing." :warning)))
 
-(defun ssh-deploy--diff-directories-present (diff root-local root-remote on-explicit-save debug async async-with-threads revision-folder remote-changes exclude-list)
-  "Present difference data for directories from the DIFF, ROOT-LOCAL defines local root, ROOT-REMOTE defined remote root, ON-EXPLICIT-SAVE defines automatic uploads, DEBUG is the debug flag, ASYNC is for asynchronous, ASYNC-WITH-THREADS for threads instead of processes, REVISION-FOLDER is for revisions, REMOTE-CHANGES are whether to look for remote change, EXCLUDE-LIST is what files to exclude."
+(defun ssh-deploy--diff-directories-present (diff root-local root-remote on-explicit-save force-on-explicit-save debug async async-with-threads revision-folder remote-changes exclude-list)
+  "Present difference data for directories from the DIFF, ROOT-LOCAL defines local root, ROOT-REMOTE defined remote root, ON-EXPLICIT-SAVE defines automatic uploads, FORCE-ON-EXPLICIT-SAVE to force automatic uploads, DEBUG is the debug flag, ASYNC is for asynchronous, ASYNC-WITH-THREADS for threads instead of processes, REVISION-FOLDER is for revisions, REMOTE-CHANGES are whether to look for remote change, EXCLUDE-LIST is what files to exclude."
 
   (let ((buffer (generate-new-buffer "*SSH Deploy diff*")))
     (switch-to-buffer buffer)
@@ -640,6 +643,7 @@
     (set (make-local-variable 'ssh-deploy-root-local) root-local)
     (set (make-local-variable 'ssh-deploy-root-remote) root-remote)
     (set (make-local-variable 'ssh-deploy-on-explicit-save) on-explicit-save)
+    (set (make-local-variable 'ssh-deploy-force-on-explicit-save) force-on-explicit-save)
     (set (make-local-variable 'ssh-deploy-debug) debug)
     (set (make-local-variable 'ssh-deploy-async) async)
     (set (make-local-variable 'ssh-deploy-async-with-threads) async-with-threads)
@@ -690,9 +694,10 @@
 
 ;;;###autoload
 
-(defun ssh-deploy-diff-directories (directory-a directory-b &optional on-explicit-save debug async async-with-threads revision-folder remote-changes exclude-list)
-  "Find difference between DIRECTORY-A and DIRECTORY-B but exclude, ON-EXPLICIT-SAVE defines automatic uploads, DEBUG is the debug flag, ASYNC is for asynchronous, ASYNC-WITH-THREADS for threads instead of processes, REVISION-FOLDER is for revisions, REMOTE-CHANGES are whether to look for remote change, EXCLUDE-LIST is what files to exclude."
+(defun ssh-deploy-diff-directories (directory-a directory-b &optional on-explicit-save force-on-explicit-save debug async async-with-threads revision-folder remote-changes exclude-list)
+  "Find difference between DIRECTORY-A and DIRECTORY-B but exclude, ON-EXPLICIT-SAVE defines automatic uploads, FORCE-ON-EXPLICIT-SAVE whether automatic uploads are forced, DEBUG is the debug flag, ASYNC is for asynchronous, ASYNC-WITH-THREADS for threads instead of processes, REVISION-FOLDER is for revisions, REMOTE-CHANGES are whether to look for remote change, EXCLUDE-LIST is what files to exclude."
   (let ((on-explicit-save (or on-explicit-save ssh-deploy-on-explicit-save))
+        (force-on-explicit-save (or force-on-explicit-save ssh-deploy-force-on-explicit-save))
         (debug (or debug ssh-deploy-debug))
         (async (or async ssh-deploy-async))
         (async-with-threads (or async-with-threads ssh-deploy-async-with-threads))
@@ -708,13 +713,13 @@
            (lambda(diff)
              (message "Completed calculation of differences between directory '%s' and '%s'. Result: %s only in A %s only in B %s differs. (asynchronously)" (nth 0 diff) (nth 1 diff) (length (nth 4 diff)) (length (nth 5 diff)) (length (nth 7 diff)))
              (when (or (> (length (nth 4 diff)) 0) (> (length (nth 5 diff)) 0) (> (length (nth 7 diff)) 0))
-               (ssh-deploy--diff-directories-present diff directory-a directory-b on-explicit-save debug async async-with-threads revision-folder remote-changes exclude-list)))
+               (ssh-deploy--diff-directories-present diff directory-a directory-b on-explicit-save force-on-explicit-save debug async async-with-threads revision-folder remote-changes exclude-list)))
            async-with-threads))
       (message "Calculating differences between directory '%s' and '%s'.. (synchronously)" directory-a directory-b)
       (let ((diff (ssh-deploy--diff-directories-data directory-a directory-b exclude-list)))
         (message "Completed calculation of differences between directory '%s' and '%s'. Result: %s only in A, %s only in B, %s differs. (synchronously)" (nth 0 diff) (nth 1 diff) (length (nth 4 diff)) (length (nth 5 diff)) (length (nth 7 diff)))
         (when (or (> (length (nth 4 diff)) 0) (> (length (nth 5 diff)) 0) (> (length (nth 7 diff)) 0))
-          (ssh-deploy--diff-directories-present diff directory-a directory-b on-explicit-save debug async async-with-threads revision-folder remote-changes exclude-list))))))
+          (ssh-deploy--diff-directories-present diff directory-a directory-b on-explicit-save force-on-explicit-save debug async async-with-threads revision-folder remote-changes exclude-list))))))
 
 (defun ssh-deploy--remote-changes-post-executor (response verbose)
   "Process RESPONSE from `ssh-deploy--remote-changes-data' with flags: VERBOSE."
@@ -994,8 +999,8 @@
       (copy-file path revision-path t t t t))))
 
 ;;;###autoload
-(defun ssh-deploy-diff (path-local path-remote &optional root-local debug exclude-list async async-with-threads on-explicit-save revision-folder remote-changes verbose)
-  "Find differences between PATH-LOCAL and PATH-REMOTE, where PATH-LOCAL is inside ROOT-LOCAL.  DEBUG enables feedback message, check if PATH-LOCAL is not in EXCLUDE-LIST.   ASYNC make the process work asynchronously, if ASYNC-WITH-THREADS is above zero use threads, ON-EXPLICIT-SAVE for automatic uploads, REVISION-FOLDER for revision-folder, REMOTE-CHANGES for automatic notification of remote change, VERBOSE messaging if above zero."
+(defun ssh-deploy-diff (path-local path-remote &optional root-local debug exclude-list async async-with-threads on-explicit-save force-on-explicit-save revision-folder remote-changes verbose)
+  "Find differences between PATH-LOCAL and PATH-REMOTE, where PATH-LOCAL is inside ROOT-LOCAL.  DEBUG enables feedback message, check if PATH-LOCAL is not in EXCLUDE-LIST.   ASYNC make the process work asynchronously, if ASYNC-WITH-THREADS is above zero use threads, ON-EXPLICIT-SAVE for automatic uploads, FORCE-ON-EXPLICIT-SAVE whether these uploads are forced or not, REVISION-FOLDER for revision-folder, REMOTE-CHANGES for automatic notification of remote change, VERBOSE messaging if above zero."
   (let ((file-or-directory (not (file-directory-p path-local)))
         (root-local (or root-local ssh-deploy-root-local))
         (debug (or debug ssh-deploy-debug))
@@ -1003,6 +1008,7 @@
         (async (or async ssh-deploy-async))
         (async-with-threads (or async-with-threads ssh-deploy-async-with-threads))
         (on-explicit-save (or on-explicit-save ssh-deploy-on-explicit-save))
+        (force-on-explicit-save (or force-on-explicit-save ssh-deploy-force-on-explicit-save))
         (revision-folder (or revision-folder ssh-deploy-revision-folder))
         (remote-changes (or remote-changes ssh-deploy-automatically-detect-remote-changes))
         (verbose (or verbose ssh-deploy-verbose)))
@@ -1010,7 +1016,7 @@
              (ssh-deploy--file-is-included-p path-local exclude-list))
         (if file-or-directory
             (ssh-deploy-diff-files path-local path-remote async async-with-threads verbose)
-          (ssh-deploy-diff-directories path-local path-remote on-explicit-save debug async async-with-threads revision-folder remote-changes exclude-list))
+          (ssh-deploy-diff-directories path-local path-remote on-explicit-save force-on-explicit-save debug async async-with-threads revision-folder remote-changes exclude-list))
       (when debug (message "Path '%s' is not in the root '%s' or is excluded from it." path-local root-local)))))
 
 ;;;###autoload
@@ -1140,13 +1146,13 @@
         (let* ((path-local (file-truename buffer-file-name))
                (root-local (file-truename ssh-deploy-root-local))
                (path-remote (expand-file-name (ssh-deploy--get-relative-path root-local path-local) ssh-deploy-root-remote)))
-          (ssh-deploy-diff path-local path-remote root-local ssh-deploy-debug ssh-deploy-exclude-list ssh-deploy-async ssh-deploy-async-with-threads ssh-deploy-on-explicit-save ssh-deploy-revision-folder ssh-deploy-automatically-detect-remote-changes))
+          (ssh-deploy-diff path-local path-remote root-local ssh-deploy-debug ssh-deploy-exclude-list ssh-deploy-async ssh-deploy-async-with-threads ssh-deploy-on-explicit-save ssh-deploy-force-on-explicit-save ssh-deploy-revision-folder ssh-deploy-automatically-detect-remote-changes))
       (when (and (ssh-deploy--is-not-empty-string-p default-directory)
                  (file-exists-p default-directory))
         (let* ((path-local (file-truename default-directory))
                (root-local (file-truename ssh-deploy-root-local))
                (path-remote (concat ssh-deploy-root-remote (ssh-deploy--get-relative-path root-local path-local))))
-          (ssh-deploy-diff path-local path-remote root-local ssh-deploy-debug ssh-deploy-exclude-list ssh-deploy-async ssh-deploy-async-with-threads ssh-deploy-on-explicit-save ssh-deploy-revision-folder ssh-deploy-automatically-detect-remote-changes))))))
+          (ssh-deploy-diff path-local path-remote root-local ssh-deploy-debug ssh-deploy-exclude-list ssh-deploy-async ssh-deploy-async-with-threads ssh-deploy-on-explicit-save ssh-deploy-force-on-explicit-save ssh-deploy-revision-folder ssh-deploy-automatically-detect-remote-changes))))))
 
 ;;;###autoload
 (defun ssh-deploy-delete-handler ()
@@ -1338,7 +1344,10 @@
 
 
 (defun ssh-deploy-after-save () "Logic for automatic uploads."
-       (when (and (boundp 'ssh-deploy-on-explicit-save) ssh-deploy-on-explicit-save (> ssh-deploy-on-explicit-save 0)) (ssh-deploy-upload-handler)))
+       (when (and (boundp 'ssh-deploy-on-explicit-save)
+                  ssh-deploy-on-explicit-save
+                  (> ssh-deploy-on-explicit-save 0))
+         (ssh-deploy-upload-handler ssh-deploy-force-on-explicit-save)))
 
 ;;;###autoload
 (defun ssh-deploy-add-after-save-hook () "Add the `after-save-hook'."
