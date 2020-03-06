@@ -38,6 +38,7 @@ Here is a list of other variables you can set globally or per directory:
 * `ssh-deploy-revision-folder` The folder used for storing local revisions *(string)*
 * `ssh-deploy-automatically-detect-remote-changes` Enables automatic detection of remote changes *(integer)*
 * `ssh-deploy-on-explicit-save` Enabled automatic uploads on save *(integer)*
+* `ssh-deploy-force-on-explicit-save` Enables forced uploads on explicit save actions *(integer)*
 * `ssh-deploy-exclude-list` A list defining what paths to exclude from deployment *(list)*
 * `ssh-deploy-async` Enables asynchronous transfers (you need to have `(make-thread)` or `async.el` installed as well) *(integer)*
 * `ssh-deploy-remote-sql-database` Default database when connecting to remote SQL database *(string)*
@@ -72,13 +73,14 @@ You really need to do a bit of research about how to connect via different proto
 )))
 ```
 
-### SFTP, with automatic uploads
+### SFTP, with forced automatic uploads
 
 ``` emacs-lisp
 ((nil . (
   (ssh-deploy-root-local . "/Users/username/Web/MySite/")
   (ssh-deploy-root-remote . "/sftp:myuser@myserver.com:/var/www/MySite/")
   (ssh-deploy-on-explicit-save . 1)
+  (ssh-deploy-force-on-explicit-save . 1)
 )))
 ```
 

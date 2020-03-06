@@ -259,6 +259,7 @@
            (ssh-deploy-root-local (file-truename directory-a))
            (ssh-deploy-root-remote (file-truename directory-b))
            (ssh-deploy-on-explicit-save 1)
+           (ssh-deploy-force-on-explicit-save 0)
            (ssh-deploy-debug 0)
            (ssh-deploy-async async)
            (ssh-deploy-async-with-threads async-with-threads)
@@ -268,6 +269,7 @@
       (when (and ssh-deploy-root-local
                  ssh-deploy-root-remote
                  ssh-deploy-on-explicit-save
+                 ssh-deploy-force-on-explicit-save
                  ssh-deploy-debug
                  ssh-deploy-async
                  ssh-deploy-async-with-threads)
@@ -284,6 +286,41 @@
         ;; Verify that both files have equal contents
         (should (equal t (nth 0 (ssh-deploy--diff-files file-a revision-file))))
         (should (equal t (nth 0 (ssh-deploy--diff-files file-a file-b))))
+
+        ;; Make changes in file-b
+        (find-file file-b)
+        (insert "ABC")
+        (save-buffer)
+        (kill-buffer)
+
+        ;; Verify that file-a and file-b differs
+        (should (equal nil (nth 0 (ssh-deploy--diff-files file-a file-b))))
+
+        ;; Make changes in file-a
+        (find-file file-a)
+        (insert "More")
+        (save-buffer)
+
+        (when (> async 0)
+          (sleep-for 1))
+
+        ;; Verify that file-a and file-b still differs
+        (should (equal nil (nth 0 (ssh-deploy--diff-files file-a file-b))))
+
+        ;; Make changes in file-a
+        (find-file file-a)
+        (setq ssh-deploy-force-on-explicit-save 1)
+        (insert "More")
+        (save-buffer)
+        (kill-buffer)
+
+        (when (> async 0)
+          (sleep-for 1))
+
+        ;; Verify that both files have equal contents again
+        (should (equal t (nth 0 (ssh-deploy--diff-files file-a file-b))))
+
+        (setq ssh-deploy-force-on-explicit-save 0)
 
         ;; Modify only local revision
         (find-file revision-file)
