@@ -260,6 +260,17 @@ Ange-FTP defaults to `~/.netrc` so you need to add this to your init script:
 (setq ange-ftp-netrc-filename "~/.authinfo.gpg")
 ```
 
+## DirectoryVariables not read in evil-mode / doom-emacs / spacemacs et. al
+
+Thanks `shrubbroom` for poiting out that `evil-mode` has a upstream bug were the function `hack-local-variables` are not executed as expected and this results in that DirectoryVariables are not set, to fix this you can add this to your init-script:
+
+``` elisp
+(advice-add #'turn-on-evil-mode :before
+              (lambda (&optional args)
+                (when (eq major-mode 'fundamental-mode)
+                  (hack-local-variables))))
+```
+
 ## Tests
 
 Run `make test` from plug-in folder to run tests

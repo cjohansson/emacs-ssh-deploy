@@ -5,8 +5,8 @@
 ;; Author: Christian Johansson <christian@cvj.se>
 ;; Maintainer: Christian Johansson <christian@cvj.se>
 ;; Created: 5 Jul 2016
-;; Modified: 6 Mar 2020
-;; Version: 3.1.11
+;; Modified: 10 Oct 2020
+;; Version: 3.1.12
 ;; Keywords: tools, convenience
 ;; URL: https://github.com/cjohansson/emacs-ssh-deploy
 
@@ -1364,7 +1364,7 @@
 (defvar ssh-deploy-prefix-map
   (let ((map (make-sparse-keymap)))
     (define-key map "f" 'ssh-deploy-upload-handler-force)
-    (define-key map "u" 'ssh-deploy-upload-handle)
+    (define-key map "u" 'ssh-deploy-upload-handler)
     (define-key map "D" 'ssh-deploy-delete-handler)
     (define-key map "d" 'ssh-deploy-download-handler)
     (define-key map "x" 'ssh-deploy-diff-handler)
