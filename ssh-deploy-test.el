@@ -1,6 +1,6 @@
 ;;; ssh-deploy-test.el --- Unit and integration tests for ssh-deploy.  -*- lexical-binding:t -*-
 
-;; Copyright (C) 2017-2019  Free Software Foundation, Inc.
+;; Copyright (C) 2017-2021  Free Software Foundation, Inc.
 
 ;; This file is not part of GNU Emacs.
 
