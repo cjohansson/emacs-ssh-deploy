@@ -1,6 +1,6 @@
 ;;; ssh-deploy-hydra.el --- Deployment via Tramp, global or per directory.  -*- lexical-binding:t -*-
 
-;; Copyright (C) 2017-2019  Free Software Foundation, Inc.
+;; Copyright (C) 2017-2021  Free Software Foundation, Inc.
 
 ;; Package-Requires: ((emacs "25"))
 

@@ -1,6 +1,6 @@
 ;;; ssh-deploy-diff-mode.el --- Mode for interactive directory differences  -*- lexical-binding:t -*-
 
-;; Copyright (C) 2017-2018  Free Software Foundation, Inc.
+;; Copyright (C) 2017-2021  Free Software Foundation, Inc.
 
 ;; This file is not part of GNU Emacs.
 
