@@ -26,7 +26,7 @@ The `ssh-deploy` plug-in for Emacs makes it possible to effortlessly deploy loca
 
 The idea for this plug-in was to mimic the behavior of **PhpStorm** deployment functionality.
 
-This application is made by Christian Johansson <christian@cvj.se> 2016-2018 and is licensed under GNU General Public License 3 (GNU GPL 3).
+This application is made by Christian Johansson <christian@cvj.se> 2016-2021 and is licensed under GNU General Public License 3 (GNU GPL 3).
 
 ## Configuration
 
