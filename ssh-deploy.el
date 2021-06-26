@@ -129,7 +129,7 @@
 ;; * `ssh-deploy-script' - Our custom lambda function that will be called using (funcall) when running deploy script *(function)*
 ;; * `ssh-deploy-async-with-threads' - Whether to use threads (make threads) instead of processes (async-start) for asynchronous operations *(integer)*
 ;;
-;; When integers are used as booleans, above zero means true, zero means false and nil means unset and fallback to global settings.
+;; When integers are used as booleans, above zero means true, zero means false and nil means unset and indicates to fallback to global settings.
 ;;
 ;; Please see README.md from the same repository for more extended documentation.
 
@@ -983,11 +983,15 @@
     (when (and (ssh-deploy--file-is-in-path-p path-local root-local)
                (ssh-deploy--file-is-included-p path-local exclude-list))
       (let ((path-remote (expand-file-name (ssh-deploy--get-relative-path root-local path-local) root-remote)))
-        (message "Opening eshell on '%s'.." path-remote)
+        (message "Opening shell on '%s'.." path-remote)
         (let ((default-directory path-remote)
               (explicit-shell-file-name ssh-deploy-remote-shell-executable))
-          (when explicit-shell-file-name ;; NOTE This is only to trick flycheck to ignore unused error
-            (shell path-remote)))))))
+          (when explicit-shell-file-name
+            ;; NOTE This is only to trick flycheck to ignore unused error
+            )
+          (let ((buffer (generate-new-buffer (format "*Shell %s*" path-remote))))
+            (switch-to-buffer buffer)
+            (shell buffer)))))))
 
 ;;;###autoload
 (defun ssh-deploy-store-revision (path &optional root)
@@ -1222,7 +1226,7 @@
 
 ;;;###autoload
 (defun ssh-deploy-remote-terminal-shell-handler ()
-  "Open current relative path on remote host in `eshell' but only if it's configured for deployment."
+  "Open current relative path on remote host in `shell' but only if it's configured for deployment."
   (interactive)
   (when (and (ssh-deploy--is-not-empty-string-p ssh-deploy-root-local)
              (ssh-deploy--is-not-empty-string-p ssh-deploy-root-remote)
@@ -1233,7 +1237,7 @@
 
 ;;;###autoload
 (defun ssh-deploy-remote-terminal-shell-base-handler ()
-  "Open base path on remote host in `eshell' but only if it's configured for deployment."
+  "Open base path on remote host in `shell' but only if it's configured for deployment."
   (interactive)
   (when (and (ssh-deploy--is-not-empty-string-p ssh-deploy-root-local)
              (ssh-deploy--is-not-empty-string-p ssh-deploy-root-remote))
