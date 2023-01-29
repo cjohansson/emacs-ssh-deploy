@@ -1,6 +1,6 @@
 ;;; ssh-deploy.el --- Deployment via Tramp, global or per directory.  -*- lexical-binding:t -*-
 
-;; Copyright (C) 2017-2022  Free Software Foundation, Inc.
+;; Copyright (C) 2017-2023  Free Software Foundation, Inc.
 
 ;; Author: Christian Johansson <christian@cvj.se>
 ;; Maintainer: Christian Johansson <christian@cvj.se>
