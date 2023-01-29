@@ -151,7 +151,8 @@
       (_ (message "Copy is not available in this section")))))
 
 (defun ssh-deploy-diff-mode--copy-a (parts)
-  "Perform a upload of local-path to remote-path based on PARTS from section A or section BOTH."
+  "Perform a upload of local-path to remote-path based on PARTS
+from section A or section BOTH."
   (let* ((section (nth 1 parts))
          (file-name (nth 0 parts))
          (root-local (file-truename (nth 2 parts)))
@@ -163,7 +164,8 @@
           (t (message "Copy A is not available in this section")))))
 
 (defun ssh-deploy-diff-mode--copy-b (parts)
-  "Perform an download of remote-path to local-path based on PARTS from section B or section BOTH."
+  "Perform an download of remote-path to local-path based on PARTS
+from section B or section BOTH."
   (let* ((section (nth 1 parts))
          (file-name (nth 0 parts))
          (root-local (file-truename (nth 2 parts)))
@@ -175,7 +177,8 @@
           (t (message "Copy B is not available in this section")))))
 
 (defun ssh-deploy-diff-mode--delete (parts)
-  "Delete path in both, only in a or only in b based on PARTS from section A, B or BOTH."
+  "Delete path in both, only in a or only in b based on PARTS
+from section A, B or BOTH."
   (let* ((section (nth 1 parts))
          (file-name (nth 0 parts))
          (root-local (nth 2 parts))

@@ -32,7 +32,9 @@
 
 (defmacro ssh-deploy--fboundp-macro (name body)
   "Expand to BODY if NAME is bound.
-Takes care of byte-compilation issues where the `byte-code' for the latter could signal an error if it has been compiled with Emacs 24.1 and is then later run by Emacs 24.5."
+Takes care of byte-compilation issues where the `byte-code' for the latter
+could signal an error if it has been compiled with Emacs 24.1 and is
+then later run by Emacs 24.5."
   (declare (indent 2) (debug (symbolp form &rest form)))
   (if (fboundp name)
       body

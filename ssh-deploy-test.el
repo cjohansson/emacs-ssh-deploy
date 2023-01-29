@@ -33,7 +33,8 @@
 (require 'ssh-deploy-diff-mode)
 
 (defun ssh-deploy-test--download (async async-with-threads)
-  "Test downloads asynchronously if ASYNC is above zero, with threads if ASYNC-WITH-THREADS is above zero."
+  "Test downloads asynchronously if ASYNC is above zero,
+with threads if ASYNC-WITH-THREADS is above zero."
   (message "\nTest Download\n")
   (let ((directory-a (expand-file-name "test-a/"))
         (directory-b (expand-file-name "test-b/")))
@@ -86,7 +87,8 @@
     (delete-directory directory-b t)))
 
 (defun ssh-deploy-test--rename-and-delete (async async-with-threads)
-  "Test downloads asynchronous if ASYNC is above zero, with threads if ASYNC-WITH-THREADS is above zero."
+  "Test downloads asynchronous if ASYNC is above zero, with threads
+if ASYNC-WITH-THREADS is above zero."
   (message "\nTest Rename and delete\n")
   (let ((directory-a (expand-file-name "test-a/"))
         (directory-b (expand-file-name "test-b/"))
@@ -166,7 +168,8 @@
     (delete-directory directory-b t)))
 
 (defun ssh-deploy-test--upload (async async-with-threads)
-  "Test uploads asynchronously if ASYNC is above zero, with threads if ASYNC-WITH-THREADS is above zero."
+  "Test uploads asynchronously if ASYNC is above zero, with threads
+if ASYNC-WITH-THREADS is above zero."
   (message "\nTest Upload\n")
   (let ((directory-a (expand-file-name "test-a/"))
         (directory-b (expand-file-name "test-b/")))
@@ -238,7 +241,8 @@
     (delete-directory directory-b t)))
 
 (defun ssh-deploy-test--detect-remote-changes (async async-with-threads)
-  "Test uploads asynchronously if ASYNC is above zero, with threads if ASYNC-WITH-THREADS is above zero."
+  "Test uploads asynchronously if ASYNC is above zero, with
+threads if ASYNC-WITH-THREADS is above zero."
 
   (message "\nTest Detect Remote Changes\n")
   (let ((directory-a (expand-file-name "test-a/"))
@@ -391,7 +395,8 @@
     (delete-directory directory-b t)))
 
 (defun ssh-deploy-test--directory-diff (async async-with-threads)
-  "Test directory differences asynchronously if ASYNC is above zero, with threads if ASYNC-WITH-THREADS is above zero."
+  "Test directory differences asynchronously if ASYNC is above zero,
+with threads if ASYNC-WITH-THREADS is above zero."
 
   (message "\nTest Directory Difference\n")
   (let ((directory-a (file-truename (expand-file-name "test-a/")))
