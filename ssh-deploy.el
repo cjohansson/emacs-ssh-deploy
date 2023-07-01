@@ -117,6 +117,8 @@
 ;; * `ssh-deploy-revision-folder' - The folder used for storing local revisions *(string)*
 ;; * `ssh-deploy-automatically-detect-remote-changes' - Enables automatic detection of remote changes *(integer)*
 ;; * `ssh-deploy-on-explicit-save' - Enabled automatic uploads on save *(integer)*
+;; * `ssh-deploy-force-on-explicit-save' -- Enables forced uploads on explicit save actions *(integer)*
+;; * `ssh-deploy-run-script-on-explicit-save' - Enabled automatic running of the deployment script on save *(integer)*
 ;; * `ssh-deploy-exclude-list' - A list defining what file names to exclude from deployment *(list)*
 ;; * `ssh-deploy-async' - Enables asynchronous transfers (you need to have `(make-thread)` or `async.el` available as well) *(integer)*
 ;; * `ssh-deploy-remote-sql-database' - Default database when connecting to remote SQL database *(string)*
@@ -170,6 +172,12 @@
   :type 'integer)
 (put 'ssh-deploy-on-explicit-save 'permanent-local t)
 (put 'ssh-deploy-on-explicit-save 'safe-local-variable 'integerp)
+
+(defcustom ssh-deploy-run-script-on-explicit-save 0
+  "Boolean variable if deploy script should be executed on explicit save, 0 by default."
+  :type 'integer)
+(put 'ssh-deploy-run-script-on-explicit-save 'permanent-local t)
+(put 'ssh-deploy-run-script-on-explicit-save 'safe-local-variable 'integerp)
 
 (defcustom ssh-deploy-force-on-explicit-save 0
   "Boolean variable if deploy on explicit save
@@ -1424,6 +1432,10 @@ if it is configured for deployment."
 
 
 (defun ssh-deploy-after-save () "Logic for automatic uploads."
+       (when (and (boundp 'ssh-deploy-run-script-on-explicit-save)
+                  ssh-deploy-run-script-on-explicit-save
+                  (> ssh-deploy-run-script-on-explicit-save 0))
+         (ssh-deploy-run-deploy-script-handler))
        (when (and (boundp 'ssh-deploy-on-explicit-save)
                   ssh-deploy-on-explicit-save
                   (> ssh-deploy-on-explicit-save 0))

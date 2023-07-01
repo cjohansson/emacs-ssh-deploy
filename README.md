@@ -20,7 +20,7 @@ The `ssh-deploy` plug-in for Emacs makes it possible to effortlessly deploy loca
 * Delete files and directories on local host and have it mirrored on the remote
 * Open corresponding file on the remote host
 * Open SQL database-session on remote hosts
-* Run custom deployment scripts
+* Run custom deployment scripts, make scripts run when saving file inside directory
 * All operations support asynchronous mode if `(make-thread`) or `async.el` is installed. (You need to setup an automatic authorization for this, i.e. `~/.authinfo.gpg` and/or key-based password-less authorization)
 * Tries to follow best-practice both in terms of performance and code style
 
@@ -39,6 +39,7 @@ Here is a list of other variables you can set globally or per directory:
 * `ssh-deploy-automatically-detect-remote-changes` Enables automatic detection of remote changes *(integer)*
 * `ssh-deploy-on-explicit-save` Enabled automatic uploads on save *(integer)*
 * `ssh-deploy-force-on-explicit-save` Enables forced uploads on explicit save actions *(integer)*
+* `ssh-deploy-run-script-on-explicit-save' - Enabled automatic running of the deployment script on save *(integer)*
 * `ssh-deploy-exclude-list` A list defining what paths to exclude from deployment *(list)*
 * `ssh-deploy-async` Enables asynchronous transfers (you need to have `(make-thread)` or `async.el` installed as well) *(integer)*
 * `ssh-deploy-remote-sql-database` Default database when connecting to remote SQL database *(string)*
