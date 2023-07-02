@@ -5,8 +5,8 @@
 ;; Author: Christian Johansson <christian@cvj.se>
 ;; Maintainer: Christian Johansson <christian@cvj.se>
 ;; Created: 5 Jul 2016
-;; Modified: 1 Jul 2023
-;; Version: 3.1.15
+;; Modified: 2 Jul 2023
+;; Version: 3.1.16
 ;; Keywords: tools, convenience
 ;; URL: https://github.com/cjohansson/emacs-ssh-deploy
 
