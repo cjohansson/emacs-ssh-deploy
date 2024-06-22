@@ -1455,7 +1455,7 @@ if it is configured for deployment."
 
 (defvar ssh-deploy-prefix-map
   (let ((map (make-sparse-keymap)))
-    (define-key map "f" 'ssh-deploy-upload-handler-force)
+    (define-key map "f" 'ssh-deploy-upload-handler-forced)
     (define-key map "u" 'ssh-deploy-upload-handler)
     (define-key map "D" 'ssh-deploy-delete-handler)
     (define-key map "d" 'ssh-deploy-download-handler)
